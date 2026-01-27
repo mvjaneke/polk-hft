@@ -8,14 +8,15 @@
     <h1 class="text-4xl font-bold text-gray-900 mb-8">Membership Application</h1>
 
     <form method="post" class="space-y-8 bg-white p-8 rounded-lg shadow-md">
+        @Html.AntiForgeryToken()
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label for="membershipType" class="block text-sm font-medium text-gray-700">Membership Type</label>
                 <select id="membershipType" asp-for="MembershipApplication.MembershipType" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" onchange="updateCosts(); toggleAddMemberButton()" required>
                     <option value="">Select a membership type</option>
-                    <option value="Individual">Individual (R@Model.IndividualMembershipCost.ToString("F2"))</option>
-                    <option value="Family">Family (R@Model.FamilyMembershipCost.ToString("F2"))</option>
-                    <option value="Pensioner">Pensioner (R@Model.PensionerMembershipCost.ToString("F2"))</option>
+                    <option value="Individual">Individual (R@(Model.IndividualMembershipCost.ToString("F2")))</option>
+                    <option value="Family">Family (R@(Model.FamilyMembershipCost.ToString("F2")))</option>
+                    <option value="Pensioner">Pensioner (R@(Model.PensionerMembershipCost.ToString("F2")))</option>
                 </select>
                 <span asp-validation-for="MembershipApplication.MembershipType" class="text-red-600 text-sm"></span>
             </div>
@@ -30,60 +31,7 @@
 
         <h2 class="text-2xl font-bold text-gray-900 mb-4">Member Details</h2>
         <div id="membersContainer" class="space-y-6">
-            @* Initial Member Form *@
-            <div class="member-form p-6 border border-gray-200 rounded-md relative">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">Member 1 (Primary)</h3>
-                <input type="hidden" name="MemberInputs[0].IsPrimary" value="true" />
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="MemberInputs_0__FirstName" class="block text-sm font-medium text-gray-700">First Name</label>
-                        <input id="MemberInputs_0__FirstName" name="MemberInputs[0].FirstName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                        <span asp-validation-for="MemberInputs[0].FirstName" class="text-red-600 text-sm"></span>
-                    </div>
-                    <div>
-                        <label for="MemberInputs_0__Surname" class="block text-sm font-medium text-gray-700">Surname</label>
-                        <input id="MemberInputs_0__Surname" name="MemberInputs[0].Surname" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                        <span asp-validation-for="MemberInputs[0].Surname" class="text-red-600 text-sm"></span>
-                    </div>
-                    <div>
-                        <label for="MemberInputs_0__IdNumber" class="block text-sm font-medium text-gray-700">ID Number</label>
-                        <input id="MemberInputs_0__IdNumber" name="MemberInputs[0].IdNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                        <span asp-validation-for="MemberInputs[0].IdNumber" class="text-red-600 text-sm"></span>
-                    </div>
-                    <div>
-                        <label for="MemberInputs_0__Gender" class="block text-sm font-medium text-gray-700">Gender</label>
-                        <select id="MemberInputs_0__Gender" name="MemberInputs[0].Gender" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
-                            <option value="">Select Gender</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                        </select>
-                        <span asp-validation-for="MemberInputs[0].Gender" class="text-red-600 text-sm"></span>
-                    </div>
-                    <div>
-                        <label for="MemberInputs_0__ContactNumber" class="block text-sm font-medium text-gray-700">Contact Number</label>
-                        <input id="MemberInputs_0__ContactNumber" name="MemberInputs[0].ContactNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                        <span asp-validation-for="MemberInputs[0].ContactNumber" class="text-red-600 text-sm"></span>
-                    </div>
-                    <div>
-                        <label for="MemberInputs_0__EmailAddress" class="block text-sm font-medium text-gray-700">Email Address</label>
-                        <input id="MemberInputs_0__EmailAddress" name="MemberInputs[0].EmailAddress" type="email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                        <span asp-validation-for="MemberInputs[0].EmailAddress" class="text-red-600 text-sm"></span>
-                    </div>
-                    <div class="col-span-full">
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" id="MemberInputs_0__HasSahftaAffiliation" name="MemberInputs[0].HasSahftaAffiliation" value="true" class="form-checkbox" onchange="updateCosts(); toggleSahftaJunior(0)" />
-                            <span class="ml-2 text-gray-700">SAHFTA Affiliation (R@Model.SahftaAdultCost.ToString("F2") Adult / R@Model.SahftaChildCost.ToString("F2") Child)</span>
-                        </label>
-                        <div class="ml-6 mt-1 hidden" id="sahftaJunior0">
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" id="MemberInputs_0__IsJunior" name="MemberInputs[0].IsJunior" value="true" class="form-checkbox" onchange="updateCosts()" />
-                                <span class="ml-2 text-gray-700">Is a Junior (under 18)</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            @* Member forms will be injected here by JavaScript *@
         </div>
 
         <button type="button" id="addMemberButton" onclick="addMember()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 hidden">Add Another Member (Family)</button>
@@ -98,9 +46,10 @@
             <p>I furthermore indemnify the Pretoria East Airgun Field Target Club, its members, office bearers, or any other person representing the club from any blame.</p>
             <p>I also surrender my rights to any claim whatsoever that may arise out of action or neglect of any of the persons mentioned herein.</p>
             <label class="inline-flex items-center">
-                <input type="checkbox" name="DeclarationAgreed" value="true" class="form-checkbox" required />
+                <input type="checkbox" asp-for="DeclarationAgreed" value="true" class="form-checkbox" />
                 <span class="ml-2 text-gray-700">I agree to the above terms and conditions.</span>
             </label>
+            <span asp-validation-for="DeclarationAgreed" class="text-red-600 text-sm"></span>
         </div>
 
         <button type="submit" class="w-full px-6 py-3 bg-red-700 text-white font-semibold rounded-md hover:bg-red-800">Submit Application</button>
@@ -109,10 +58,16 @@
 
 @section Scripts {
     <script>
+        const individualCost = @Model.IndividualMembershipCost;
+        const familyCost = @Model.FamilyMembershipCost;
+        const pensionerCost = @Model.PensionerMembershipCost;
+        const sahftaAdultCost = @Model.SahftaAdultCost;
+        const sahftaChildCost = @Model.SahftaChildCost;
+        
         document.addEventListener('DOMContentLoaded', function () {
-            updateCosts(); // Initial calculation
-            toggleAddMemberButton(); // Initial state for add member button
-            toggleSahftaJunior(0); // Initial state for primary member's SAHFTA junior checkbox
+            addMember(true); // Add the primary member on load
+            updateCosts();
+            toggleAddMemberButton();
         });
 
         function updateCosts() {
@@ -120,19 +75,19 @@
             const membershipType = document.getElementById('membershipType').value;
 
             if (membershipType === "Individual") {
-                totalAmount += @Model.IndividualMembershipCost;
+                totalAmount += individualCost;
             } else if (membershipType === "Family") {
-                totalAmount += @Model.FamilyMembershipCost;
+                totalAmount += familyCost;
             } else if (membershipType === "Pensioner") {
-                totalAmount += @Model.PensionerMembershipCost;
+                totalAmount += pensionerCost;
             }
 
             document.querySelectorAll('.member-form').forEach((memberForm, index) => {
-                const hasSahftaAffiliationCheckbox = memberForm.querySelector(`input[type="checkbox"][name="MemberInputs[${index}].HasSahftaAffiliation"]`);
-                const isJuniorCheckbox = memberForm.querySelector(`input[type="checkbox"][name="MemberInputs[${index}].IsJunior"]`);
+                const hasSahftaAffiliationCheckbox = memberForm.querySelector(`input[name="MemberInputs[${index}].HasSahftaAffiliation"]`);
+                const isJuniorCheckbox = memberForm.querySelector(`input[name="MemberInputs[${index}].IsJunior"]`);
 
                 if (hasSahftaAffiliationCheckbox && hasSahftaAffiliationCheckbox.checked) {
-                    totalAmount += (isJuniorCheckbox && isJuniorCheckbox.checked) ? @Model.SahftaChildCost : @Model.SahftaAdultCost;
+                    totalAmount += (isJuniorCheckbox && isJuniorCheckbox.checked) ? sahftaChildCost : sahftaAdultCost;
                 }
             });
 
@@ -148,7 +103,6 @@
                     sahftaJuniorDiv.classList.remove('hidden');
                 } else {
                     sahftaJuniorDiv.classList.add('hidden');
-                    // Uncheck IsJunior if SAHFTA affiliation is deselected
                     const isJuniorCheckbox = document.getElementById(`MemberInputs_${index}__IsJunior`);
                     if (isJuniorCheckbox) {
                         isJuniorCheckbox.checked = false;
@@ -158,140 +112,88 @@
             updateCosts();
         }
 
-        let memberIndex = 0; // Initialize a counter for dynamically added members
-        function addMember() {
+        let memberCounter = 0;
+        function addMember(isPrimary = false) {
             const membersContainer = document.getElementById('membersContainer');
-            memberIndex = membersContainer.children.length; // Ensure unique index
+            const newIndex = memberCounter++;
 
             const newMemberHtml = `
-                <div class="member-form p-6 border border-gray-200 rounded-md relative mt-6">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Member ${memberIndex + 1}</h3>
-                    <button type="button" onclick="removeMember(this)" class="absolute top-4 right-4 text-red-600 hover:text-red-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
+                <div class="member-form p-6 border border-gray-200 rounded-md relative mt-6" data-index="${newIndex}">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Member ${newIndex + 1} ${isPrimary ? '(Primary)' : ''}</h3>
+                    ${!isPrimary ? `<button type="button" onclick="removeMember(this)" class="absolute top-4 right-4 text-red-600 hover:text-red-800"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>` : ''}
+                    <input type="hidden" name="MemberInputs[${newIndex}].IsPrimary" value="${isPrimary}" />
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="MemberInputs_${memberIndex}__FirstName" class="block text-sm font-medium text-gray-700">First Name</label>
-                            <input id="MemberInputs_${memberIndex}__FirstName" name="MemberInputs[${memberIndex}].FirstName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                        </div>
-                        <div>
-                            <label for="MemberInputs_${memberIndex}__Surname" class="block text-sm font-medium text-gray-700">Surname</label>
-                            <input id="MemberInputs_${memberIndex}__Surname" name="MemberInputs[${memberIndex}].Surname" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                        </div>
-                        <div>
-                            <label for="MemberInputs_${memberIndex}__IdNumber" class="block text-sm font-medium text-gray-700">ID Number</label>
-                            <input id="MemberInputs_${memberIndex}__IdNumber" name="MemberInputs[${memberIndex}].IdNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                        </div>
-                        <div>
-                            <label for="MemberInputs_${memberIndex}__Gender" class="block text-sm font-medium text-gray-700">Gender</label>
-                            <select id="MemberInputs_${memberIndex}__Gender" name="MemberInputs[${memberIndex}].Gender" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
-                                <option value="">Select Gender</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="MemberInputs_${memberIndex}__ContactNumber" class="block text-sm font-medium text-gray-700">Contact Number</label>
-                            <input id="MemberInputs_${memberIndex}__ContactNumber" name="MemberInputs[${memberIndex}].ContactNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                        </div>
-                        <div>
-                            <label for="MemberInputs_${memberIndex}__EmailAddress" class="block text-sm font-medium text-gray-700">Email Address</label>
-                            <input id="MemberInputs_${memberIndex}__EmailAddress" name="MemberInputs[${memberIndex}].EmailAddress" type="email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                        </div>
+                        <div><label for="MemberInputs_${newIndex}__FirstName" class="block text-sm font-medium text-gray-700">First Name</label><input id="MemberInputs_${newIndex}__FirstName" name="MemberInputs[${newIndex}].FirstName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
+                        <div><label for="MemberInputs_${newIndex}__Surname" class="block text-sm font-medium text-gray-700">Surname</label><input id="MemberInputs_${newIndex}__Surname" name="MemberInputs[${newIndex}].Surname" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
+                        <div><label for="MemberInputs_${newIndex}__IdNumber" class="block text-sm font-medium text-gray-700">ID Number</label><input id="MemberInputs_${newIndex}__IdNumber" name="MemberInputs[${newIndex}].IdNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
+                        <div><label for="MemberInputs_${newIndex}__Gender" class="block text-sm font-medium text-gray-700">Gender</label><select id="MemberInputs_${newIndex}__Gender" name="MemberInputs[${newIndex}].Gender" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required><option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                        <div><label for="MemberInputs_${newIndex}__ContactNumber" class="block text-sm font-medium text-gray-700">Contact Number</label><input id="MemberInputs_${newIndex}__ContactNumber" name="MemberInputs[${newIndex}].ContactNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
+                        <div><label for="MemberInputs_${newIndex}__EmailAddress" class="block text-sm font-medium text-gray-700">Email Address</label><input id="MemberInputs_${newIndex}__EmailAddress" name="MemberInputs[${newIndex}].EmailAddress" type="email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
                         <div class="col-span-full">
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" id="MemberInputs_${memberIndex}__HasSahftaAffiliation" name="MemberInputs[${memberIndex}].HasSahftaAffiliation" value="true" class="form-checkbox" onchange="updateCosts(); toggleSahftaJunior(${memberIndex})" />
-                                <span class="ml-2 text-gray-700">SAHFTA Affiliation (R@Model.SahftaAdultCost.ToString("F2") Adult / R@Model.SahftaChildCost.ToString("F2") Child)</span>
-                            </label>
-                            <div class="ml-6 mt-1 hidden" id="sahftaJunior${memberIndex}">
-                                <label class="inline-flex items-center">
-                                    <input type="checkbox" id="MemberInputs_${memberIndex}__IsJunior" name="MemberInputs[${memberIndex}].IsJunior" value="true" class="form-checkbox" onchange="updateCosts()" />
-                                    <span class="ml-2 text-gray-700">Is a Junior (under 18)</span>
-                                </label>
-                            </div>
+                            <label class="inline-flex items-center"><input type="checkbox" id="MemberInputs_${newIndex}__HasSahftaAffiliation" name="MemberInputs[${newIndex}].HasSahftaAffiliation" value="true" class="form-checkbox" onchange="updateCosts(); toggleSahftaJunior(${newIndex})" /> <span class="ml-2 text-gray-700">SAHFTA Affiliation (R${sahftaAdultCost.toFixed(2)} Adult / R${sahftaChildCost.toFixed(2)} Child)</span></label>
+                            <div class="ml-6 mt-1 hidden" id="sahftaJunior${newIndex}"><label class="inline-flex items-center"><input type="checkbox" id="MemberInputs_${newIndex}__IsJunior" name="MemberInputs[${newIndex}].IsJunior" value="true" class="form-checkbox" onchange="updateCosts()" /> <span class="ml-2 text-gray-700">Is a Junior (under 18)</span></label></div>
                         </div>
                     </div>
-                    <input type="hidden" name="MemberInputs[${memberIndex}].IsPrimary" value="false" />
                 </div>
             `;
             membersContainer.insertAdjacentHTML('beforeend', newMemberHtml);
+            toggleSahftaJunior(newIndex);
             updateCosts();
         }
 
         function removeMember(button) {
             button.closest('.member-form').remove();
-            // Re-index members to maintain correct model binding
-            document.querySelectorAll('.member-form').forEach((form, index) => {
+            memberCounter = 0;
+            document.querySelectorAll('.member-form').forEach((form) => {
+                const newIndex = memberCounter++;
+                form.dataset.index = newIndex;
+                const isPrimary = form.querySelector('input[name$=".IsPrimary"]').value === 'true';
+                form.querySelector('h3').innerText = `Member ${newIndex + 1} ${isPrimary ? '(Primary)' : ''}`;
+                
                 form.querySelectorAll('[name]').forEach(input => {
                     const name = input.getAttribute('name');
                     if (name) {
-                        input.setAttribute('name', name.replace(/MemberInputs\[\d+\]/, `MemberInputs[${index}]`));
-                        // Update the ID attribute as well for labels to work correctly
-                        input.setAttribute('id', input.id.replace(/MemberInputs_\d+__/, `MemberInputs_${index}__`));
+                        const newName = name.replace(/\[\d+\]/, `[${newIndex}]`);
+                        input.setAttribute('name', newName);
                     }
                 });
-                form.querySelector('h3').innerText = `Member ${index + 1}${form.querySelector('input[name$=".IsPrimary"][value="true"]') ? ' (Primary)' : ''}`;
-                const sahftaAffiliationCheckbox = form.querySelector(`input[type="checkbox"][name="MemberInputs[${index}].HasSahftaAffiliation"]`);
-                if (sahftaAffiliationCheckbox) {
-                    sahftaAffiliationCheckbox.setAttribute('id', `MemberInputs_${index}__HasSahftaAffiliation`);
-                    sahftaAffiliationCheckbox.setAttribute('onchange', `updateCosts(); toggleSahftaJunior(${index})`);
-                }
-                const sahftaJuniorDiv = form.querySelector('div[id^="sahftaJunior"]');
-                if (sahftaJuniorDiv) {
-                    sahftaJuniorDiv.id = `sahftaJunior${index}`;
-                    const isJuniorCheckbox = sahftaJuniorDiv.querySelector('input[type="checkbox"][name$=".IsJunior"]');
-                    if (isJuniorCheckbox) {
-                        isJuniorCheckbox.setAttribute('id', `MemberInputs_${index}__IsJunior`);
-                        isJuniorCheckbox.setAttribute('onchange', `updateCosts()`);
+
+                form.querySelectorAll('[id]').forEach(input => {
+                    const id = input.getAttribute('id');
+                    if (id) {
+                         const newId = id.replace(/_\d+__/, `_${newIndex}__`).replace(/Junior\d+/, `Junior${newIndex}`);
+                        input.setAttribute('id', newId);
                     }
+                });
+                
+                form.querySelectorAll('label[for]').forEach(label => {
+                     const htmlFor = label.getAttribute('for');
+                    if (htmlFor) {
+                        const newFor = htmlFor.replace(/_\d+__/, `_${newIndex}__`);
+                        label.setAttribute('for', newFor);
+                    }
+                });
+
+                const sahftaAffiliationCheckbox = form.querySelector(`input[id^="MemberInputs_${newIndex}__HasSahftaAffiliation"]`);
+                if(sahftaAffiliationCheckbox) {
+                    sahftaAffiliationCheckbox.setAttribute('onchange', `updateCosts(); toggleSahftaJunior(${newIndex})`);
                 }
             });
             updateCosts();
-            toggleAddMemberButton();
         }
 
         function toggleAddMemberButton() {
             const membershipType = document.getElementById('membershipType').value;
             const addMemberButton = document.getElementById('addMemberButton');
+            const memberForms = document.querySelectorAll('.member-form');
             if (membershipType === "Family") {
                 addMemberButton.classList.remove('hidden');
             } else {
                 addMemberButton.classList.add('hidden');
-                // If switching from family, remove extra members, but keep the primary one
-                const memberForms = document.querySelectorAll('.member-form');
-                for (let i = memberForms.length - 1; i > 0; i--) { // Start from the last, exclude the first (primary)
+                for (let i = memberForms.length - 1; i > 0; i--) {
                     memberForms[i].remove();
                 }
-                // Re-index remaining members (just the primary one)
-                if (memberForms.length > 0) {
-                    const form = memberForms[0];
-                    form.querySelectorAll('[name]').forEach(input => {
-                        const name = input.getAttribute('name');
-                        if (name) {
-                            input.setAttribute('name', name.replace(/MemberInputs\[\d+\]/, `MemberInputs[0]`));
-                            input.setAttribute('id', input.id.replace(/MemberInputs_\d+__/, `MemberInputs_0__`));
-                        }
-                    });
-                    form.querySelector('h3').innerText = `Member 1 (Primary)`;
-                    const sahftaAffiliationCheckbox = form.querySelector(`input[type="checkbox"][name="MemberInputs[0].HasSahftaAffiliation"]`);
-                    if (sahftaAffiliationCheckbox) {
-                        sahftaAffiliationCheckbox.setAttribute('id', `MemberInputs_0__HasSahftaAffiliation`);
-                        sahftaAffiliationCheckbox.setAttribute('onchange', `updateCosts(); toggleSahftaJunior(0)`);
-                    }
-                    const sahftaJuniorDiv = form.querySelector('div[id^="sahftaJunior"]');
-                    if (sahftaJuniorDiv) {
-                        sahftaJuniorDiv.id = `sahftaJunior0`;
-                        const isJuniorCheckbox = sahftaJuniorDiv.querySelector('input[type="checkbox"][name$=".IsJunior"]');
-                        if (isJuniorCheckbox) {
-                            isJuniorCheckbox.setAttribute('id', `MemberInputs_0__IsJunior`);
-                            isJuniorCheckbox.setAttribute('onchange', `updateCosts()`);
-                        }
-                    }
-                    toggleSahftaJunior(0); // Update visibility for the remaining primary member
-                }
+                memberCounter = memberForms.length > 0 ? 1 : 0;
             }
             updateCosts();
         }

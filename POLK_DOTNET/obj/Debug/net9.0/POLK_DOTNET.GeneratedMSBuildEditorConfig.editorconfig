@@ -32,6 +32,10 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW4uY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
+[D:/Development/POLK/POLK_DOTNET/Pages/Apply.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXBwbHkuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
 [D:/Development/POLK/POLK_DOTNET/Pages/EditEvent.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRWRpdEV2ZW50LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 

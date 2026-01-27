@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("POLK_DOTNET")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dc565e16f8b6f69b7f8afb5011c6276491a3b0ca")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f5df910720a49fb634923c007a683c56f0bb0fb5")]
 [assembly: System.Reflection.AssemblyProductAttribute("POLK_DOTNET")]
 [assembly: System.Reflection.AssemblyTitleAttribute("POLK_DOTNET")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
