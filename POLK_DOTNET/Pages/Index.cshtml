@@ -1,7 +1,17 @@
 @page
 @model IndexModel
-@{
+@{ 
     ViewData["Title"] = "Home page";
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="container mx-auto px-4 py-4">
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4" role="alert">
+            <p class="font-bold">Success</p>
+            <p>@TempData["SuccessMessage"]</p>
+        </div>
+    </div>
 }
 
 <div class="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 text-gray-900">
@@ -836,7 +846,7 @@
     }
 
     function navigateImage(direction) {
-        if (!selectedImage) return;
+        if (!selectedImage) return; 
         
         const filteredImages = selectedCategory === 'all'
             ? allGalleryImages
@@ -867,7 +877,7 @@
         container.innerHTML = ''; // Clear existing hardcoded content
 
         options.forEach(option => {
-            const featuresHtml = option.features.split('\\n').map(feature => `<li>• ${feature}</li>`).join('');
+            const featuresHtml = option.features.split('\n').map(feature => `<li>• ${feature}</li>`).join('');
             const cardHtml = `
                 <div class="bg-white/10 rounded-lg p-4 border border-white/20">
                     <div class="flex justify-between items-center mb-2">

@@ -86,6 +86,8 @@ namespace POLK_DOTNET.Pages
             }
             await _context.SaveChangesAsync();
 
+            TempData["SuccessMessage"] = "Your membership application has been submitted successfully!";
+
             // Redirect to a confirmation page or home page
             return RedirectToPage("/Index");
         }

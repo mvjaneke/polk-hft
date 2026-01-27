@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using POLK_DOTNET.Data;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, ".keys")));
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddDistributedMemoryCache();

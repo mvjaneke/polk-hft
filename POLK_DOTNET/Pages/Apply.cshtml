@@ -7,11 +7,11 @@
     ViewData["Title"] = "Membership Application";
     var costs = new
     {
-        individual = Model.IndividualMembershipCost.ToString(CultureInfo.InvariantCulture),
-        family = Model.FamilyMembershipCost.ToString(CultureInfo.InvariantCulture),
-        pensioner = Model.PensionerMembershipCost.ToString(CultureInfo.InvariantCulture),
-        sahftaAdult = Model.SahftaAdultCost.ToString(CultureInfo.InvariantCulture),
-        sahftaChild = Model.SahftaChildCost.ToString(CultureInfo.InvariantCulture)
+        individual = Model.IndividualMembershipCost,
+        family = Model.FamilyMembershipCost,
+        pensioner = Model.PensionerMembershipCost,
+        sahftaAdult = Model.SahftaAdultCost,
+        sahftaChild = Model.SahftaChildCost
     };
 }
 
@@ -42,7 +42,7 @@
 
         <h2 class="text-2xl font-bold text-gray-900 mb-4">Member Details</h2>
         <div id="membersContainer" class="space-y-6">
-             @for (int i = 0; i < Model.MemberInputs.Count; i++)
+            @for (int i = 0; i < Model.MemberInputs.Count; i++)
             {
                 <div class="member-form p-6 border border-gray-200 rounded-md relative" data-index="@i">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">Member @(i + 1) @(Model.MemberInputs[i].IsPrimary ? "(Primary)" : "")</h3>
@@ -132,7 +132,7 @@
 
 @section Scripts {
     <script>
-        const costs = @Json.Serialize(costs);
+        const costs = @Html.Raw(Json.Serialize(costs));
         let memberCounter = @Model.MemberInputs.Count;
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -156,8 +156,8 @@
             }
 
             document.querySelectorAll('.member-form').forEach(memberForm => {
-                const hasSahftaAffiliationCheckbox = memberForm.querySelector(`input[name$=".HasSahftaAffiliation"]`);
-                const isJuniorCheckbox = memberForm.querySelector(`input[name$=".IsJunior"]`);
+                const hasSahftaAffiliationCheckbox = memberForm.querySelector(`input[name$="].HasSahftaAffiliation"]`);
+                const isJuniorCheckbox = memberForm.querySelector(`input[name$="].IsJunior"]`);
 
                 if (hasSahftaAffiliationCheckbox && hasSahftaAffiliationCheckbox.checked) {
                     totalAmount += (isJuniorCheckbox && isJuniorCheckbox.checked) ? parseFloat(costs.sahftaChild) : parseFloat(costs.sahftaAdult);

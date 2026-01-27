@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using POLK_DOTNET.Data;
-using System.Collections.Generic;
+using System.Collections.Generic; // Added for IList
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,7 +30,7 @@ namespace POLK_DOTNET.Pages
         public IList<Event> Events { get; set; }
         public IList<GalleryImage> GalleryImages { get; set; }
         public IList<MembershipOption> MembershipOptions { get; set; }
-        public IList<MembershipApplication> MembershipApplications { get; set; }
+        public IList<MembershipApplication> MembershipApplications { get; set; } // Added
 
         public async Task OnGetAsync(string password)
         {
@@ -48,7 +48,7 @@ namespace POLK_DOTNET.Pages
                 MembershipApplications = await _context.MembershipApplications
                                                 .Include(ma => ma.Members)
                                                 .OrderByDescending(ma => ma.SubmittedDate)
-                                                .ToListAsync();
+                                                .ToListAsync(); // Added
             }
         }
 
