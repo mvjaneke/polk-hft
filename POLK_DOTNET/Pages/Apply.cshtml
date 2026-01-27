@@ -31,7 +31,70 @@
 
         <h2 class="text-2xl font-bold text-gray-900 mb-4">Member Details</h2>
         <div id="membersContainer" class="space-y-6">
-            @* Member forms will be injected here by JavaScript *@
+            @for (int i = 0; i < Model.MemberInputs.Count; i++)
+            {
+                <div class="member-form p-6 border border-gray-200 rounded-md relative">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Member @(i + 1) @(Model.MemberInputs[i].IsPrimary ? "(Primary)" : "")</h3>
+                    @if (!Model.MemberInputs[i].IsPrimary)
+                    {
+                        <button type="button" onclick="removeMember(this)" class="absolute top-4 right-4 text-red-600 hover:text-red-800">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    }
+                    <input type="hidden" asp-for="MemberInputs[i].IsPrimary" />
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label asp-for="MemberInputs[i].FirstName" class="block text-sm font-medium text-gray-700">First Name</label>
+                            <input asp-for="MemberInputs[i].FirstName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
+                            <span asp-validation-for="MemberInputs[i].FirstName" class="text-red-600 text-sm"></span>
+                        </div>
+                        <div>
+                            <label asp-for="MemberInputs[i].Surname" class="block text-sm font-medium text-gray-700">Surname</label>
+                            <input asp-for="MemberInputs[i].Surname" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
+                            <span asp-validation-for="MemberInputs[i].Surname" class="text-red-600 text-sm"></span>
+                        </div>
+                        <div>
+                            <label asp-for="MemberInputs[i].IdNumber" class="block text-sm font-medium text-gray-700">ID Number</label>
+                            <input asp-for="MemberInputs[i].IdNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
+                            <span asp-validation-for="MemberInputs[i].IdNumber" class="text-red-600 text-sm"></span>
+                        </div>
+                        <div>
+                            <label asp-for="MemberInputs[i].Gender" class="block text-sm font-medium text-gray-700">Gender</label>
+                            <select asp-for="MemberInputs[i].Gender" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <span asp-validation-for="MemberInputs[i].Gender" class="text-red-600 text-sm"></span>
+                        </div>
+                        <div>
+                            <label asp-for="MemberInputs[i].ContactNumber" class="block text-sm font-medium text-gray-700">Contact Number</label>
+                            <input asp-for="MemberInputs[i].ContactNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
+                            <span asp-validation-for="MemberInputs[i].ContactNumber" class="text-red-600 text-sm"></span>
+                        </div>
+                        <div>
+                            <label asp-for="MemberInputs[i].EmailAddress" class="block text-sm font-medium text-gray-700">Email Address</label>
+                            <input asp-for="MemberInputs[i].EmailAddress" type="email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
+                            <span asp-validation-for="MemberInputs[i].EmailAddress" class="text-red-600 text-sm"></span>
+                        </div>
+                        <div class="col-span-full">
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" asp-for="MemberInputs[i].HasSahftaAffiliation" class="form-checkbox" onchange="updateCosts()" />
+                                <span class="ml-2 text-gray-700">SAHFTA Affiliation (R@(Model.SahftaAdultCost.ToString("F2")) Adult / R@(Model.SahftaChildCost.ToString("F2")) Child)</span>
+                            </label>
+                            <div class="ml-6 mt-1 hidden" id="sahftaJunior@(i)">
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" asp-for="MemberInputs[i].IsJunior" class="form-checkbox" onchange="updateCosts()" />
+                                    <span class="ml-2 text-gray-700">Is a Junior (under 18)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
 
         <button type="button" id="addMemberButton" onclick="addMember()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 hidden">Add Another Member (Family)</button>
@@ -63,11 +126,14 @@
         const pensionerCost = @Model.PensionerMembershipCost;
         const sahftaAdultCost = @Model.SahftaAdultCost;
         const sahftaChildCost = @Model.SahftaChildCost;
-        
+        let memberCounter = @Model.MemberInputs.Count;
+
         document.addEventListener('DOMContentLoaded', function () {
-            addMember(true); // Add the primary member on load
             updateCosts();
             toggleAddMemberButton();
+             document.querySelectorAll('.member-form').forEach((form, index) => {
+                toggleSahftaJunior(index);
+            });
         });
 
         function updateCosts() {
@@ -83,8 +149,8 @@
             }
 
             document.querySelectorAll('.member-form').forEach((memberForm, index) => {
-                const hasSahftaAffiliationCheckbox = memberForm.querySelector(`input[name="MemberInputs[${index}].HasSahftaAffiliation"]`);
-                const isJuniorCheckbox = memberForm.querySelector(`input[name="MemberInputs[${index}].IsJunior"]`);
+                const hasSahftaAffiliationCheckbox = memberForm.querySelector(`input[name$="].HasSahftaAffiliation"]`);
+                const isJuniorCheckbox = memberForm.querySelector(`input[name$="].IsJunior"]`);
 
                 if (hasSahftaAffiliationCheckbox && hasSahftaAffiliationCheckbox.checked) {
                     totalAmount += (isJuniorCheckbox && isJuniorCheckbox.checked) ? sahftaChildCost : sahftaAdultCost;
@@ -96,14 +162,14 @@
         }
 
         function toggleSahftaJunior(index) {
-            const hasSahftaAffiliationCheckbox = document.getElementById(`MemberInputs_${index}__HasSahftaAffiliation`);
+            const hasSahftaAffiliationCheckbox = document.querySelector(`input[name="MemberInputs[${index}].HasSahftaAffiliation"]`);
             const sahftaJuniorDiv = document.getElementById(`sahftaJunior${index}`);
             if (sahftaJuniorDiv) {
                 if (hasSahftaAffiliationCheckbox && hasSahftaAffiliationCheckbox.checked) {
                     sahftaJuniorDiv.classList.remove('hidden');
                 } else {
                     sahftaJuniorDiv.classList.add('hidden');
-                    const isJuniorCheckbox = document.getElementById(`MemberInputs_${index}__IsJunior`);
+                    const isJuniorCheckbox = sahftaJuniorDiv.querySelector(`input[name="MemberInputs[${index}].IsJunior"]`);
                     if (isJuniorCheckbox) {
                         isJuniorCheckbox.checked = false;
                     }
@@ -112,16 +178,15 @@
             updateCosts();
         }
 
-        let memberCounter = 0;
-        function addMember(isPrimary = false) {
+        function addMember() {
             const membersContainer = document.getElementById('membersContainer');
             const newIndex = memberCounter++;
 
             const newMemberHtml = `
                 <div class="member-form p-6 border border-gray-200 rounded-md relative mt-6" data-index="${newIndex}">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Member ${newIndex + 1} ${isPrimary ? '(Primary)' : ''}</h3>
-                    ${!isPrimary ? `<button type="button" onclick="removeMember(this)" class="absolute top-4 right-4 text-red-600 hover:text-red-800"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>` : ''}
-                    <input type="hidden" name="MemberInputs[${newIndex}].IsPrimary" value="${isPrimary}" />
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Member ${newIndex + 1}</h3>
+                    <button type="button" onclick="removeMember(this)" class="absolute top-4 right-4 text-red-600 hover:text-red-800"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                    <input type="hidden" name="MemberInputs[${newIndex}].IsPrimary" value="false" />
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label for="MemberInputs_${newIndex}__FirstName" class="block text-sm font-medium text-gray-700">First Name</label><input id="MemberInputs_${newIndex}__FirstName" name="MemberInputs[${newIndex}].FirstName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
                         <div><label for="MemberInputs_${newIndex}__Surname" class="block text-sm font-medium text-gray-700">Surname</label><input id="MemberInputs_${newIndex}__Surname" name="MemberInputs[${newIndex}].Surname" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
@@ -188,10 +253,16 @@
             const memberForms = document.querySelectorAll('.member-form');
             if (membershipType === "Family") {
                 addMemberButton.classList.remove('hidden');
+                 if (memberForms.length === 0) {
+                    addMember(true);
+                }
             } else {
                 addMemberButton.classList.add('hidden');
                 for (let i = memberForms.length - 1; i > 0; i--) {
                     memberForms[i].remove();
+                }
+                 if (memberForms.length === 0) {
+                    addMember(true);
                 }
                 memberCounter = memberForms.length > 0 ? 1 : 0;
             }
