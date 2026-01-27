@@ -195,5 +195,4 @@ D:\Development\POLK\POLK_DOTNET\obj\Debug\net9.0\POLK_DOTNET.pdb
 D:\Development\POLK\POLK_DOTNET\obj\Debug\net9.0\POLK_DOTNET.genruntimeconfig.cache
 D:\Development\POLK\POLK_DOTNET\obj\Debug\net9.0\ref\POLK_DOTNET.dll
 D:\Development\POLK\POLK_DOTNET\bin\Debug\net9.0\app.db
-D:\Development\POLK\POLK_DOTNET\bin\Debug\net9.0\app.db-shm
-D:\Development\POLK\POLK_DOTNET\bin\Debug\net9.0\app.db-wal
+D:\Development\POLK\POLK_DOTNET\obj\Debug\net9.0\POLK_DOTNET.sourcelink.json
