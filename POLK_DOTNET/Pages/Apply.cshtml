@@ -1,7 +1,18 @@
 @page "/apply"
 @model POLK_DOTNET.Pages.ApplyModel
+@using System.Globalization
+@inject Microsoft.AspNetCore.Mvc.Rendering.IJsonHelper Json
+
 @{
     ViewData["Title"] = "Membership Application";
+    var costs = new
+    {
+        individual = Model.IndividualMembershipCost.ToString(CultureInfo.InvariantCulture),
+        family = Model.FamilyMembershipCost.ToString(CultureInfo.InvariantCulture),
+        pensioner = Model.PensionerMembershipCost.ToString(CultureInfo.InvariantCulture),
+        sahftaAdult = Model.SahftaAdultCost.ToString(CultureInfo.InvariantCulture),
+        sahftaChild = Model.SahftaChildCost.ToString(CultureInfo.InvariantCulture)
+    };
 }
 
 <div class="container mx-auto px-4 py-8">
@@ -12,7 +23,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label for="membershipType" class="block text-sm font-medium text-gray-700">Membership Type</label>
-                <select id="membershipType" asp-for="MembershipApplication.MembershipType" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" onchange="updateCosts(); toggleAddMemberButton()" required>
+                <select id="membershipType" asp-for="MembershipApplication.MembershipType" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" onchange="handleMembershipTypeChange()" required>
                     <option value="">Select a membership type</option>
                     <option value="Individual">Individual (R@(Model.IndividualMembershipCost.ToString("F2")))</option>
                     <option value="Family">Family (R@(Model.FamilyMembershipCost.ToString("F2")))</option>
@@ -31,9 +42,9 @@
 
         <h2 class="text-2xl font-bold text-gray-900 mb-4">Member Details</h2>
         <div id="membersContainer" class="space-y-6">
-            @for (int i = 0; i < Model.MemberInputs.Count; i++)
+             @for (int i = 0; i < Model.MemberInputs.Count; i++)
             {
-                <div class="member-form p-6 border border-gray-200 rounded-md relative">
+                <div class="member-form p-6 border border-gray-200 rounded-md relative" data-index="@i">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">Member @(i + 1) @(Model.MemberInputs[i].IsPrimary ? "(Primary)" : "")</h3>
                     @if (!Model.MemberInputs[i].IsPrimary)
                     {
@@ -82,7 +93,7 @@
                         </div>
                         <div class="col-span-full">
                             <label class="inline-flex items-center">
-                                <input type="checkbox" asp-for="MemberInputs[i].HasSahftaAffiliation" class="form-checkbox" onchange="updateCosts()" />
+                                <input type="checkbox" asp-for="MemberInputs[i].HasSahftaAffiliation" class="form-checkbox" onchange="toggleSahftaJunior(@i); updateCosts();" />
                                 <span class="ml-2 text-gray-700">SAHFTA Affiliation (R@(Model.SahftaAdultCost.ToString("F2")) Adult / R@(Model.SahftaChildCost.ToString("F2")) Child)</span>
                             </label>
                             <div class="ml-6 mt-1 hidden" id="sahftaJunior@(i)">
@@ -121,17 +132,13 @@
 
 @section Scripts {
     <script>
-        const individualCost = @Model.IndividualMembershipCost;
-        const familyCost = @Model.FamilyMembershipCost;
-        const pensionerCost = @Model.PensionerMembershipCost;
-        const sahftaAdultCost = @Model.SahftaAdultCost;
-        const sahftaChildCost = @Model.SahftaChildCost;
+        const costs = @Json.Serialize(costs);
         let memberCounter = @Model.MemberInputs.Count;
 
         document.addEventListener('DOMContentLoaded', function () {
             updateCosts();
             toggleAddMemberButton();
-             document.querySelectorAll('.member-form').forEach((form, index) => {
+            document.querySelectorAll('.member-form').forEach((form, index) => {
                 toggleSahftaJunior(index);
             });
         });
@@ -141,19 +148,19 @@
             const membershipType = document.getElementById('membershipType').value;
 
             if (membershipType === "Individual") {
-                totalAmount += individualCost;
+                totalAmount += parseFloat(costs.individual);
             } else if (membershipType === "Family") {
-                totalAmount += familyCost;
+                totalAmount += parseFloat(costs.family);
             } else if (membershipType === "Pensioner") {
-                totalAmount += pensionerCost;
+                totalAmount += parseFloat(costs.pensioner);
             }
 
-            document.querySelectorAll('.member-form').forEach((memberForm, index) => {
-                const hasSahftaAffiliationCheckbox = memberForm.querySelector(`input[name$="].HasSahftaAffiliation"]`);
-                const isJuniorCheckbox = memberForm.querySelector(`input[name$="].IsJunior"]`);
+            document.querySelectorAll('.member-form').forEach(memberForm => {
+                const hasSahftaAffiliationCheckbox = memberForm.querySelector(`input[name$=".HasSahftaAffiliation"]`);
+                const isJuniorCheckbox = memberForm.querySelector(`input[name$=".IsJunior"]`);
 
                 if (hasSahftaAffiliationCheckbox && hasSahftaAffiliationCheckbox.checked) {
-                    totalAmount += (isJuniorCheckbox && isJuniorCheckbox.checked) ? sahftaChildCost : sahftaAdultCost;
+                    totalAmount += (isJuniorCheckbox && isJuniorCheckbox.checked) ? parseFloat(costs.sahftaChild) : parseFloat(costs.sahftaAdult);
                 }
             });
 
@@ -177,6 +184,11 @@
             }
             updateCosts();
         }
+        
+        function handleMembershipTypeChange() {
+            updateCosts();
+            toggleAddMemberButton();
+        }
 
         function addMember() {
             const membersContainer = document.getElementById('membersContainer');
@@ -195,7 +207,7 @@
                         <div><label for="MemberInputs_${newIndex}__ContactNumber" class="block text-sm font-medium text-gray-700">Contact Number</label><input id="MemberInputs_${newIndex}__ContactNumber" name="MemberInputs[${newIndex}].ContactNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
                         <div><label for="MemberInputs_${newIndex}__EmailAddress" class="block text-sm font-medium text-gray-700">Email Address</label><input id="MemberInputs_${newIndex}__EmailAddress" name="MemberInputs[${newIndex}].EmailAddress" type="email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
                         <div class="col-span-full">
-                            <label class="inline-flex items-center"><input type="checkbox" id="MemberInputs_${newIndex}__HasSahftaAffiliation" name="MemberInputs[${newIndex}].HasSahftaAffiliation" value="true" class="form-checkbox" onchange="updateCosts(); toggleSahftaJunior(${newIndex})" /> <span class="ml-2 text-gray-700">SAHFTA Affiliation (R${sahftaAdultCost.toFixed(2)} Adult / R${sahftaChildCost.toFixed(2)} Child)</span></label>
+                            <label class="inline-flex items-center"><input type="checkbox" id="MemberInputs_${newIndex}__HasSahftaAffiliation" name="MemberInputs[${newIndex}].HasSahftaAffiliation" value="true" class="form-checkbox" onchange="toggleSahftaJunior(${newIndex}); updateCosts();" /> <span class="ml-2 text-gray-700">SAHFTA Affiliation (R${costs.sahftaAdult} Adult / R${costs.sahftaChild} Child)</span></label>
                             <div class="ml-6 mt-1 hidden" id="sahftaJunior${newIndex}"><label class="inline-flex items-center"><input type="checkbox" id="MemberInputs_${newIndex}__IsJunior" name="MemberInputs[${newIndex}].IsJunior" value="true" class="form-checkbox" onchange="updateCosts()" /> <span class="ml-2 text-gray-700">Is a Junior (under 18)</span></label></div>
                         </div>
                     </div>
@@ -241,7 +253,7 @@
 
                 const sahftaAffiliationCheckbox = form.querySelector(`input[id^="MemberInputs_${newIndex}__HasSahftaAffiliation"]`);
                 if(sahftaAffiliationCheckbox) {
-                    sahftaAffiliationCheckbox.setAttribute('onchange', `updateCosts(); toggleSahftaJunior(${newIndex})`);
+                    sahftaAffiliationCheckbox.setAttribute('onchange', `toggleSahftaJunior(${newIndex}); updateCosts();`);
                 }
             });
             updateCosts();
@@ -253,20 +265,13 @@
             const memberForms = document.querySelectorAll('.member-form');
             if (membershipType === "Family") {
                 addMemberButton.classList.remove('hidden');
-                 if (memberForms.length === 0) {
-                    addMember(true);
-                }
             } else {
                 addMemberButton.classList.add('hidden');
                 for (let i = memberForms.length - 1; i > 0; i--) {
                     memberForms[i].remove();
                 }
-                 if (memberForms.length === 0) {
-                    addMember(true);
-                }
                 memberCounter = memberForms.length > 0 ? 1 : 0;
             }
-            updateCosts();
         }
     </script>
 }
