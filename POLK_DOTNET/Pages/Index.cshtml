@@ -1,0 +1,915 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 text-gray-900">
+    <!-- Natural Background Elements -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none opacity-10">
+        <div class="absolute top-20 left-20 w-64 h-64 bg-red-600 rounded-full blur-3xl"></div>
+        <div class="absolute top-40 right-20 w-80 h-80 bg-gray-600 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-8 left-40 w-72 h-72 bg-red-700 rounded-full blur-3xl"></div>
+    </div>
+
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-red-600 text-white px-4 py-2 rounded">
+        Skip to main content
+    </a>
+
+    <!-- Navigation -->
+    <nav role="navigation" aria-label="Main navigation" class="sticky top-0 z-50 border-b border-gray-300 bg-white/90 backdrop-blur-sm shadow-md">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-red-700"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                    <span class="text-xl font-bold text-gray-900">
+                        POLK
+                    </span>
+                </div>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex space-x-6">
+                    <button class="text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="scrollToSection('home')">Home</button>
+                    <button class="text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="scrollToSection('about')">About HFT</button>
+                    <button class="text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="scrollToSection('gallery')">Gallery</button>
+                    <button class="text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="scrollToSection('events')">Events</button>
+                    <button class="text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="scrollToSection('membership')">Membership</button>
+                    <button class="text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="scrollToSection('contact')">Contact</button>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button class="md:hidden text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="toggleMobileMenu()">
+                    <svg id="menu-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg>
+                    <svg id="close-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 hidden"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <!-- Mobile Navigation Menu -->
+            <div id="mobile-menu" class="hidden md:hidden mt-4 pt-4 border-t border-gray-300">
+                <div class="flex flex-col space-y-2">
+                    <button class="text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start" onclick="scrollToSection('home')">Home</button>
+                    <button class="text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start" onclick="scrollToSection('about')">About HFT</button>
+                    <button class="text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start" onclick="scrollToSection('gallery')">Gallery</button>
+                    <button class="text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start" onclick="scrollToSection('events')">Events</button>
+                    <button class="text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start" onclick="scrollToSection('membership')">Membership</button>
+                    <button class="text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start" onclick="scrollToSection('contact')">Contact</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <main id="main-content">
+        <section id="home" class="relative z-10 container mx-auto px-4 py-20" aria-labelledby="hero-heading">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div class="space-y-8">
+                    <div class="space-y-4">
+                        <div class="bg-red-700 text-white border-0 px-4 py-2 text-sm rounded-full inline-flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 mr-2"><path d="M12 12v-2.2c0-2.2 1.3-3.8 3-3.8 1.2 0 3 1.1 3 3.8 0 1.4-1.3 3.8-3 3.8-1.7 0-3-1.8-3-1.8Z"></path><path d="m21.5 12-2.1-7.5-6.4 2.3"></path><path d="m2.5 12 2.1 7.5 6.4-2.3"></path><path d="M12 22v-7.5"></path><path d="M12 12v-2.2c0-2.2-1.3-3.8-3-3.8-1.2 0-3 1.1-3 3.8 0 1.4 1.3 3.8 3 3.8 1.7 0 3-1.8 3-1.8Z"></path></svg>
+                            Outdoor Shooting Excellence
+                        </div>
+                        <h1 id="hero-heading" class="text-5xl md:text-7xl font-bold text-gray-900">
+                            Pretoria East
+                            <br />
+                            Air Rifle Club
+                        </h1>
+                        <p class="text-xl md:text-2xl text-gray-700 max-w-3xl">
+                            Experience Hunter Field Target in the Natural Beauty of South Africa
+                        </p>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button class="bg-red-700 hover:bg-red-800 text-white border-0 px-8 py-6 text-lg rounded-md" onclick="scrollToSection('events')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2 inline-block"><path d="M12 8V4H8"></path><path d="M16 4h-2"></path><path d="M14 4h-2"></path><path d="m14 13-1-6"></path><path d="M10 13l-1-6"></path><path d="M6 20h12"></path><path d="M12 20v-7"></path></svg>
+                            Join Competition
+                        </button>
+                        <button class="border-red-700 text-red-700 hover:bg-red-50 px-8 py-6 text-lg rounded-md" onclick="scrollToSection('membership')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2 inline-block"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            Become Member
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="relative">
+                    <div class="absolute inset-0 bg-red-700/10 rounded-2xl blur-xl"></div>
+                    <img 
+                        src="/hft-course.jpg" 
+                        alt="Outdoor Hunter Field Target shooting course in natural woodland setting with realistic targets"
+                        class="relative rounded-2xl w-full h-auto shadow-2xl border border-gray-300"
+                    />
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Grid -->
+        <section id="about" class="relative z-10 container mx-auto px-4 py-20">
+            <h2 class="text-4xl font-bold text-center mb-12 text-green-900">
+                Why Choose POLK?
+            </h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white/80 backdrop-blur-sm border-green-200 hover:bg-green-50 transition-all duration-300 hover:scale-105 group shadow-md rounded-lg p-6 text-center">
+                    <div class="flex justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-green-700"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                    </div>
+                    <h3 class="text-green-900 text-lg font-semibold">Precision Shooting</h3>
+                    <p class="text-center text-gray-700 text-sm">Develop your marksmanship skills in natural outdoor conditions</p>
+                </div>
+                <div class="bg-white/80 backdrop-blur-sm border-green-200 hover:bg-green-50 transition-all duration-300 hover:scale-105 group shadow-md rounded-lg p-6 text-center">
+                    <div class="flex justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-green-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    </div>
+                    <h3 class="text-green-900 text-lg font-semibold">Safety First</h3>
+                    <p class="text-center text-gray-700 text-sm">Comprehensive safety protocols for all skill levels</p>
+                </div>
+                <div class="bg-white/80 backdrop-blur-sm border-green-200 hover:bg-green-50 transition-all duration-300 hover:scale-105 group shadow-md rounded-lg p-6 text-center">
+                    <div class="flex justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-amber-700"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    </div>
+                    <h3 class="text-green-900 text-lg font-semibold">Competitive Spirit</h3>
+                    <p class="text-center text-gray-700 text-sm">Regular tournaments with prizes and recognition</p>
+                </div>
+                <div class="bg-white/80 backdrop-blur-sm border-green-200 hover:bg-green-50 transition-all duration-300 hover:scale-105 group shadow-md rounded-lg p-6 text-center">
+                    <div class="flex justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-green-700"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    </div>
+                    <h3 class="text-green-900 text-lg font-semibold">Expert Coaching</h3>
+                    <p class="text-center text-gray-700 text-sm">Professional instructors for beginners to advanced shooters</p>
+                </div>
+            </div>
+            
+            <!-- Equipment Showcase -->
+            <div class="mt-16 bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-green-200 shadow-md">
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                    <div class="space-y-6">
+                        <h3 class="text-3xl font-bold text-green-900">
+                            About HFT in South Africa
+                        </h3>
+                        <div class="space-y-4 text-gray-700">
+                            <p>
+                                Hunter Field Target (HFT) is one of South Africa’s fastest-growing precision shooting sports, built around skill, consistency, and a deep respect for the outdoors. Using high-accuracy air rifles, shooters take on a series of steel animal-shaped targets placed at unknown distances, each shot taken from realistic, unsupported field positions—standing, kneeling, or prone. No adjustments are made to the scope once the course begins, keeping the focus on pure marksmanship, range-estimation ability, and shooter discipline.
+                            </p>
+                            <p>HFT in South Africa is known for its friendly, family-oriented community and beautifully challenging courses set across nature-rich locations. The sport welcomes all ages and skill levels, offering a competitive yet welcoming atmosphere where improving your shot and enjoying the day matter equally. Whether you're chasing podiums or just exploring a new outdoor passion, HFT delivers an exciting, rewarding experience for every shooter.</p>
+                            <ul class="space-y-2">
+                                <li class="flex items-center space-x-2">
+                                    <div class="w-2 h-2 bg-green-600 rounded-full"></div>
+                                    <span><b>Rifles Used:</b> Shooters use precision air rifles (spring or PCP) limited to 12 ft-lb, set up for reliability, consistency, and real-world field conditions.</span>
+                                </li>
+                                <li class="flex items-center space-x-2">
+                                    <div class="w-2 h-2 bg-amber-600 rounded-full"></div>
+                                    <span><b>Targets:</b> Courses feature steel knock-down animal targets placed at unknown distances, each with a small hit zone that must be struck to score.</span>
+                                </li>
+                                <li class="flex items-center space-x-2">
+                                    <div class="w-2 h-2 bg-green-700 rounded-full"></div>
+                                    <span><b>Skills Learned:</b> HFT builds core abilities like range estimation, steady shooting positions, wind reading, and mental focus—all without adjusting the scope during the course.</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-green-700/10 rounded-2xl blur-xl"></div>
+                        <img 
+                            src="/hft-rifle.jpg" 
+                            alt="Professional Hunter Field Target air rifle with telescopic scope"
+                            class="relative rounded-2xl w-full h-auto shadow-2xl border border-green-200"
+                        />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Competition Showcase -->
+        <section class="relative z-10 container mx-auto px-4 py-20">
+            <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 md:p-12 border border-green-200 shadow-md">
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                    <div class="space-y-6">
+                        <h2 class="text-4xl font-bold text-green-900">
+                            Competition Arena
+                        </h2>
+                        <div class="space-y-4 text-gray-700">
+                            <p>
+                                Experience the thrill of HFT competition in our natural outdoor course. 
+                                Manual scoring systems, realistic shooting positions, and professionally designed courses.
+                            </p>
+                            <p>
+                                Want to know more join us when we have our fun shoots, where you can take part and find out what it is all bout..
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-green-50 rounded-lg p-4 text-center border border-green-200">
+                                <div class="text-2xl font-bold text-green-700">42m</div>
+                                <div class="text-sm text-gray-600">Max Range</div>
+                            </div>
+                            <div class="bg-amber-50 rounded-lg p-4 text-center border border-amber-200">
+                                <div class="text-2xl font-bold text-amber-700">up to 40</div>
+                                <div class="text-sm text-gray-600">Targets</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-amber-700/10 rounded-2xl blur-xl"></div>
+                        <img 
+                            src="/hft-competition.jpg" 
+                            alt="Hunter Field Target competition in natural outdoor woodland setting"
+                            class="relative rounded-2xl w-full h-auto shadow-2xl border border-green-200"
+                        />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gallery Section -->
+        <section id="gallery" class="relative z-10 container mx-auto px-4 py-20">
+            <div class="text-center mb-12">
+                <div class="bg-red-700 text-white border-0 px-4 py-2 text-sm rounded-full inline-flex items-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 mr-2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>
+                    Our Activities
+                </div>
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">
+                    Gallery
+                </h2>
+                <p class="text-xl text-gray-700 max-w-3xl mx-auto">
+                    Explore our club activities, competitions, training sessions, and community events
+                </p>
+            </div>
+            
+            <!-- Category Filter -->
+            <div id="gallery-filter" class="flex flex-wrap gap-2 justify-center">
+                </div>
+
+            <!-- Gallery Grid -->
+            <div id="gallery-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            </div>
+
+            <!-- Lightbox -->
+            <div id="lightbox" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-4" onclick="closeLightbox()">
+            </div>
+        </section>
+
+        <!-- Events Calendar Section -->
+        <section id="events" class="relative z-10 container mx-auto px-4 py-20">
+            <div class="text-center mb-12">
+                <div class="bg-red-700 text-white border-0 px-4 py-2 text-sm rounded-full inline-flex items-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 mr-2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg>
+                    Stay Updated
+                </div>
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">
+                    Events Calendar
+                </h2>
+                <p class="text-xl text-gray-700 max-w-3xl mx-auto">
+                    Join our competitions, training sessions, and social events throughout the year
+                </p>
+            </div>
+            
+            <div class="space-y-8">
+                <!-- Calendar Grid -->
+                <div class="bg-white/80 backdrop-blur-sm border-gray-300 shadow-md rounded-lg">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between">
+                            <h3 id="calendar-month-year" class="text-2xl text-gray-900 font-semibold"></h3>
+                            <div class="flex space-x-2">
+                                <button onclick="navigateMonth('prev')" class="border-gray-300 text-gray-700 hover:bg-gray-50 p-2 rounded-md">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                                </button>
+                                <button onclick="navigateMonth('next')" class="border-gray-300 text-gray-700 hover:bg-gray-50 p-2 rounded-md">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-2 p-6">
+                    </div>
+                </div>
+
+                <!-- Upcoming Events List -->
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white/80 backdrop-blur-sm border-gray-300 shadow-md rounded-lg">
+                        <div class="p-6">
+                            <h3 class="text-xl text-gray-900 font-semibold">Upcoming Events</h3>
+                            <p class="text-gray-700">Don't miss these upcoming activities</p>
+                        </div>
+                        <div id="upcoming-events" class="p-6 space-y-4">
+                        </div>
+                    </div>
+                    <div class="bg-white/80 backdrop-blur-sm border-gray-300 shadow-md rounded-lg">
+                        <div class="p-6">
+                            <h3 class="text-xl text-gray-900 font-semibold">Event Types</h3>
+                            <p class="text-gray-700">Understanding our event categories</p>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div class="flex items-start space-x-3">
+                                <div class="p-2 bg-red-100 rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-red-700"><path d="M12 8V4H8"></path><path d="M16 4h-2"></path><path d="M14 4h-2"></path><path d="m14 13-1-6"></path><path d="M10 13l-1-6"></path><path d="M6 20h12"></path><path d="M12 20v-7"></path></svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">Competitions</h4>
+                                    <p class="text-sm text-gray-700">Official HFT competitions with scoring and prizes</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3">
+                                <div class="p-2 bg-gray-100 rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-gray-700"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">Training Sessions</h4>
+                                    <p class="text-sm text-gray-700">Skill development and technique improvement</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3">
+                                <div class="p-2 bg-gray-100 rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-gray-700"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">Social Events</h4>
+                                    <p class="text-sm text-gray-700">Family-friendly activities and club gatherings</p>
+                                </div>
+        </section>
+
+        <!-- Event Details Modal -->
+        <div id="event-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" onclick="closeModal()">
+            <div id="event-modal-content" class="relative bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+                <!-- Content will be injected by JavaScript -->
+            </div>
+        </div>
+
+        <!-- About HFT Section -->
+       @*  <section class="relative z-10 container mx-auto px-4 py-20">
+            <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 md:p-12 border border-green-200 shadow-md">
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div class="space-y-6">
+                        <h2 class="text-4xl font-bold text-green-900">
+                            What is Hunter Field Target?
+                        </h2>
+                        <div class="space-y-4 text-gray-700">
+                            <p>
+                                Hunter Field Target (HFT) is a challenging outdoor shooting discipline that simulates hunting scenarios in natural environments. 
+                                Competitors must accurately shoot at metal targets placed at various distances up to 42 meters in realistic shooting positions.
+                            </p>
+                            <p>
+                                Our club offers world-class HFT experience with manual scoring systems, natural woodland courses, 
+                                and professional coaching for beginners to advanced shooters. Experience shooting in varied terrain and weather conditions.
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-green-100 text-green-800 border-green-300 px-3 py-1 rounded-full text-sm">Outdoor</span>
+                            <span class="bg-green-100 text-green-800 border-green-300 px-3 py-1 rounded-full text-sm">Natural</span>
+                            <span class="bg-green-100 text-green-800 border-green-300 px-3 py-1 rounded-full text-sm">Precision</span>
+                            <span class="bg-green-100 text-green-800 border-green-300 px-3 py-1 rounded-full text-sm">Patience</span>
+                            <span class="bg-green-100 text-green-800 border-green-300 px-3 py-1 rounded-full text-sm">Technique</span>
+                            <span class="bg-green-100 text-green-800 border-green-300 px-3 py-1 rounded-full text-sm">Sportsmanship</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gradient-to-br from-green-50 to-amber-50 border-green-200 p-6 text-center rounded-lg">
+                            <div class="flex justify-center mb-2 text-green-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                            </div>
+                            <div class="text-2xl font-bold text-green-900">95%+</div>
+                            <div class="text-sm text-gray-600">Accuracy</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-green-50 to-amber-50 border-green-200 p-6 text-center rounded-lg">
+                            <div class="flex justify-center mb-2 text-green-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            </div>
+                            <div class="text-2xl font-bold text-green-900">150+</div>
+                            <div class="text-sm text-gray-600">Members</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-green-50 to-amber-50 border-green-200 p-6 text-center rounded-lg">
+                            <div class="flex justify-center mb-2 text-green-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><path d="M12 8V4H8"></path><path d="M16 4h-2"></path><path d="M14 4h-2"></path><path d="m14 13-1-6"></path><path d="M10 13l-1-6"></path><path d="M6 20h12"></path><path d="M12 20v-7"></path></svg>
+                            </div>
+                            <div class="text-2xl font-bold text-green-900">24/yr</div>
+                            <div class="text-sm text-gray-600">Events</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-green-50 to-amber-50 border-green-200 p-6 text-center rounded-lg">
+                            <div class="flex justify-center mb-2 text-green-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><path d="m8 3 4 8 5-5 5 15H2L8 3z"></path></svg>
+                            </div>
+                            <div class="text-2xl font-bold text-green-900">Natural</div>
+                            <div class="text-sm text-gray-600">Terrain</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section> *@
+
+        <!-- Membership & Contact -->
+        <section id="membership" class="relative z-10 container mx-auto px-4 py-20">
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-gradient-to-br from-green-700 to-green-600 text-white border-green-600 shadow-lg rounded-lg p-6">
+                    <h3 class="text-2xl text-white flex items-center font-semibold">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        Membership Options
+                    </h3>
+                    <div id="membership-options-container" class="space-y-4 mt-4">
+                        <!-- Membership options will be loaded here dynamically -->
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-amber-100 to-green-100 border-green-200 shadow-md rounded-lg p-6">
+                    <h3 class="text-2xl text-green-900 font-semibold">Get in Touch</h3>
+                    <p class="text-gray-700">
+                        Ready to start your HFT journey? Contact us today!
+                    </p>
+                    <div class="space-y-4 mt-4">
+                        <div class="flex items-center space-x-3 text-gray-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-700"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            <span>RANGE : Sandonia Golf Club (only when we are hosting)</span>
+                        </div>
+                        <div class="flex items-center space-x-3 text-gray-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-700"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            <span>+27 83 940 4006</span>
+                        </div>
+                        <div class="flex items-center space-x-3 text-gray-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-700"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                            <span>info@polk.co.za</span>
+                        </div>
+                        <hr class="bg-green-200">
+                        <div class="space-y-2">
+                            <h4 class="font-semibold text-green-900">Operating Hours:</h4>
+                            <div class="text-sm text-gray-700 space-y-1">
+                                <div>Monday - Friday: 10:00 - 16:30</div>
+                                <div>Saturday - Sunday: 08:00 - 13:00</div>
+                                <div>Public Holidays: 08:00 - 13:00</div>
+                            </div>
+                        </div>
+                        <button class="w-full bg-green-700 hover:bg-green-800 text-white border-0 py-2 px-4 rounded-md">
+                            Join Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer id="contact" class="relative z-10 border-t border-gray-300 bg-gray-900 text-white">
+        <div class="container mx-auto px-4 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-red-400"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                    <span class="text-lg font-semibold">Pretoria East Air Rifle Club</span>
+                </div>
+                <div class="text-gray-400 text-sm">
+                    © 2024 POLK. Outdoor Hunter Field Target shooting excellence.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top Button -->
+    <button id="back-to-top" class="fixed bottom-8 right-8 z-50 bg-red-700 hover:bg-red-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 w-12 h-12 rounded-full hidden" onclick="scrollToTop()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mx-auto"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg>
+    </button>
+</div>
+<script>
+    window.onscroll = function() {
+        const backToTopButton = document.getElementById('back-to-top');
+        if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+            backToTopButton.classList.remove('hidden');
+        } else {
+            backToTopButton.classList.add('hidden');
+        }
+    };
+
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+<script>
+    let events = [];
+    let currentMonth = new Date();
+
+    async function fetchEvents() {
+        const res = await fetch('/api/events');
+        let fetchedEvents = await res.json();
+        
+        events = fetchedEvents.map(event => ({
+            ...event,
+            startDate: new Date(event.startDate),
+            endDate: event.endDate ? new Date(event.endDate) : null
+        }));
+        
+        renderCalendar();
+        renderUpcomingEvents();
+    }
+
+    function renderCalendar() {
+        const calendarGrid = document.getElementById('calendar-grid');
+        const monthYear = document.getElementById('calendar-month-year');
+        calendarGrid.innerHTML = '';
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        monthYear.innerText = `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
+        
+        const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+        const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        daysOfWeek.forEach(day => {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'text-center text-sm font-semibold text-gray-600 py-2 bg-white';
+            dayElement.innerText = day;
+            calendarGrid.appendChild(dayElement);
+        });
+
+        for (let i = 0; i < firstDayOfMonth; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'bg-gray-50';
+            calendarGrid.appendChild(emptyCell);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayCell = document.createElement('div');
+            const currentDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+            dayCell.className = 'min-h-[100px] p-1 bg-white relative cursor-pointer hover:bg-gray-50 transition-colors';
+            dayCell.onclick = () => openModal(currentDate);
+
+            const dayNumber = document.createElement('div');
+            dayNumber.className = 'text-sm text-gray-800';
+            dayNumber.innerText = day;
+            dayCell.appendChild(dayNumber);
+
+            const dayEvents = getEventsForDay(currentDate);
+            if (dayEvents.length > 0) {
+                 dayEvents.slice(0, 3).forEach(event => {
+                    const eventElement = document.createElement('div');
+                    eventElement.className = `text-xs p-1 mt-1 truncate ${getEventTypeColor(event.type)}`;
+                    
+                    let isStart = isSameDay(currentDate, event.startDate);
+                    let isEnd = event.endDate ? isSameDay(currentDate, event.endDate) : isStart;
+                    
+                    if (isStart) eventElement.classList.add('rounded-l-md');
+                    if (isEnd) eventElement.classList.add('rounded-r-md');
+                    if (!isStart && !isEnd) eventElement.classList.add('rounded-none');
+
+                    eventElement.innerText = event.title;
+                    dayCell.appendChild(eventElement);
+                });
+            }
+            calendarGrid.appendChild(dayCell);
+        }
+    }
+    
+    function isSameDay(date1, date2) {
+        return date1.getFullYear() === date2.getFullYear() &&
+               date1.getMonth() === date2.getMonth() &&
+               date1.getDate() === date2.getDate();
+    }
+
+    function renderUpcomingEvents() {
+        const upcomingEventsContainer = document.getElementById('upcoming-events');
+        upcomingEventsContainer.innerHTML = '';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const twoWeeksFromNow = new Date(); // Start fresh with current date/time
+        twoWeeksFromNow.setDate(today.getDate() + 14); // Add 14 days to the current date, using today's day
+        twoWeeksFromNow.setHours(23, 59, 59, 999); // Set to end of the 14th day
+
+        const upcomingEvents = events
+            .filter(event => (event.endDate || event.startDate) >= today && event.startDate <= twoWeeksFromNow)
+            .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
+            .slice(0, 4);
+
+        if (upcomingEvents.length === 0) {
+            upcomingEventsContainer.innerHTML = '<p class="text-gray-500">No upcoming events scheduled at this time.</p>';
+            return;
+        }
+
+        upcomingEvents.forEach(event => {
+            const eventElement = document.createElement('div');
+            eventElement.className = 'border border-gray-300 rounded-lg p-4 hover:bg-red-50 transition-colors';
+            
+            let dateString = event.startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            if (event.endDate) {
+                 dateString += ` - ${event.endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+            }
+
+            eventElement.innerHTML = `
+                <div class="flex items-start justify-between mb-2">
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-gray-900">${event.title}</h4>
+                        <div class="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                            <div class="flex items-center space-x-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg>
+                                <span>${dateString}</span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                <span>${event.time}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${getEventTypeColor(event.type)}">${event.type}</span>
+                </div>
+                <p class="text-sm text-gray-700 mb-2">${event.description}</p>
+                <div class="flex items-center justify-between">
+                     ${event.location ? `<div class="flex items-center space-x-1 text-sm text-gray-600"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg><span>${event.location}</span></div>` : ''}
+                     ${event.participants ? `<div class="flex items-center space-x-1 text-sm text-gray-600"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>${event.participants}/${event.maxParticipants}</span></div>` : ''}
+                </div>
+            `;
+            upcomingEventsContainer.appendChild(eventElement);
+        });
+    }
+
+    function getEventsForDay(date) {
+        date.setHours(0, 0, 0, 0);
+        return events.filter(event => {
+            const startDate = new Date(event.startDate);
+            startDate.setHours(0, 0, 0, 0);
+            
+            if (event.endDate) {
+                const endDate = new Date(event.endDate);
+                endDate.setHours(0, 0, 0, 0);
+                return date >= startDate && date <= endDate;
+            } else {
+                return isSameDay(date, startDate);
+            }
+        });
+    }
+
+    function navigateMonth(direction) {
+        if (direction === 'prev') {
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+        } else {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+        }
+        renderCalendar();
+    }
+    
+    function getEventTypeColor(type) {
+        switch (type) {
+            case 'competition': return 'bg-red-200 text-red-800';
+            case 'training': return 'bg-blue-200 text-blue-800';
+            case 'social': return 'bg-green-200 text-green-800';
+            default: return 'bg-gray-200 text-gray-800';
+        }
+    }
+    
+    function openModal(date) {
+        const modal = document.getElementById('event-modal');
+        const modalContent = document.getElementById('event-modal-content');
+        const dayEvents = getEventsForDay(date);
+
+        if (dayEvents.length === 0) return;
+
+        let contentHtml = `<div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-900">${date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
+            </div>
+            <div class="space-y-6">`;
+
+        dayEvents.forEach(event => {
+             let dateString = event.startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            if (event.endDate) {
+                 dateString += ` - ${event.endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+            }
+        
+            contentHtml += `
+                <div class="border-l-4 ${getEventTypeBorderColor(event.type)} pl-4 py-2">
+                    <h3 class="font-bold text-lg text-gray-900">${event.title}</h3>
+                    <p class="text-sm text-gray-600">${event.description}</p>
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-700 mt-2">
+                        <div class="flex items-center space-x-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg>
+                            <span>${dateString} at ${event.time}</span>
+                        </div>
+                        ${event.location ? `<div class="flex items-center space-x-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg><span>${event.location}</span></div>` : ''}
+                        ${event.participants ? `<div class="flex items-center space-x-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>${event.participants}/${event.maxParticipants}</span></div>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        contentHtml += '</div></div>';
+        modalContent.innerHTML = contentHtml;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('event-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+    
+    function getEventTypeBorderColor(type) {
+        switch (type) {
+            case 'competition': return 'border-red-500';
+            case 'training': return 'border-blue-500';
+            case 'social': return 'border-green-500';
+            default: return 'border-gray-500';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchEvents);
+</script>
+
+<script>
+    let allGalleryImages = [];
+    const categories = [
+        { id: 'all', label: 'All Photos', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>' },
+        { id: 'competition', label: 'Competitions', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M12 8V4H8"></path><path d="M16 4h-2"></path><path d="M14 4h-2"></path><path d="m14 13-1-6"></path><path d="M10 13l-1-6"></path><path d="M6 20h12"></path><path d="M12 20v-7"></path></svg>' },
+        { id: 'training', label: 'Training', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>' },
+        { id: 'social', label: 'Social', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>' },
+        { id: 'awards', label: 'Awards', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M12 8V4H8"></path><path d="M16 4h-2"></path><path d="M14 4h-2"></path><path d="m14 13-1-6"></path><path d="M10 13l-1-6"></path><path d="M6 20h12"></path><path d="M12 20v-7"></path></svg>' }
+    ];
+
+    let selectedCategory = 'all';
+    let selectedImage = null;
+    let currentImageIndex = 0;
+
+    async function fetchGallery() {
+        const res = await fetch('/api/galleryimages');
+        allGalleryImages = await res.json();
+        allGalleryImages = allGalleryImages.map(image => ({...image, src: image.fileName}));
+        renderGallery();
+    }
+
+    function renderGallery() {
+        const galleryGrid = document.getElementById('gallery-grid');
+        const galleryFilter = document.getElementById('gallery-filter');
+        galleryGrid.innerHTML = '';
+        galleryFilter.innerHTML = '';
+
+        // Render filter buttons
+        categories.forEach(category => {
+            const button = document.createElement('button');
+            button.className = `flex items-center space-x-2 px-4 py-2 rounded-md ${selectedCategory === category.id ? 'bg-red-700 text-white border-red-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`;
+            button.onclick = () => {
+                selectedCategory = category.id;
+                renderGallery();
+            };
+            button.innerHTML = `${category.icon} <span>${category.label}</span>`;
+            galleryFilter.appendChild(button);
+        });
+
+        // Render images
+        const filteredImages = selectedCategory === 'all'
+            ? allGalleryImages
+            : allGalleryImages.filter(img => img.category === selectedCategory);
+
+        filteredImages.forEach((image, index) => {
+            const card = document.createElement('div');
+            card.className = 'group cursor-pointer overflow-hidden bg-white/80 backdrop-blur-sm border-gray-300 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-lg';
+            card.onclick = () => openLightbox(image, index);
+            card.innerHTML = `
+                <div class="relative aspect-[4/3] overflow-hidden">
+                    <img src="${image.src}" alt="${image.description}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div class="absolute bottom-0 left-0 right-0 p-4 text-white">
+                            <h3 class="font-semibold text-lg">${image.title}</h3>
+                            <p class="text-sm opacity-90">${image.description}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-900">${image.title}</h3>
+                        <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${getCategoryColor(image.category)}">${image.category}</span>
+                    </div>
+                </div>
+            `;
+            galleryGrid.appendChild(card);
+        });
+    }
+
+    function getCategoryColor(category) {
+        switch (category) {
+            case 'competition':
+                return 'bg-red-100 text-red-800';
+            case 'training':
+                return 'bg-gray-100 text-gray-800';
+            case 'social':
+                return 'bg-gray-100 text-gray-800';
+            case 'awards':
+                return 'bg-gray-100 text-gray-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    }
+
+    function openLightbox(image, index) {
+        selectedImage = image;
+        currentImageIndex = index;
+        const lightbox = document.getElementById('lightbox');
+        lightbox.classList.remove('hidden');
+        lightbox.classList.add('flex');
+        lightbox.innerHTML = `
+            <div class="relative max-w-6xl w-full bg-white rounded-lg overflow-hidden" onclick="event.stopPropagation()">
+                <button class="absolute top-4 right-4 text-white hover:bg-white/20 z-10" onclick="closeLightbox()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <button class="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-10" onclick="navigateImage('prev')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <button class="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-10" onclick="navigateImage('next')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+                <div class="relative aspect-[16/10]">
+                    <img src="${selectedImage.src}" alt="${selectedImage.description}" class="w-full h-full object-contain">
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-2xl font-bold text-green-900">${selectedImage.title}</h3>
+                        <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${getCategoryColor(selectedImage.category)}">${selectedImage.category}</span>
+                    </div>
+                    <p class="text-gray-700 mb-4">${selectedImage.description}</p>
+                    <div class="flex items-center justify-between text-sm text-gray-500">
+                        <span>${currentImageIndex + 1} of ${allGalleryImages.length}</span>
+                        <div class="flex space-x-2">
+                            <button class="border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-md" onclick="navigateImage('prev')">Previous</button>
+                            <button class="border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-md" onclick="navigateImage('next')">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function closeLightbox() {
+        const lightbox = document.getElementById('lightbox');
+        lightbox.classList.add('hidden');
+        lightbox.classList.remove('flex');
+    }
+
+    function navigateImage(direction) {
+        if (!selectedImage) return;
+        
+        const filteredImages = selectedCategory === 'all'
+            ? allGalleryImages
+            : allGalleryImages.filter(img => img.category === selectedCategory);
+
+        let newIndex = currentImageIndex;
+        if (direction === 'prev') {
+            newIndex = currentImageIndex > 0 ? currentImageIndex - 1 : filteredImages.length - 1;
+        } else {
+            newIndex = currentImageIndex < filteredImages.length - 1 ? currentImageIndex + 1 : 0;
+        }
+        
+        openLightbox(filteredImages[newIndex], newIndex);
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchEvents();
+        fetchGallery();
+        fetchMembershipOptions();
+    });
+</script>
+
+<script>
+    async function fetchMembershipOptions() {
+        const res = await fetch('/api/membershipoptions');
+        const options = await res.json();
+        const container = document.getElementById('membership-options-container');
+        container.innerHTML = ''; // Clear existing hardcoded content
+
+        options.forEach(option => {
+            const featuresHtml = option.features.split('\\n').map(feature => `<li>• ${feature}</li>`).join('');
+            const cardHtml = `
+                <div class="bg-white/10 rounded-lg p-4 border border-white/20">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold text-white">${option.title}</h4>
+                        <span class="text-amber-300 font-bold">${option.price}</span>
+                    </div>
+                    <ul class="text-sm text-white/80 space-y-1">
+                        ${featuresHtml}
+                    </ul>
+                </div>
+            `;
+            container.innerHTML += cardHtml;
+        });
+    }
+</script>
+
+
+<script>
+    function scrollToSection(sectionId) {
+        const element = document.getElementById(sectionId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        // Close mobile menu if open
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuIcon = document.getElementById('menu-icon');
+        const closeIcon = document.getElementById('close-icon');
+        if (mobileMenu && menuIcon && closeIcon) {
+            mobileMenu.classList.add('hidden');
+            menuIcon.classList.remove('hidden');
+            closeIcon.classList.add('hidden');
+        }
+    }
+
+    function toggleMobileMenu() {
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuIcon = document.getElementById('menu-icon');
+        const closeIcon = document.getElementById('close-icon');
+        if (mobileMenu && menuIcon && closeIcon) {
+            mobileMenu.classList.toggle('hidden');
+            menuIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
+        }
+    }
+</script>

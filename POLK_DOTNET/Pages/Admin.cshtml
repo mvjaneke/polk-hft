@@ -1,0 +1,156 @@
+@page "/admin"
+@model POLK_DOTNET.Pages.AdminModel
+@{
+    ViewData["Title"] = "Admin";
+}
+
+@if (!Model.IsAuthenticated)
+{
+    <div class="flex items-center justify-center min-h-screen">
+        <form method="post" class="p-8 bg-white rounded-lg shadow-md">
+            <h1 class="text-2xl font-bold mb-4">Admin Login</h1>
+            <input type="password" name="password" class="w-full px-4 py-2 border rounded-md" placeholder="Password" />
+            <button type="submit" class="w-full mt-4 px-4 py-2 text-white bg-red-700 rounded-md">Login</button>
+        </form>
+    </div>
+}
+else
+{
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold mb-8">Admin</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+                <h2 class="text-2xl font-bold mb-4">Event Management</h2>
+                
+<form method="post" asp-page-handler="AddEvent" class="space-y-4">
+    <input type="text" name="Title" class="w-full px-4 py-2 border rounded-md" placeholder="Title" required />
+    <div>
+        <label for="StartDate" class="block text-sm font-medium text-gray-700">Start Date</label>
+        <input type="date" name="StartDate" id="StartDate" class="w-full px-4 py-2 border rounded-md" required />
+    </div>
+    <div>
+        <label for="EndDate" class="block text-sm font-medium text-gray-700">End Date (optional)</label>
+        <input type="date" name="EndDate" id="EndDate" class="w-full px-4 py-2 border rounded-md" />
+    </div>
+    <input type="text" name="Time" class="w-full px-4 py-2 border rounded-md" placeholder="Time" required />
+    <select name="Type" class="w-full px-4 py-2 border rounded-md" required>
+        <option value="" disabled selected>Select an event type...</option>
+        <option value="competition">Competition</option>
+        <option value="training">Training</option>
+        <option value="social">Social</option>
+    </select>
+    <textarea name="Description" class="w-full px-4 py-2 border rounded-md" placeholder="Description" required></textarea>
+    <input type="text" name="Location" class="w-full px-4 py-2 border rounded-md" placeholder="Location" />
+    <input type="number" name="Participants" class="w-full px-4 py-2 border rounded-md" placeholder="Participants" />
+    <input type="number" name="MaxParticipants" class="w-full px-4 py-2 border rounded-md" placeholder="Max Participants" />
+    <button type="submit" class="px-4 py-2 text-white bg-red-700 rounded-md">Add Event</button>
+</form>
+
+<table class="w-full mt-8">
+    <thead>
+        <tr>
+            <th class="text-left">Title</th>
+            <th class="text-left">Date</th>
+            <th class="text-left">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var ev in Model.Events)
+        {
+            <tr>
+                <td>@ev.Title</td>
+                <td>
+                    @ev.StartDate.ToShortDateString()
+                    @if (ev.EndDate.HasValue)
+                    {
+                        <span> - @ev.EndDate.Value.ToShortDateString()</span>
+                    }
+                </td>
+                <td class="flex items-center space-x-2">
+                    <a asp-page="/EditEvent" asp-route-id="@ev.Id" class="text-blue-500 hover:underline">Edit</a>
+                    <form method="post" asp-page-handler="DeleteEvent" asp-route-id="@ev.Id">
+                        <button type="submit" class="text-red-500 hover:underline bg-transparent border-none p-0">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold mb-4">Gallery Management</h2>
+
+<form method="post" asp-page-handler="AddImage" enctype="multipart/form-data" class="space-y-4">
+    <input type="file" name="Image" class="w-full" required />
+    <input type="text" name="Title" class="w-full px-4 py-2 border rounded-md" placeholder="Title" required />
+    <select name="Category" class="w-full px-4 py-2 border rounded-md" required>
+        <option value="" disabled selected>Select a category...</option>
+        <option value="competition">Competition</option>
+        <option value="training">Training</option>
+        <option value="social">Social</option>
+        <option value="awards">Awards</option>
+    </select>
+    <textarea name="Description" class="w-full px-4 py-2 border rounded-md" placeholder="Description" required></textarea>
+    <button type="submit" class="px-4 py-2 text-white bg-red-700 rounded-md">Add Image</button>
+</form>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
+    @foreach (var image in Model.GalleryImages)
+    {
+        <div class="relative">
+            <img src="@image.FileName" class="w-full h-full object-cover rounded-md" />
+            <form method="post" asp-page-handler="DeleteImage" asp-route-id="@image.Id">
+                <button type="submit" class="absolute top-2 right-2 bg-red-700 text-white rounded-full p-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </form>
+        </div>
+    }
+</div>
+            </div>
+        </div>
+
+        <hr class="my-12 border-gray-300" />
+
+        <div>
+            <h2 class="text-3xl font-bold mb-4">Membership Management</h2>
+            
+            <form method="post" asp-page-handler="AddMembershipOption" class="space-y-4 p-6 bg-white rounded-lg shadow-md mb-8">
+                <h3 class="text-xl font-semibold text-gray-800">Add New Option</h3>
+                <input type="text" name="Title" class="w-full px-4 py-2 border rounded-md" placeholder="Title" required />
+                <input type="text" name="Price" class="w-full px-4 py-2 border rounded-md" placeholder="Price (e.g., R150/month)" required />
+                <textarea name="Features" rows="4" class="w-full px-4 py-2 border rounded-md" placeholder="Features (one per line)" required></textarea>
+                <input type="number" name="DisplayOrder" class="w-full px-4 py-2 border rounded-md" placeholder="Display Order" required />
+                <button type="submit" class="px-4 py-2 text-white bg-red-700 rounded-md hover:bg-red-800">Add Membership Option</button>
+            </form>
+
+            <table class="w-full mt-8 bg-white rounded-lg shadow-md">
+                <thead>
+                    <tr class="border-b">
+                        <th class="text-left p-4">Order</th>
+                        <th class="text-left p-4">Title</th>
+                        <th class="text-left p-4">Price</th>
+                        <th class="text-left p-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var option in Model.MembershipOptions)
+                    {
+                        <tr class="border-b last:border-none">
+                            <td class="p-4">@option.DisplayOrder</td>
+                            <td class="p-4">@option.Title</td>
+                            <td class="p-4">@option.Price</td>
+                            <td class="p-4 flex items-center space-x-2">
+                                <a asp-page="/EditMembershipOption" asp-route-id="@option.Id" class="text-blue-500 hover:underline">Edit</a>
+                                <form method="post" asp-page-handler="DeleteMembershipOption" asp-route-id="@option.Id">
+                                    <button type="submit" class="text-red-500 hover:underline bg-transparent border-none p-0">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

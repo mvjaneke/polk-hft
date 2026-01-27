@@ -1,0 +1,29 @@
+@page "/editevent/{id:int}"
+@model POLK_DOTNET.Pages.EditEventModel
+@{
+    ViewData["Title"] = "Edit Event";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold mb-8">Edit Event</h1>
+
+    <form method="post" class="space-y-4">
+        <input type="hidden" asp-for="Event.Id" />
+        <input type="text" asp-for="Event.Title" class="w-full px-4 py-2 border rounded-md" placeholder="Title" required />
+        <div>
+            <label asp-for="Event.StartDate" class="block text-sm font-medium text-gray-700">Start Date</label>
+            <input type="date" asp-for="Event.StartDate" class="w-full px-4 py-2 border rounded-md" required />
+        </div>
+        <div>
+            <label asp-for="Event.EndDate" class="block text-sm font-medium text-gray-700">End Date (optional)</label>
+            <input type="date" asp-for="Event.EndDate" class="w-full px-4 py-2 border rounded-md" />
+        </div>
+        <input type="text" asp-for="Event.Time" class="w-full px-4 py-2 border rounded-md" placeholder="Time" required />
+        <input type="text" asp-for="Event.Type" class="w-full px-4 py-2 border rounded-md" placeholder="Type" required />
+        <textarea asp-for="Event.Description" class="w-full px-4 py-2 border rounded-md" placeholder="Description" required></textarea>
+        <input type="text" asp-for="Event.Location" class="w-full px-4 py-2 border rounded-md" placeholder="Location" />
+        <input type="number" asp-for="Event.Participants" class="w-full px-4 py-2 border rounded-md" placeholder="Participants" />
+        <input type="number" asp-for="Event.MaxParticipants" class="w-full px-4 py-2 border rounded-md" placeholder="Max Participants" />
+        <button type="submit" class="px-4 py-2 text-white bg-red-700 rounded-md">Save Changes</button>
+    </form>
+</div>
