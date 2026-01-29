@@ -34,7 +34,9 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700">Total Amount Due</label>
                 <p id="totalAmountDisplay" class="mt-1 text-lg font-bold text-red-700">R0.00</p>
+                <p id="adminFeeDisplay" class="mt-1 text-sm text-gray-500 hidden"></p>
                 <input type="hidden" asp-for="MembershipApplication.TotalAmount" id="hiddenTotalAmount" />
+                <input type="hidden" id="hiddenAdminFee" value="0.00" />
             </div>
         </div>
 
@@ -132,12 +134,21 @@
 
 @section Scripts {
     <script>
+        const costs = @Html.Raw(Json.Serialize(costs));
+        let memberCounter = @Model.MemberInputs.Count;
+
         document.addEventListener('DOMContentLoaded', function () {
             // Attach event listener to the primary applicant's ID number field
             const primaryIdInput = document.querySelector('input[name="MemberInputs[0].IdNumber"]');
             if (primaryIdInput) {
                 primaryIdInput.addEventListener('blur', updateAdminFee);
             }
+
+            updateCosts();
+            toggleAddMemberButton();
+            document.querySelectorAll('.member-form').forEach((form, index) => {
+                toggleSahftaJunior(index);
+            });
         });
 
         async function updateAdminFee() {
@@ -147,17 +158,24 @@
 
             if (primaryIdInput && primaryIdInput.value) {
                 const idNumber = primaryIdInput.value;
-                const response = await fetch(`/api/members/check-existence?idNumber=${idNumber}`);
-                const data = await response.json();
+                try {
+                    const response = await fetch(`/api/members/check-existence?idNumber=${idNumber}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
 
-                if (data.memberExists) {
-                    hiddenAdminFeeInput.value = "0.00";
-                    adminFeeDisplay.classList.add('hidden');
-                    adminFeeDisplay.innerText = "";
-                } else {
-                    hiddenAdminFeeInput.value = data.adminFee.toFixed(2);
-                    adminFeeDisplay.classList.remove('hidden');
-                    adminFeeDisplay.innerText = `Once-off Admin Fee: R${data.adminFee.toFixed(2)}`;
+                    if (data.memberExists) {
+                        hiddenAdminFeeInput.value = "0.00";
+                        adminFeeDisplay.classList.add('hidden');
+                        adminFeeDisplay.innerText = "";
+                    } else {
+                        hiddenAdminFeeInput.value = data.adminFee.toFixed(2);
+                        adminFeeDisplay.classList.remove('hidden');
+                        adminFeeDisplay.innerText = `Once-off Admin Fee: R${data.adminFee.toFixed(2)}`;
+                    }
+                } catch (error) {
+                    console.error('Error fetching admin fee:', error);
                 }
             } else {
                 // If ID input is empty, reset admin fee
@@ -167,23 +185,12 @@
             }
             updateCosts();
         }
-    </script>
-    <script>
-        const costs = @Json.Serialize(costs);
-        let memberCounter = @Model.MemberInputs.Count;
-
-        document.addEventListener('DOMContentLoaded', function () {
-            updateCosts();
-            toggleAddMemberButton();
-            document.querySelectorAll('.member-form').forEach((form, index) => {
-                toggleSahftaJunior(index);
-            });
-        });
 
         function updateCosts() {
             let totalAmount = 0;
             const membershipType = document.getElementById('membershipType').value;
-            const adminFee = parseFloat(document.getElementById('hiddenAdminFee').value) || 0;
+            const adminFeeInput = document.getElementById('hiddenAdminFee');
+            const adminFee = adminFeeInput ? parseFloat(adminFeeInput.value) : 0;
 
             if (membershipType === "Individual") {
                 totalAmount += parseFloat(costs.individual);

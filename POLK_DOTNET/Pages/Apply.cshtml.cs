@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace POLK_DOTNET.Pages
 {
+    [ValidateAntiForgeryToken]
     public class ApplyModel : PageModel
     {
         private readonly ApplicationDbContext _context;
