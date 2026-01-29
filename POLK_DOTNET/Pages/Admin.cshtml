@@ -152,5 +152,58 @@ else
                 </tbody>
             </table>
         </div>
+
+        <hr class="my-12 border-gray-300" />
+
+        <div>
+            <h2 class="text-3xl font-bold mb-4">Membership Applications</h2>
+
+            <table class="w-full mt-8 bg-white rounded-lg shadow-md">
+                <thead>
+                    <tr class="border-b">
+                        <th class="text-left p-4">ID</th>
+                        <th class="text-left p-4">Type</th>
+                        <th class="text-left p-4">Total</th>
+                        <th class="text-left p-4">Status</th>
+                        <th class="text-left p-4">Submitted</th>
+                        <th class="text-left p-4">Members</th>
+                        <th class="text-left p-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var app in Model.MembershipApplications)
+                    {
+                        <tr class="border-b last:border-none">
+                            <td class="p-4">@app.Id</td>
+                            <td class="p-4">@app.MembershipType</td>
+                            <td class="p-4">R@app.TotalAmount.ToString("F2")</td>
+                            <td class="p-4">@app.Status</td>
+                            <td class="p-4">@app.SubmittedDate.ToShortDateString()</td>
+                            <td class="p-4">
+                                @foreach (var member in app.Members)
+                                {
+                                    <div>@member.FirstName @member.Surname (@member.EmailAddress)</div>
+                                }
+                            </td>
+                            <td class="p-4 flex items-center space-x-2">
+                                @if (app.Status == "Pending")
+                                {
+                                    <form method="post" asp-page-handler="ApproveApplication" asp-route-id="@app.Id">
+                                        <button type="submit" class="text-green-500 hover:underline bg-transparent border-none p-0">Approve</button>
+                                    </form>
+                                    <form method="post" asp-page-handler="RejectApplication" asp-route-id="@app.Id">
+                                        <button type="submit" class="text-red-500 hover:underline bg-transparent border-none p-0">Reject</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span>@app.Status</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 }

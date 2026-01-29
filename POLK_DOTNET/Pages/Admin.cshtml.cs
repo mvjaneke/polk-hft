@@ -30,6 +30,7 @@ namespace POLK_DOTNET.Pages
         public IList<Event> Events { get; set; }
         public IList<GalleryImage> GalleryImages { get; set; }
         public IList<MembershipOption> MembershipOptions { get; set; }
+        public IList<MembershipApplication> MembershipApplications { get; set; }
 
         public async Task OnGetAsync(string password)
         {
@@ -44,6 +45,10 @@ namespace POLK_DOTNET.Pages
                 Events = await _context.Events.OrderBy(e => e.StartDate).ToListAsync();
                 GalleryImages = await _context.GalleryImages.ToListAsync();
                 MembershipOptions = await _context.MembershipOptions.OrderBy(m => m.DisplayOrder).ToListAsync();
+                MembershipApplications = await _context.MembershipApplications
+                                                .Include(ma => ma.Members)
+                                                .OrderByDescending(ma => ma.SubmittedDate)
+                                                .ToListAsync();
             }
         }
 
@@ -192,6 +197,40 @@ namespace POLK_DOTNET.Pages
             if (optionToDelete != null)
             {
                 _context.MembershipOptions.Remove(optionToDelete);
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostApproveApplicationAsync(int id)
+        {
+            if (HttpContext.Session.GetString("IsAuthenticated") != "true")
+            {
+                return RedirectToPage();
+            }
+
+            var application = await _context.MembershipApplications.FindAsync(id);
+            if (application != null)
+            {
+                application.Status = "Approved";
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostRejectApplicationAsync(int id)
+        {
+            if (HttpContext.Session.GetString("IsAuthenticated") != "true")
+            {
+                return RedirectToPage();
+            }
+
+            var application = await _context.MembershipApplications.FindAsync(id);
+            if (application != null)
+            {
+                application.Status = "Rejected";
                 await _context.SaveChangesAsync();
             }
 

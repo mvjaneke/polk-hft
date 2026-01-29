@@ -12,6 +12,8 @@ namespace POLK_DOTNET.Data
         public DbSet<Event> Events { get; set; }
         public DbSet<GalleryImage> GalleryImages { get; set; }
         public DbSet<MembershipOption> MembershipOptions { get; set; }
+        public DbSet<MembershipApplication> MembershipApplications { get; set; }
+        public DbSet<Member> Members { get; set; }
     }
 
     public class Event
