@@ -183,6 +183,13 @@ namespace POLK_DOTNET.Data
                             Price = "R400/month",
                             Features = "VIP access\nPersonal coaching\nEquipment maintenance\nPriority booking",
                             DisplayOrder = 3
+                        },
+                        new MembershipOption
+                        {
+                            Title = "One Time Admin fee",
+                            Price = "R200",
+                            Features = "A once-off administration fee for new members.",
+                            DisplayOrder = 99
                         }
                     );
                 }

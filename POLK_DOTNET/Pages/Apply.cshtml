@@ -34,7 +34,9 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700">Total Amount Due</label>
                 <p id="totalAmountDisplay" class="mt-1 text-lg font-bold text-red-700">R0.00</p>
+                <p id="adminFeeDisplay" class="mt-1 text-sm text-gray-500 hidden"></p>
                 <input type="hidden" asp-for="MembershipApplication.TotalAmount" id="hiddenTotalAmount" />
+                <input type="hidden" id="hiddenAdminFee" value="0.00" />
             </div>
         </div>
 
