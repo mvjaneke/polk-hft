@@ -54,7 +54,7 @@ namespace POLK_DOTNET.Pages
             }
 
             // Calculate total amount based on selected membership type and SAHFTA affiliations
-            MembershipApplication.TotalAmount = CalculateTotalAmount();
+            MembershipApplication.TotalAmount = await CalculateTotalAmount();
             MembershipApplication.SubmittedDate = DateTime.UtcNow;
 
             _context.MembershipApplications.Add(MembershipApplication);
@@ -90,7 +90,7 @@ namespace POLK_DOTNET.Pages
             return RedirectToPage("/Index");
         }
 
-        private decimal CalculateTotalAmount()
+        private async Task<decimal> CalculateTotalAmount()
         {
             decimal total = 0;
 
@@ -114,6 +114,30 @@ namespace POLK_DOTNET.Pages
                     total += memberInput.IsJunior ? SahftaChildCost : SahftaAdultCost;
                 }
             }
+
+            // Admin Fee Logic
+            var primaryApplicantIdNumber = MemberInputs.FirstOrDefault(m => m.IsPrimary)?.IdNumber;
+            if (!string.IsNullOrEmpty(primaryApplicantIdNumber))
+            {
+                var memberExists = await _context.Members
+                    .AnyAsync(m => m.IdNumber == primaryApplicantIdNumber && m.MembershipApplication.Status == "Approved");
+
+                if (!memberExists)
+                {
+                    var adminFeeOption = await _context.MembershipOptions
+                        .FirstOrDefaultAsync(mo => mo.Title.Contains("One Time Admin fee"));
+
+                    if (adminFeeOption != null)
+                    {
+                        string priceString = adminFeeOption.Price.Replace("R", "").Replace("/month", "").Trim();
+                        if (decimal.TryParse(priceString, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal adminFee))
+                        {
+                            total += adminFee;
+                        }
+                    }
+                }
+            }
+
             return total;
         }
 
