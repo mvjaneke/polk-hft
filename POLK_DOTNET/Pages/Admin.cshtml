@@ -1,5 +1,6 @@
 @page "/admin"
 @model POLK_DOTNET.Pages.AdminModel
+@using System.Globalization
 @{
     ViewData["Title"] = "Admin";
 }
@@ -176,7 +177,7 @@ else
                         <tr class="border-b last:border-none">
                             <td class="p-4">@app.Id</td>
                             <td class="p-4">@app.MembershipType</td>
-                            <td class="p-4">R@app.TotalAmount.ToString("F2")</td>
+                            <td class="p-4">@app.TotalAmount.ToString("C")</td>
                             <td class="p-4">@app.Status</td>
                             <td class="p-4">@app.SubmittedDate.ToShortDateString()</td>
                             <td class="p-4">
