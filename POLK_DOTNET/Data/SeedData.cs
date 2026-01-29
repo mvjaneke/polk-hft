@@ -11,7 +11,20 @@ namespace POLK_DOTNET.Data
                 serviceProvider.GetRequiredService<
                     DbContextOptions<ApplicationDbContext>>()))
             {
-                context.Database.EnsureCreated();
+                // Ensure the "One Time Admin fee" exists
+                if (!context.MembershipOptions.Any(mo => mo.Title == "One Time Admin fee"))
+                {
+                    context.MembershipOptions.Add(
+                        new MembershipOption
+                        {
+                            Title = "One Time Admin fee",
+                            Price = "R200",
+                            Features = "A once-off administration fee for new members.",
+                            DisplayOrder = 99
+                        }
+                    );
+                }
+
                 // Look for any events.
                 if (!context.Events.Any())
                 {
