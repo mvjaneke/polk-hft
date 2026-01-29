@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System;
+using Microsoft.AspNetCore.Mvc; // Required for ModelBinderAttribute
+using POLK_DOTNET.CustomModelBinders; // Required for DecimalInvariantModelBinder
 
 namespace POLK_DOTNET.Data
 {
@@ -12,6 +14,7 @@ namespace POLK_DOTNET.Data
         public string MembershipType { get; set; } // Individual, Family, Pensioner
 
         [Required]
+        [ModelBinder(typeof(DecimalInvariantModelBinder))]
         public decimal TotalAmount { get; set; }
 
         public string Status { get; set; } = "Pending"; // Pending, Approved, Rejected
