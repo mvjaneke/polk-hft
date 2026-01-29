@@ -63,7 +63,7 @@ namespace POLK_DOTNET.Pages
             return Page();
         }
 
-        public async Task<IActionResult> OnPostAddEventAsync(string title, DateTime startDate, DateTime? endDate, string time, string type, string description, string location, int? participants, int? maxParticipants)
+        public async Task<IActionResult> OnPostAddEventAsync(string title, DateTime startDate, DateTime? endDate, string time, string type, string description, string location, int? participants, int? maxParticipants, string color)
         {
             if (HttpContext.Session.GetString("IsAuthenticated") != "true")
             {
@@ -80,7 +80,8 @@ namespace POLK_DOTNET.Pages
                 Description = description,
                 Location = location,
                 Participants = participants,
-                MaxParticipants = maxParticipants
+                MaxParticipants = maxParticipants,
+                Color = color
             };
 
             _context.Events.Add(newEvent);

@@ -28,6 +28,7 @@ namespace POLK_DOTNET.Data
         public string Location { get; set; } = null!;
         public int? Participants { get; set; }
         public int? MaxParticipants { get; set; }
+        public string? Color { get; set; }
     }
 
     public class GalleryImage
