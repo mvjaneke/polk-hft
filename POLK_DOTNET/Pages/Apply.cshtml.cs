@@ -20,7 +20,7 @@ namespace POLK_DOTNET.Pages
         }
 
         [BindProperty]
-        public MembershipApplication MembershipApplication { get; set; }
+        public MembershipApplication MembershipApplication { get; set; } = null!;
 
         [BindProperty]
         public List<MemberInput> MemberInputs { get; set; } = new List<MemberInput>();
@@ -147,26 +147,26 @@ namespace POLK_DOTNET.Pages
         {
             [Required]
             [StringLength(100, MinimumLength = 2)]
-            public string FirstName { get; set; }
+            public string FirstName { get; set; } = null!;
 
             [Required]
             [StringLength(100, MinimumLength = 2)]
-            public string Surname { get; set; }
+            public string Surname { get; set; } = null!;
 
             [Required]
             [StringLength(20, MinimumLength = 5)]
-            public string IdNumber { get; set; }
+            public string IdNumber { get; set; } = null!;
 
             [Required]
-            public string Gender { get; set; }
+            public string Gender { get; set; } = null!;
 
             [Required]
             [Phone]
-            public string ContactNumber { get; set; }
+            public string ContactNumber { get; set; } = null!;
 
             [Required]
             [EmailAddress]
-            public string EmailAddress { get; set; }
+            public string EmailAddress { get; set; } = null!;
 
             public bool IsPrimary { get; set; }
 

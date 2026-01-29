@@ -19,13 +19,13 @@ namespace POLK_DOTNET.Data
     public class Event
     {
         public int Id { get; set; }
-        public string Title { get; set; }
+        public string Title { get; set; } = null!;
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public string Time { get; set; }
-        public string Type { get; set; }
-        public string Description { get; set; }
-        public string Location { get; set; }
+        public string Time { get; set; } = null!;
+        public string Type { get; set; } = null!;
+        public string Description { get; set; } = null!;
+        public string Location { get; set; } = null!;
         public int? Participants { get; set; }
         public int? MaxParticipants { get; set; }
     }
@@ -33,18 +33,18 @@ namespace POLK_DOTNET.Data
     public class GalleryImage
     {
         public int Id { get; set; }
-        public string FileName { get; set; }
-        public string Title { get; set; }
-        public string Description { get; set; }
-        public string Category { get; set; }
+        public string FileName { get; set; } = null!;
+        public string Title { get; set; } = null!;
+        public string Description { get; set; } = null!;
+        public string Category { get; set; } = null!;
     }
 
     public class MembershipOption
     {
         public int Id { get; set; }
-        public string Title { get; set; }
-        public string Price { get; set; }
-        public string Features { get; set; } // Newline-separated features
+        public string Title { get; set; } = null!;
+        public string Price { get; set; } = null!;
+        public string Features { get; set; } = null!; // Newline-separated features
         public int DisplayOrder { get; set; }
     }
 

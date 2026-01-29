@@ -27,10 +27,10 @@ namespace POLK_DOTNET.Pages
         [BindProperty]
         public bool IsAuthenticated { get; set; }
 
-        public IList<Event> Events { get; set; }
-        public IList<GalleryImage> GalleryImages { get; set; }
-        public IList<MembershipOption> MembershipOptions { get; set; }
-        public IList<MembershipApplication> MembershipApplications { get; set; }
+        public IList<Event> Events { get; set; } = null!;
+        public IList<GalleryImage> GalleryImages { get; set; } = null!;
+        public IList<MembershipOption> MembershipOptions { get; set; } = null!;
+        public IList<MembershipApplication> MembershipApplications { get; set; } = null!;
 
         public async Task OnGetAsync(string password)
         {

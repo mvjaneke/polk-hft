@@ -16,7 +16,7 @@ namespace POLK_DOTNET.Pages
         }
 
         [BindProperty]
-        public Event Event { get; set; }
+        public Event Event { get; set; } = null!;
 
         public async Task<IActionResult> OnGetAsync(int? id)
         {

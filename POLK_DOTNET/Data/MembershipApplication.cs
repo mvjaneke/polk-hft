@@ -11,7 +11,7 @@ namespace POLK_DOTNET.Data
         public int Id { get; set; }
 
         [Required]
-        public string MembershipType { get; set; } // Individual, Family, Pensioner
+        public string MembershipType { get; set; } = null!; // Individual, Family, Pensioner
 
         [Required]
         [ModelBinder(typeof(DecimalInvariantModelBinder))]
@@ -30,31 +30,31 @@ namespace POLK_DOTNET.Data
 
         [Required]
         public int MembershipApplicationId { get; set; }
-        public MembershipApplication MembershipApplication { get; set; }
+        public MembershipApplication MembershipApplication { get; set; } = null!;
 
         [Required]
         [StringLength(100)]
-        public string FirstName { get; set; }
+        public string FirstName { get; set; } = null!;
 
         [Required]
         [StringLength(100)]
-        public string Surname { get; set; }
+        public string Surname { get; set; } = null!;
 
         [Required]
         [StringLength(20)]
-        public string IdNumber { get; set; }
+        public string IdNumber { get; set; } = null!;
 
         [StringLength(20)]
-        public string Gender { get; set; } // Male, Female, Other
+        public string Gender { get; set; } = null!; // Male, Female, Other
 
         [Required]
         [StringLength(20)]
-        public string ContactNumber { get; set; }
+        public string ContactNumber { get; set; } = null!;
 
         [Required]
         [StringLength(100)]
         [EmailAddress]
-        public string EmailAddress { get; set; }
+        public string EmailAddress { get; set; } = null!;
 
         public bool IsPrimary { get; set; } = false; // True for the main contact in a family application
 

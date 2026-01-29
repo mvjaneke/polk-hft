@@ -17,7 +17,7 @@ namespace POLK_DOTNET.Pages
         }
 
         [BindProperty]
-        public MembershipOption MembershipOption { get; set; }
+        public MembershipOption MembershipOption { get; set; } = null!;
 
         public async Task<IActionResult> OnGetAsync(int? id)
         {
