@@ -14,6 +14,8 @@ namespace POLK_DOTNET.Data
         public DbSet<MembershipOption> MembershipOptions { get; set; }
         public DbSet<MembershipApplication> MembershipApplications { get; set; }
         public DbSet<Member> Members { get; set; }
+        public DbSet<CommitteeMember> CommitteeMembers { get; set; }
+        public DbSet<Constitution> Constitutions { get; set; }
     }
 
     public class Event

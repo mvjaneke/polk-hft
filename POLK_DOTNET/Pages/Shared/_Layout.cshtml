@@ -3,12 +3,199 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - POLK_DOTNET</title>
+    <title>@ViewData["Title"] - POLK</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
-    @RenderBody()
+<body class="bg-gray-100">
+
+    <div class="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 text-gray-900">
+        <!-- Natural Background Elements -->
+        <div class="fixed inset-0 overflow-hidden pointer-events-none opacity-10">
+            <div class="absolute top-20 left-20 w-64 h-64 bg-red-600 rounded-full blur-3xl"></div>
+            <div class="absolute top-40 right-20 w-80 h-80 bg-gray-600 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-8 left-40 w-72 h-72 bg-red-700 rounded-full blur-3xl"></div>
+        </div>
+
+        <!-- Skip to main content for accessibility -->
+        <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-red-600 text-white px-4 py-2 rounded">
+            Skip to main content
+        </a>
+
+        <!-- Navigation -->
+        <nav role="navigation" aria-label="Main navigation" class="sticky top-0 z-50 border-b border-gray-300 bg-white/90 backdrop-blur-sm shadow-md">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex justify-between items-center">
+                    <a href="/" class="flex items-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-red-700"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                        <span class="text-xl font-bold text-gray-900">
+                            POLK
+                        </span>
+                    </a>
+                    
+                    <!-- Desktop Navigation -->
+                    <div class="hidden md:flex space-x-6">
+                        <a href="/#home" class="text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="scrollToSection('home')">Home</a>
+                        <a href="/#about" class="text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="scrollToSection('about')">About HFT</a>
+                        <a href="/#gallery" class="text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="scrollToSection('gallery')">Gallery</a>
+                        <a href="/#events" class="text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="scrollToSection('events')">Events</a>
+                        
+                        <!-- New POLK Dropdown -->
+                        <div x-data="{ open: false }" x-on:click.away="open = false" class="relative">
+                            <button x-on:mouseenter="open = true" class="flex items-center text-gray-700 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-md">
+                                POLK
+                                <svg class="ml-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-1" 
+                                 class="absolute z-10 -ml-1 mt-3 transform px-2 w-48 max-w-md sm:px-0 lg:ml-0 lg:left-1/2 lg:-translate-x-1/2"
+                                 >
+                                <div class="rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 overflow-hidden">
+                                    <div class="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8">
+                                        <a href="/Committee" class="-m-3 p-3 flex items-start rounded-lg hover:bg-gray-50">
+                                            <div class="flex-shrink-0 h-6 w-6 text-red-600 flex items-center justify-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-base font-medium text-gray-900">Committee</p>
+                                            </div>
+                                        </a>
+                                        <a href="/Constitution" class="-m-3 p-3 flex items-start rounded-lg hover:bg-gray-50">
+                                            <div class="flex-shrink-0 h-6 w-6 text-red-600 flex items-center justify-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-base font-medium text-gray-900">Constitution</p>
+                                            </div>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <a href="/#membership" class="text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="scrollToSection('membership')">Membership</a>
+                        <a href="/#contact" class="text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="scrollToSection('contact')">Contact</a>
+                    </div>
+
+                    <!-- Mobile Menu Button -->
+                    <button class="md:hidden text-gray-700 hover:text-red-700 hover:bg-red-50" onclick="toggleMobileMenu()">
+                        <svg id="menu-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg>
+                        <svg id="close-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 hidden"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                <!-- Mobile Navigation Menu -->
+                <div id="mobile-menu" class="hidden md:hidden mt-4 pt-4 border-t border-gray-300">
+                    <div class="flex flex-col space-y-2">
+                        <a href="/#home" class="text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start" onclick="scrollToSection('home')">Home</a>
+                        <a href="/#about" class="text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start" onclick="scrollToSection('about')">About HFT</a>
+                        <a href="/#gallery" class="text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start" onclick="scrollToSection('gallery')">Gallery</a>
+                        <a href="/#events" class="text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start" onclick="scrollToSection('events')">Events</a>
+                        
+                        <!-- New POLK Mobile Section -->
+                        <div class="border-t border-gray-200 pt-2 mt-2">
+                            <span class="text-gray-900 font-semibold px-2 py-1 block">POLK</span>
+                            <a href="/Committee" class="block text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start px-2 py-1 rounded-md">Committee</a>
+                            <a href="/Constitution" class="block text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start px-2 py-1 rounded-md">Constitution</a>
+                        </div>
+
+                        <a href="/#membership" class="text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start" onclick="scrollToSection('membership')">Membership</a>
+                        <a href="/#contact" class="text-gray-700 hover:text-red-700 hover:bg-red-50 justify-start" onclick="scrollToSection('contact')">Contact</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+
+        <!-- Footer -->
+        <footer id="contact" class="relative z-10 border-t border-gray-300 bg-gray-900 text-white">
+            <div class="container mx-auto px-4 py-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-red-400"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                        <span class="text-lg font-semibold">Pretoria East Air Rifle Club</span>
+                    </div>
+                    <div class="text-gray-400 text-sm">
+                        © 2024 POLK. Outdoor Hunter Field Target shooting excellence.
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <!-- Back to Top Button -->
+        <button id="back-to-top" class="fixed bottom-8 right-8 z-50 bg-red-700 hover:bg-red-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 w-12 h-12 rounded-full hidden" onclick="scrollToTop()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mx-auto"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg>
+        </button>
+    </div>
+
     @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+        window.onscroll = function() {
+            const backToTopButton = document.getElementById('back-to-top');
+            if (backToTopButton) {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                    backToTopButton.classList.remove('hidden');
+                } else {
+                    backToTopButton.classList.add('hidden');
+                }
+            }
+        };
+
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function scrollToSection(sectionId) {
+            if (window.location.pathname !== '/') {
+                window.location.href = '/#' + sectionId;
+                return;
+            }
+
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            // Close mobile menu if open
+            const mobileMenu = document.getElementById('mobile-menu');
+            const menuIcon = document.getElementById('menu-icon');
+            const closeIcon = document.getElementById('close-icon');
+            if (mobileMenu && menuIcon && closeIcon) {
+                mobileMenu.classList.add('hidden');
+                menuIcon.classList.remove('hidden');
+                closeIcon.classList.add('hidden');
+            }
+        }
+
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            const menuIcon = document.getElementById('menu-icon');
+            const closeIcon = document.getElementById('close-icon');
+            if (mobileMenu && menuIcon && closeIcon) {
+                mobileMenu.classList.toggle('hidden');
+                menuIcon.classList.toggle('hidden');
+                closeIcon.classList.toggle('hidden');
+            }
+        }
+
+        // Script to handle section scrolling on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.location.hash) {
+                const sectionId = window.location.hash.substring(1);
+                const element = document.getElementById(sectionId);
+                if (element) {
+                    // Timeout to allow images and other content to load
+                    setTimeout(() => {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                }
+            }
+        });
+    </script>
 </body>
 </html>

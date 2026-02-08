@@ -1,0 +1,23 @@
+@page
+@model POLK_DOTNET.Pages.ConstitutionModel
+@{
+    ViewData["Title"] = "Constitution";
+}
+
+<div class="container mx-auto px-4 py-20">
+    <h1 class="text-4xl font-bold text-gray-900 mb-8">Club Constitution</h1>
+    <div id="constitution-content" class="bg-white/80 backdrop-blur-sm border-gray-300 shadow-md rounded-lg p-6 prose max-w-none">
+        <!-- Constitution content will be loaded here dynamically -->
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', fetchConstitution);
+
+    async function fetchConstitution() {
+        const response = await fetch('/api/Constitution');
+        const constitution = await response.json();
+        const container = document.getElementById('constitution-content');
+        container.innerHTML = constitution.content;
+    }
+</script>

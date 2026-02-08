@@ -25,6 +25,17 @@ namespace POLK_DOTNET.Data
                     );
                 }
 
+                if (!context.CommitteeMembers.Any())
+                {
+                    context.CommitteeMembers.AddRange(
+                        new CommitteeMember { Name = "Francios Horn", Position = "Chairman", Order = 1 },
+                        new CommitteeMember { Name = "Johan van Niekerk", Position = "Vice-Chairman", Order = 2 },
+                        new CommitteeMember { Name = "Marco Janeke", Position = "Treasurer", Order = 3 },
+                        new CommitteeMember { Name = "Charmaine van Niekerk", Position = "Secretary", Order = 4 }
+                        // Technical Officer will be added later if a name is provided, or left blank as appropriate.
+                    );
+                }
+
                 // Look for any events.
                 if (!context.Events.Any())
                 {

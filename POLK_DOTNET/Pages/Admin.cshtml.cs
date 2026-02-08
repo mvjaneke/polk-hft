@@ -117,7 +117,12 @@ namespace POLK_DOTNET.Pages
 
             if (image != null)
             {
-                var imagePath = Path.Combine(_hostingEnvironment.WebRootPath, "img", image.FileName);
+                var uploadFolder = Path.Combine(_hostingEnvironment.ContentRootPath, "wwwroot", "img");
+                if (!Directory.Exists(uploadFolder))
+                {
+                    Directory.CreateDirectory(uploadFolder);
+                }
+                var imagePath = Path.Combine(uploadFolder, image.FileName);
                 using (var stream = new FileStream(imagePath, FileMode.Create))
                 {
                     await image.CopyToAsync(stream);
@@ -149,13 +154,13 @@ namespace POLK_DOTNET.Pages
 
             if (imageToDelete != null)
             {
-                // Remove leading slash to correctly combine with WebRootPath
-                var fileName = imageToDelete.FileName.TrimStart('/');
-                var imagePath = Path.Combine(_hostingEnvironment.WebRootPath, fileName);
+                // Remove leading slash and normalize directory separators for correct path combination
+                var relativeImagePath = imageToDelete.FileName.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                var fullPathToDelete = Path.Combine(_hostingEnvironment.ContentRootPath, "wwwroot", relativeImagePath);
                 
-                if (System.IO.File.Exists(imagePath))
+                if (System.IO.File.Exists(fullPathToDelete))
                 {
-                    System.IO.File.Delete(imagePath);
+                    System.IO.File.Delete(fullPathToDelete);
                 }
 
                 _context.GalleryImages.Remove(imageToDelete);

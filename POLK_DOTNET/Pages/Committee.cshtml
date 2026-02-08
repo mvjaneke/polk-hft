@@ -1,0 +1,48 @@
+@page
+@model POLK_DOTNET.Pages.CommitteeModel
+@{
+    ViewData["Title"] = "Committee";
+}
+
+<div class="container mx-auto px-4 py-20">
+    <h1 class="text-4xl font-bold text-gray-900 mb-8">Club Committee</h1>
+    <div id="committee-members-container" class="bg-white/80 backdrop-blur-sm border-gray-300 shadow-md rounded-lg p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Committee members will be loaded here dynamically -->
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', fetchCommitteeMembers);
+
+    async function fetchCommitteeMembers() {
+        const response = await fetch('/api/CommitteeMembers');
+        const committeeMembers = await response.json();
+        const container = document.getElementById('committee-members-container');
+        container.innerHTML = ''; // Clear placeholder
+
+        if (committeeMembers.length === 0) {
+            container.innerHTML = '<p class="text-gray-700">No committee members listed at this time.</p>';
+            return;
+        }
+
+        committeeMembers.forEach(member => {
+            const memberCard = `
+                <div class="bg-white p-6 rounded-lg shadow-md flex items-center space-x-4">
+                    <div class="flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-red-700">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900">${member.position}</h3>
+                        <p class="text-gray-700">${member.name}</p>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += memberCard;
+        });
+    }
+</script>
