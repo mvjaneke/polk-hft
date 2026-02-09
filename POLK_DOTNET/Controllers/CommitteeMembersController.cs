@@ -43,8 +43,21 @@ namespace POLK_DOTNET.Controllers
         [HttpPost]
         public async Task<ActionResult<CommitteeMember>> PostCommitteeMember(CommitteeMember committeeMember)
         {
-            _context.CommitteeMembers.Add(committeeMember);
-            await _context.SaveChangesAsync();
+            // Log incoming committee member data for debugging
+            System.Diagnostics.Debug.WriteLine($"Received CommitteeMember: Name={committeeMember.Name}, Position={committeeMember.Position}, Order={committeeMember.Order}");
+
+            try
+            {
+                _context.CommitteeMembers.Add(committeeMember);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                System.Diagnostics.Debug.WriteLine($"Error saving CommitteeMember: {ex.Message}");
+                // Return a more descriptive error to the client
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
 
             return CreatedAtAction(nameof(GetCommitteeMember), new { id = committeeMember.Id }, committeeMember);
         }

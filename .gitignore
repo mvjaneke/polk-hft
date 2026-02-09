@@ -47,3 +47,19 @@ test
 prompt
 
 server.log
+
+# .NET Core
+## Ignore folders in the root of the repo (and anywhere else)
+**/.vs/
+**/.vscode/
+**/bin/
+**/obj/
+
+## Ignore files in the root of the repo (and anywhere else)
+**/*.user
+**/*.suo
+**/*.pdb
+**/*.ide-log
+**/*.db
+**/*.db-shm
+**/*.db-wal

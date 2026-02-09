@@ -31,6 +31,7 @@ namespace POLK_DOTNET.Pages
         public IList<GalleryImage> GalleryImages { get; set; } = null!;
         public IList<MembershipOption> MembershipOptions { get; set; } = null!;
         public IList<MembershipApplication> MembershipApplications { get; set; } = null!;
+        public IList<CommitteeMember> CommitteeMembers { get; set; } = null!; // New property
 
         public async Task OnGetAsync(string password)
         {
@@ -49,8 +50,12 @@ namespace POLK_DOTNET.Pages
                                                 .Include(ma => ma.Members)
                                                 .OrderByDescending(ma => ma.SubmittedDate)
                                                 .ToListAsync();
+                CommitteeMembers = await _context.CommitteeMembers.OrderBy(cm => cm.Order).ToListAsync(); // Fetch committee members
             }
         }
+
+        [BindProperty]
+        public CommitteeMember CommitteeMember { get; set; } = default!;
 
         public async Task<IActionResult> OnPostAsync(string password)
         {
@@ -61,6 +66,44 @@ namespace POLK_DOTNET.Pages
             }
 
             return Page();
+        }
+
+        public async Task<IActionResult> OnPostAddCommitteeMemberAsync()
+        {
+            if (HttpContext.Session.GetString("IsAuthenticated") != "true")
+            {
+                return RedirectToPage();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                // Reload data needed for the page if validation fails
+                await OnGetAsync(null); // Pass null as password for OnGetAsync when refreshing page.
+                return Page();
+            }
+
+            _context.CommitteeMembers.Add(CommitteeMember);
+            await _context.SaveChangesAsync();
+
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostDeleteCommitteeMemberAsync(int id)
+        {
+            if (HttpContext.Session.GetString("IsAuthenticated") != "true")
+            {
+                return RedirectToPage();
+            }
+
+            var memberToDelete = await _context.CommitteeMembers.FindAsync(id);
+
+            if (memberToDelete != null)
+            {
+                _context.CommitteeMembers.Remove(memberToDelete);
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToPage();
         }
 
         public async Task<IActionResult> OnPostAddEventAsync(string title, DateTime startDate, DateTime? endDate, string time, string type, string description, string location, int? participants, int? maxParticipants, string color)
