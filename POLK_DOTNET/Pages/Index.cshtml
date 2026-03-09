@@ -177,13 +177,24 @@
                 Explore our club activities, competitions, training sessions, and community events
             </p>
         </div>
-        
-        <!-- Category Filter -->
-        <div id="gallery-filter" class="flex flex-wrap gap-2 justify-center">
-            </div>
 
-        <!-- Gallery Grid -->
-        <div id="gallery-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Category Filter -->
+        <div id="gallery-filter" class="flex flex-wrap gap-2 justify-center mb-8">
+        </div>
+
+        <!-- Album Grid (default view) -->
+        <div id="gallery-albums" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        </div>
+
+        <!-- Album Detail View (shown when an album is selected) -->
+        <div id="gallery-detail" class="hidden">
+            <button id="gallery-back-btn" class="inline-flex items-center text-red-700 hover:text-red-800 font-medium mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                Back to Albums
+            </button>
+            <div id="gallery-detail-header" class="mb-6"></div>
+            <div id="gallery-detail-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            </div>
         </div>
 
         <!-- Lightbox -->
@@ -279,7 +290,7 @@
 
    @*  <section class="relative z-10 container mx-auto px-4 py-20">
         <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 md:p-12 border border-green-200 shadow-md">
-            <div class="grid md:grid-cols-2 gap-12 items-center">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
                 <div class="space-y-6">
                     <h2 class="text-4xl font-bold text-green-900">
                         What is Hunter Field Target?
@@ -385,3 +396,500 @@
         </div>
     </section>
 </main>
+<script>
+    let events = [];
+    let currentMonth = new Date();
+
+    async function fetchEvents() {
+        const res = await fetch('/api/events');
+        let fetchedEvents = await res.json();
+        
+        events = fetchedEvents.map(event => ({
+            ...event,
+            startDate: new Date(event.startDate),
+            endDate: event.endDate ? new Date(event.endDate) : null
+        }));
+        
+        renderCalendar();
+        renderUpcomingEvents();
+    }
+
+    function renderCalendar() {
+        const calendarGrid = document.getElementById('calendar-grid');
+        const monthYear = document.getElementById('calendar-month-year');
+        calendarGrid.innerHTML = '';
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        monthYear.innerText = `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;    
+        
+        const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+        const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        daysOfWeek.forEach(day => {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'text-center text-sm font-semibold text-gray-600 py-2 bg-white';      
+            dayElement.innerText = day;
+            calendarGrid.appendChild(dayElement);
+        });
+
+        for (let i = 0; i < firstDayOfMonth; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'bg-gray-50';
+            calendarGrid.appendChild(emptyCell);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayCell = document.createElement('div');
+            const currentDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);      
+            dayCell.className = 'min-h-[100px] p-1 bg-white relative cursor-pointer hover:bg-gray-50 transition-colors';
+            dayCell.onclick = () => openModal(currentDate);
+
+            const dayNumber = document.createElement('div');
+            dayNumber.className = 'text-sm text-gray-800';
+            dayNumber.innerText = day;
+            dayCell.appendChild(dayNumber);
+
+            const dayEvents = getEventsForDay(currentDate);
+            if (dayEvents.length > 0) {
+                 dayEvents.slice(0, 3).forEach(event => {
+                    const eventElement = document.createElement('div');
+                    eventElement.className = `text-xs p-1 mt-1 truncate ${getEventTypeColor(event)}`;    
+
+                    let isStart = isSameDay(currentDate, event.startDate);
+                    let isEnd = event.endDate ? isSameDay(currentDate, event.endDate) : isStart;
+
+                    if (isStart) eventElement.classList.add('rounded-l-md');
+                    if (isEnd) eventElement.classList.add('rounded-r-md');
+                    if (!isStart && !isEnd) eventElement.classList.add('rounded-none');
+
+                    eventElement.innerText = event.title;
+                    dayCell.appendChild(eventElement);
+                });
+            }
+            calendarGrid.appendChild(dayCell);
+        }
+    }
+
+    function isSameDay(date1, date2) {
+        return date1.getFullYear() === date2.getFullYear() &&
+               date1.getMonth() === date2.getMonth() &&
+               date1.getDate() === date2.getDate();
+    }
+
+    function renderUpcomingEvents() {
+        const upcomingEventsContainer = document.getElementById('upcoming-events');
+        upcomingEventsContainer.innerHTML = '';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const twoWeeksFromNow = new Date(); // Start fresh with current date/time
+        twoWeeksFromNow.setDate(today.getDate() + 14); // Add 14 days to the current date, using today's day
+        twoWeeksFromNow.setHours(23, 59, 59, 999); // Set to end of the 14th day
+
+        const upcomingEvents = events
+            .filter(event => (event.endDate || event.startDate) >= today && event.startDate <= twoWeeksFromNow)
+            .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
+            .slice(0, 4);
+
+        if (upcomingEvents.length === 0) {
+            upcomingEventsContainer.innerHTML = '<p class="text-gray-500">No upcoming events scheduled at this time.</p>';
+            return;
+        }
+
+        upcomingEvents.forEach(event => {
+            const eventElement = document.createElement('div');
+            eventElement.className = 'border border-gray-300 rounded-lg p-4 hover:bg-red-50 transition-colors';
+
+            let dateString = event.startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            if (event.endDate) {
+                 dateString += ` - ${event.endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+            }
+
+            eventElement.innerHTML = `
+                <div class="flex items-start justify-between mb-2">
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-gray-900">${event.title}</h4>
+                        <div class="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                            <div class="flex items-center space-x-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg>
+                                <span>${dateString}</span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                <span>${event.time}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${getEventTypeColor(event)}">${event.type}</span>
+                </div>
+                <p class="text-sm text-gray-700 mb-2">${event.description}</p>
+                <div class="flex items-center justify-between">
+                     ${event.location ? `<div class="flex items-center space-x-1 text-sm text-gray-600"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg><span>${event.location}</span></div>` : ''}
+                     ${event.participants ? `<div class="flex items-center space-x-1 text-sm text-gray-600"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>${event.participants}/${event.maxParticipants}</span></div>` : ''}
+                </div>
+                <a href="/RegisterEvent/${event.id}" class="mt-2 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    Register
+                </a>
+            `;
+            upcomingEventsContainer.appendChild(eventElement);
+        });
+    }
+
+    function getEventsForDay(date) {
+        date.setHours(0, 0, 0, 0);
+        return events.filter(event => {
+            const startDate = new Date(event.startDate);
+            startDate.setHours(0, 0, 0, 0);
+
+            if (event.endDate) {
+                const endDate = new Date(event.endDate);
+                endDate.setHours(0, 0, 0, 0);
+                return date >= startDate && date <= endDate;
+            } else {
+                return isSameDay(date, startDate);
+            }
+        });
+    }
+
+    function navigateMonth(direction) {
+        if (direction === 'prev') {
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+        } else {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+        }
+        renderCalendar();
+    }
+
+    function getEventTypeColor(event) {
+        if (event.color) {
+            // Assume event.color is a Tailwind background class like 'bg-red-500'
+            return event.color + ' text-white'; // Add text color for contrast
+        }
+        switch (event.type) {
+            case 'competition': return 'bg-red-200 text-red-800';
+            case 'training': return 'bg-blue-200 text-blue-800';
+            case 'social': return 'bg-green-200 text-green-800';
+            default: return 'bg-gray-200 text-gray-800';
+        }
+    }
+
+    function openModal(date) {
+        const modal = document.getElementById('event-modal');
+        const modalContent = document.getElementById('event-modal-content');
+        const dayEvents = getEventsForDay(date);
+
+        if (dayEvents.length === 0) return;
+
+        let contentHtml = `<div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-900">${date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
+            </div>
+            <div class="space-y-6">`;
+
+        dayEvents.forEach(event => {
+             let dateString = event.startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            if (event.endDate) {
+                 dateString += ` - ${event.endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+            }
+
+            contentHtml += `
+                <div class="border-l-4 ${getEventTypeBorderColor(event)} pl-4 py-2">
+                    <h3 class="font-bold text-lg text-gray-900">${event.title}</h3>
+                    <p class="text-sm text-gray-600">${event.description}</p>
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-700 mt-2"> 
+                        <div class="flex items-center space-x-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg>  
+                            <span>${dateString} at ${event.time}</span>
+                        </div>
+                        ${event.location ? `<div class="flex items-center space-x-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg><span>${event.location}</span></div>` : ''}
+                        ${event.participants ? `<div class="flex items-center space-x-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>${event.participants}/${event.maxParticipants}</span></div>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        contentHtml += '</div></div>';
+        modalContent.innerHTML = contentHtml;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('event-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+    }
+
+    function getEventTypeBorderColor(event) {
+        if (event.color) {
+            // Convert 'bg-red-500' to 'border-red-500'
+            return event.color.replace('bg-', 'border-');
+        }
+        switch (event.type) {
+            case 'competition': return 'border-red-500';
+            case 'training': return 'border-blue-500';
+            case 'social': return 'border-green-500';
+            default: return 'border-gray-500';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchEvents();
+        fetchMembershipOptions();
+    });
+</script>
+
+<script>
+    let allAlbums = [];
+    let currentAlbumImages = [];
+    let selectedCategory = 'all';
+    let selectedImage = null;
+    let currentImageIndex = 0;
+
+    const categories = [
+        { id: 'all', label: 'All', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>' },
+        { id: 'competition', label: 'Competitions', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>' },
+        { id: 'training', label: 'Training', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>' },
+        { id: 'social', label: 'Social', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>' },
+        { id: 'awards', label: 'Awards', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="8" r="6"></circle><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"></path></svg>' }
+    ];
+
+    async function fetchGallery() {
+        const res = await fetch('/api/galleryalbums');
+        allAlbums = await res.json();
+        renderAlbums();
+    }
+
+    function renderFilterButtons() {
+        const galleryFilter = document.getElementById('gallery-filter');
+        galleryFilter.innerHTML = '';
+        categories.forEach(category => {
+            const button = document.createElement('button');
+            button.className = `flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${selectedCategory === category.id ? 'bg-red-700 text-white' : 'bg-white/80 border border-gray-300 text-gray-700 hover:bg-gray-50'}`;
+            button.onclick = () => {
+                selectedCategory = category.id;
+                renderAlbums();
+            };
+            button.innerHTML = `${category.icon} <span>${category.label}</span>`;
+            galleryFilter.appendChild(button);
+        });
+    }
+
+    function getCategoryColor(category) {
+        switch (category) {
+            case 'competition': return 'bg-red-100 text-red-800';
+            case 'training': return 'bg-blue-100 text-blue-800';
+            case 'social': return 'bg-green-100 text-green-800';
+            case 'awards': return 'bg-yellow-100 text-yellow-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    }
+
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function renderAlbums() {
+        const albumsContainer = document.getElementById('gallery-albums');
+        const detailContainer = document.getElementById('gallery-detail');
+        albumsContainer.classList.remove('hidden');
+        detailContainer.classList.add('hidden');
+        albumsContainer.innerHTML = '';
+
+        renderFilterButtons();
+
+        const filteredAlbums = selectedCategory === 'all'
+            ? allAlbums
+            : allAlbums.filter(a => a.category === selectedCategory);
+
+        if (filteredAlbums.length === 0) {
+            albumsContainer.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500">No albums found in this category.</div>';
+            return;
+        }
+
+        filteredAlbums.forEach(album => {
+            const card = document.createElement('div');
+            card.className = 'group cursor-pointer overflow-hidden bg-white/80 backdrop-blur-sm border border-gray-300 shadow-md hover:shadow-xl transition-all duration-300 rounded-lg';
+            card.onclick = () => openAlbum(album.id);
+
+            const coverSrc = album.coverImageFileName || '';
+            const coverHtml = coverSrc
+                ? `<img src="${coverSrc}" alt="${album.title}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">`
+                : `<div class="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>
+                   </div>`;
+
+            card.innerHTML = `
+                <div class="relative aspect-[16/10] overflow-hidden">
+                    ${coverHtml}
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                    <div class="absolute bottom-0 left-0 right-0 p-5">
+                        <h3 class="font-bold text-xl text-white mb-1">${album.title}</h3>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold py-1 px-2 uppercase rounded-full ${getCategoryColor(album.category)}">${album.category}</span>
+                            <span class="text-white/80 text-sm">${album.imageCount} photo${album.imageCount !== 1 ? 's' : ''}</span>
+                        </div>
+                    </div>
+                    <div class="absolute top-3 right-3">
+                        <span class="text-xs text-white/90 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full">${formatDate(album.eventDate)}</span>
+                    </div>
+                </div>
+                ${album.description ? `<div class="px-5 py-3 border-t border-gray-200"><p class="text-sm text-gray-600 line-clamp-2">${album.description}</p></div>` : ''}
+            `;
+            albumsContainer.appendChild(card);
+        });
+    }
+
+    async function openAlbum(albumId) {
+        const res = await fetch(`/api/galleryalbums/${albumId}`);
+        const album = await res.json();
+        currentAlbumImages = album.images.map(img => ({ ...img, src: img.fileName }));
+
+        const albumsContainer = document.getElementById('gallery-albums');
+        const detailContainer = document.getElementById('gallery-detail');
+        const filterContainer = document.getElementById('gallery-filter');
+        albumsContainer.classList.add('hidden');
+        filterContainer.innerHTML = '';
+        detailContainer.classList.remove('hidden');
+
+        // Render header
+        const header = document.getElementById('gallery-detail-header');
+        header.innerHTML = `
+            <div class="bg-white/80 backdrop-blur-sm border border-gray-300 rounded-lg p-6 shadow-md">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-900">${album.title}</h3>
+                        ${album.description ? `<p class="text-gray-600 mt-1">${album.description}</p>` : ''}
+                        <div class="flex items-center gap-3 mt-3">
+                            <span class="text-xs font-semibold py-1 px-2 uppercase rounded-full ${getCategoryColor(album.category)}">${album.category}</span>
+                            <span class="text-sm text-gray-500">${album.images.length} photo${album.images.length !== 1 ? 's' : ''}</span>
+                            <span class="text-sm text-gray-400">${formatDate(album.eventDate)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Render images grid
+        const grid = document.getElementById('gallery-detail-grid');
+        grid.innerHTML = '';
+
+        if (album.images.length === 0) {
+            grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500">No photos in this album yet.</div>';
+            return;
+        }
+
+        album.images.forEach((image, index) => {
+            const card = document.createElement('div');
+            card.className = 'group cursor-pointer overflow-hidden bg-white/80 backdrop-blur-sm border border-gray-300 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-lg';
+            card.onclick = () => openLightbox(image, index);
+            card.innerHTML = `
+                <div class="relative aspect-[4/3] overflow-hidden">
+                    <img src="${image.fileName}" alt="${image.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div class="absolute bottom-0 left-0 right-0 p-4 text-white">
+                            <h3 class="font-semibold text-lg">${image.title}</h3>
+                            ${image.description ? `<p class="text-sm opacity-90">${image.description}</p>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="p-3">
+                    <h3 class="font-medium text-sm text-gray-900 truncate">${image.title}</h3>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function openLightbox(image, index) {
+        selectedImage = image;
+        currentImageIndex = index;
+        const lightbox = document.getElementById('lightbox');
+        lightbox.classList.remove('hidden');
+        lightbox.classList.add('flex');
+
+        const imgSrc = image.src || image.fileName;
+        lightbox.innerHTML = `
+            <div class="relative max-w-6xl w-full bg-white rounded-lg overflow-hidden" onclick="event.stopPropagation()">
+                <button class="absolute top-4 right-4 text-white hover:bg-white/20 z-10 p-1 rounded-full" onclick="closeLightbox()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <button class="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-10 p-1 rounded-full" onclick="navigateImage('prev')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <button class="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-10 p-1 rounded-full" onclick="navigateImage('next')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+                <div class="relative aspect-[16/10] bg-black">
+                    <img src="${imgSrc}" alt="${image.title}" class="w-full h-full object-contain">
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-2xl font-bold text-gray-900">${image.title}</h3>
+                    </div>
+                    ${image.description ? `<p class="text-gray-700 mb-4">${image.description}</p>` : ''}
+                    <div class="flex items-center justify-between text-sm text-gray-500">
+                        <span>${currentImageIndex + 1} of ${currentAlbumImages.length}</span>
+                        <div class="flex space-x-2">
+                            <button class="border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-md" onclick="navigateImage('prev')">Previous</button>
+                            <button class="border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-md" onclick="navigateImage('next')">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function closeLightbox() {
+        const lightbox = document.getElementById('lightbox');
+        lightbox.classList.add('hidden');
+        lightbox.classList.remove('flex');
+    }
+
+    function navigateImage(direction) {
+        if (!selectedImage || currentAlbumImages.length === 0) return;
+        let newIndex = currentImageIndex;
+        if (direction === 'prev') {
+            newIndex = currentImageIndex > 0 ? currentImageIndex - 1 : currentAlbumImages.length - 1;
+        } else {
+            newIndex = currentImageIndex < currentAlbumImages.length - 1 ? currentImageIndex + 1 : 0;
+        }
+        openLightbox(currentAlbumImages[newIndex], newIndex);
+    }
+
+    // Back button
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('gallery-back-btn').addEventListener('click', () => {
+            renderAlbums();
+        });
+        fetchGallery();
+    });
+</script>
+
+<script>
+    async function fetchMembershipOptions() {
+        const res = await fetch('/api/membershipoptions');
+        const options = await res.json();
+        const container = document.getElementById('membership-options-container');
+        container.innerHTML = ''; // Clear existing hardcoded content
+
+        options.forEach(option => {
+            const featuresHtml = option.features.split('\\n').map(feature => `<li>• ${feature}</li>`).join('');
+            const cardHtml = `
+                <div class="bg-white/10 rounded-lg p-4 border border-white/20">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold text-white">${option.title}</h4>
+                        <span class="text-amber-300 font-bold">${option.price}</span>
+                    </div>
+                    <ul class="text-sm text-white/80 space-y-1">
+                        ${featuresHtml}
+                    </ul>
+                </div>
+            `;
+            container.innerHTML += cardHtml;
+        });
+    }
+</script>

@@ -16,21 +16,10 @@ namespace POLK_DOTNET.Data
         public DbSet<Member> Members { get; set; }
         public DbSet<CommitteeMember> CommitteeMembers { get; set; }
         public DbSet<Constitution> Constitutions { get; set; }
-    }
-
-    public class Event
-    {
-        public int Id { get; set; }
-        public string Title { get; set; } = null!;
-        public DateTime StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
-        public string Time { get; set; } = null!;
-        public string Type { get; set; } = null!;
-        public string Description { get; set; } = null!;
-        public string Location { get; set; } = null!;
-        public int? Participants { get; set; }
-        public int? MaxParticipants { get; set; }
-        public string? Color { get; set; }
+        public DbSet<EventRegistration> EventRegistrations { get; set; }
+        public DbSet<EventParticipant> EventParticipants { get; set; }
+        public DbSet<SiteSettings> SiteSettings { get; set; }
+        public DbSet<GalleryAlbum> GalleryAlbums { get; set; }
     }
 
     public class GalleryImage
@@ -40,6 +29,8 @@ namespace POLK_DOTNET.Data
         public string Title { get; set; } = null!;
         public string Description { get; set; } = null!;
         public string Category { get; set; } = null!;
+        public int GalleryAlbumId { get; set; }
+        public GalleryAlbum GalleryAlbum { get; set; } = null!;
     }
 
     public class MembershipOption

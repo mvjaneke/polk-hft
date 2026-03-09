@@ -122,66 +122,53 @@ namespace POLK_DOTNET.Data
                     );
                 }
 
-                if (!context.GalleryImages.Any())
+                if (!context.GalleryAlbums.Any())
                 {
-                    context.GalleryImages.AddRange(
-                        new GalleryImage
+                    var competitionAlbum = new GalleryAlbum
+                    {
+                        Title = "Monthly HFT Competition",
+                        Description = "Photos from our monthly Hunter Field Target competition",
+                        Category = "competition",
+                        CoverImageFileName = "/gallery-shooter-1.jpg",
+                        EventDate = new DateTime(2026, 2, 7),
+                        Images = new List<GalleryImage>
                         {
-                            FileName = "/gallery-shooter-1.jpg",
-                            Title = "Precision Shooting",
-                            Description = "Member demonstrating perfect prone position technique during monthly competition",
-                            Category = "competition"
-                        },
-                        new GalleryImage
-                        {
-                            FileName = "/gallery-shooter-2.jpg",
-                            Title = "Steady Aim",
-                            Description = "Training session focusing on kneeling position stability and accuracy",
-                            Category = "training"
-                        },
-                        new GalleryImage
-                        {
-                            FileName = "/gallery-targets.jpg",
-                            Title = "Target Setup",
-                            Description = "Professional target placement at various distances up to 42 meters",
-                            Category = "competition"
-                        },
-                        new GalleryImage
-                        {
-                            FileName = "/gallery-club.jpg",
-                            Title = "Club Community",
-                            Description = "Members enjoying fellowship and sharing experiences at our monthly gathering",
-                            Category = "social"
-                        },
-                        new GalleryImage
-                        {
-                            FileName = "/gallery-awards.jpg",
-                            Title = "Champions Celebrated",
-                            Description = "Annual championship awards ceremony recognizing outstanding achievements",
-                            Category = "awards"
-                        },
-                        new GalleryImage
-                        {
-                            FileName = "/gallery-training.jpg",
-                            Title = "Expert Coaching",
-                            Description = "Personalized coaching sessions to improve shooting techniques",
-                            Category = "training"
-                        },
-                        new GalleryImage
-                        {
-                            FileName = "/hft-competition.jpg",
-                            Title = "Natural Course",
-                            Description = "Competition underway on our beautiful woodland course",
-                            Category = "competition"
-                        },
-                        new GalleryImage
-                        {
-                            FileName = "/hft-course.jpg",
-                            Title = "Our Range",
-                            Description = "Overview of our main HFT course with natural terrain features",
-                            Category = "competition"
+                            new GalleryImage { FileName = "/gallery-shooter-1.jpg", Title = "Precision Shooting", Description = "Member demonstrating perfect prone position technique during monthly competition", Category = "competition" },
+                            new GalleryImage { FileName = "/gallery-targets.jpg", Title = "Target Setup", Description = "Professional target placement at various distances up to 42 meters", Category = "competition" },
+                            new GalleryImage { FileName = "/hft-competition.jpg", Title = "Natural Course", Description = "Competition underway on our beautiful woodland course", Category = "competition" },
+                            new GalleryImage { FileName = "/hft-course.jpg", Title = "Our Range", Description = "Overview of our main HFT course with natural terrain features", Category = "competition" }
                         }
-                    );
+                    };
+
+                    var trainingAlbum = new GalleryAlbum
+                    {
+                        Title = "Training & Coaching Sessions",
+                        Description = "Coaching and training activities at the club",
+                        Category = "training",
+                        CoverImageFileName = "/gallery-shooter-2.jpg",
+                        EventDate = new DateTime(2026, 1, 15),
+                        Images = new List<GalleryImage>
+                        {
+                            new GalleryImage { FileName = "/gallery-shooter-2.jpg", Title = "Steady Aim", Description = "Training session focusing on kneeling position stability and accuracy", Category = "training" },
+                            new GalleryImage { FileName = "/gallery-training.jpg", Title = "Expert Coaching", Description = "Personalized coaching sessions to improve shooting techniques", Category = "training" }
+                        }
+                    };
+
+                    var socialAlbum = new GalleryAlbum
+                    {
+                        Title = "Club Social & Awards",
+                        Description = "Community events and awards ceremonies",
+                        Category = "social",
+                        CoverImageFileName = "/gallery-club.jpg",
+                        EventDate = new DateTime(2025, 12, 10),
+                        Images = new List<GalleryImage>
+                        {
+                            new GalleryImage { FileName = "/gallery-club.jpg", Title = "Club Community", Description = "Members enjoying fellowship and sharing experiences at our monthly gathering", Category = "social" },
+                            new GalleryImage { FileName = "/gallery-awards.jpg", Title = "Champions Celebrated", Description = "Annual championship awards ceremony recognizing outstanding achievements", Category = "awards" }
+                        }
+                    };
+
+                    context.GalleryAlbums.AddRange(competitionAlbum, trainingAlbum, socialAlbum);
                 }
 
                 if (!context.MembershipOptions.Any())
