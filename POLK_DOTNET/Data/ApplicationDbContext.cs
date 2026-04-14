@@ -20,6 +20,7 @@ namespace POLK_DOTNET.Data
         public DbSet<EventParticipant> EventParticipants { get; set; }
         public DbSet<SiteSettings> SiteSettings { get; set; }
         public DbSet<GalleryAlbum> GalleryAlbums { get; set; }
+        public DbSet<CourseTarget> CourseTargets { get; set; }
     }
 
     public class GalleryImage

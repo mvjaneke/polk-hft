@@ -46,7 +46,7 @@ namespace POLK_DOTNET.Pages
         [BindProperty(SupportsGet = true)]
         public int? SelectedEventId { get; set; }
         [BindProperty(SupportsGet = true)]
-        public string ActiveTab { get; set; } = "events";
+        public string ActiveTab { get; set; } = "gallery";
 
         public IList<EventStatsViewModel> EventStatistics { get; set; } = new List<EventStatsViewModel>();
 
@@ -61,6 +61,7 @@ namespace POLK_DOTNET.Pages
         public string EmailFromAddress { get; set; } = string.Empty;
         public string EmailFromName { get; set; } = string.Empty;
         public bool EmailEnableSsl { get; set; } = true;
+        public string SahftaApiBaseUrl { get; set; } = string.Empty;
 
         public class EventStatsViewModel
         {
@@ -83,7 +84,6 @@ namespace POLK_DOTNET.Pages
             {
                 IsAuthenticated = true;
                 Events = await _context.Events
-                    .Where(e => _context.EventRegistrations.Any(er => er.EventId == e.Id))
                     .OrderBy(e => e.StartDate)
                     .ToListAsync();
                 GalleryImages = await _context.GalleryImages.ToListAsync();
@@ -130,6 +130,7 @@ namespace POLK_DOTNET.Pages
                 EmailFromAddress = settings.FirstOrDefault(s => s.Key == "Email:FromAddress")?.Value ?? string.Empty;
                 EmailFromName = settings.FirstOrDefault(s => s.Key == "Email:FromName")?.Value ?? string.Empty;
                 EmailEnableSsl = settings.FirstOrDefault(s => s.Key == "Email:EnableSsl")?.Value?.ToLower() != "false";
+                SahftaApiBaseUrl = settings.FirstOrDefault(s => s.Key == "Sahfta:ApiBaseUrl")?.Value ?? string.Empty;
 
                 if (SelectedEventId.HasValue)
                 {
@@ -521,6 +522,17 @@ namespace POLK_DOTNET.Pages
 
             await SaveSettingAsync("Yoco:PublicKey", yocoPublicKey ?? string.Empty);
             await SaveSettingAsync("Yoco:SecretKey", yocoSecretKey ?? string.Empty);
+            await _context.SaveChangesAsync();
+
+            return RedirectToPage(new { ActiveTab = "settings" });
+        }
+
+        public async Task<IActionResult> OnPostSaveSahftaSettingsAsync(string sahftaApiBaseUrl)
+        {
+            if (HttpContext.Session.GetString("IsAuthenticated") != "true")
+                return RedirectToPage();
+
+            await SaveSettingAsync("Sahfta:ApiBaseUrl", (sahftaApiBaseUrl ?? string.Empty).TrimEnd('/'));
             await _context.SaveChangesAsync();
 
             return RedirectToPage(new { ActiveTab = "settings" });

@@ -1,0 +1,41 @@
+@page "/payment-result"
+@model POLK_DOTNET.Pages.PaymentResultModel
+@{
+    ViewData["Title"] = "Payment Result";
+}
+
+<div class="container mx-auto px-4 py-16">
+    <div class="max-w-lg mx-auto bg-white rounded-lg shadow-md p-8 text-center">
+        @if (Model.Status == "success")
+        {
+            <div class="text-green-600 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">Payment Successful</h1>
+            <p class="text-gray-600 mb-6">Thank you! Your payment has been received. You will receive a confirmation email shortly.</p>
+        }
+        else if (Model.Status == "cancelled")
+        {
+            <div class="text-yellow-500 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.27 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">Payment Cancelled</h1>
+            <p class="text-gray-600 mb-6">Your payment was cancelled. Your application has been saved and you can pay later.</p>
+        }
+        else
+        {
+            <div class="text-red-600 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">Payment Failed</h1>
+            <p class="text-gray-600 mb-6">Something went wrong with your payment. Please try again or contact us for assistance.</p>
+        }
+        <a asp-page="/Index" class="inline-block px-6 py-3 bg-red-700 text-white font-semibold rounded-md hover:bg-red-800">Back to Home</a>
+    </div>
+</div>

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using POLK_DOTNET.Data;
 
@@ -10,9 +11,11 @@ using POLK_DOTNET.Data;
 namespace POLK_DOTNET.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260309045116_AddAddressToMembershipApplication")]
+    partial class AddAddressToMembershipApplication
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0-preview.3.24172.4");
@@ -54,89 +57,23 @@ namespace POLK_DOTNET.Migrations
                     b.ToTable("Constitutions");
                 });
 
-            modelBuilder.Entity("POLK_DOTNET.Data.CourseTarget", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("DistanceMeters")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<int>("EventId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsInclineDecline")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsShaded")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("KillZoneMm")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Lane")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Posture")
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("TargetNumber")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EventId");
-
-                    b.ToTable("CourseTargets");
-                });
-
             modelBuilder.Entity("POLK_DOTNET.Data.Event", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("AllowsClubRifle")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("BankingDetailsHtml")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Color")
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("CourseTargetCount")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("EnableYocoPayment")
-                        .HasColumnType("INTEGER");
-
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<decimal?>("EntryFee")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<string>("EntryFeeDescription")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<bool>("IsClubEvent")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsLeagueShoot")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsRegistrationOpen")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Location")
@@ -146,25 +83,7 @@ namespace POLK_DOTNET.Migrations
                     b.Property<int?>("MaxParticipants")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("NotificationEmail")
-                        .HasColumnType("TEXT");
-
                     b.Property<int?>("Participants")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("RegistrationCloseDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("RequiresAttendanceType")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RequiresClubName")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RequiresDivision")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RequiresSahfta")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("StartDate")
@@ -223,6 +142,7 @@ namespace POLK_DOTNET.Migrations
                         .HasColumnType("decimal(18, 2)");
 
                     b.Property<string>("AttendanceType")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
@@ -232,10 +152,12 @@ namespace POLK_DOTNET.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ClubName")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Division")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
@@ -274,6 +196,9 @@ namespace POLK_DOTNET.Migrations
                     b.Property<bool>("InfoAccurateConfirmed")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsPearcMember")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -283,10 +208,6 @@ namespace POLK_DOTNET.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("PaymentMethod")
-                        .HasMaxLength(30)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("PaymentReference")
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
@@ -294,17 +215,13 @@ namespace POLK_DOTNET.Migrations
                     b.Property<DateTime>("RegistrationDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("RifleOwnership")
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("SAHFTANumber")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("SocialMediaConsent")
-                        .HasMaxLength(30)
-                        .HasColumnType("TEXT");
+                    b.Property<bool>("SocialMediaConsent")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -316,47 +233,11 @@ namespace POLK_DOTNET.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("YocoCheckoutId")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("YocoPaymentId")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
                     b.HasKey("Id");
 
                     b.HasIndex("EventId");
 
                     b.ToTable("EventRegistrations");
-                });
-
-            modelBuilder.Entity("POLK_DOTNET.Data.GalleryAlbum", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CoverImageFileName")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("EventDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("GalleryAlbums");
                 });
 
             modelBuilder.Entity("POLK_DOTNET.Data.GalleryImage", b =>
@@ -377,16 +258,11 @@ namespace POLK_DOTNET.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("GalleryAlbumId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("GalleryAlbumId");
 
                     b.ToTable("GalleryImages");
                 });
@@ -455,44 +331,20 @@ namespace POLK_DOTNET.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("City")
+                    b.Property<string>("Address")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ComplexOrBuilding")
-                        .HasMaxLength(200)
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("MembershipType")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("PostalCode")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Province")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("StreetAddress")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
                     b.Property<DateTime>("SubmittedDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Suburb")
-                        .IsRequired()
-                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("TotalAmount")
@@ -529,38 +381,6 @@ namespace POLK_DOTNET.Migrations
                     b.ToTable("MembershipOptions");
                 });
 
-            modelBuilder.Entity("POLK_DOTNET.Data.SiteSettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SiteSettings");
-                });
-
-            modelBuilder.Entity("POLK_DOTNET.Data.CourseTarget", b =>
-                {
-                    b.HasOne("POLK_DOTNET.Data.Event", "Event")
-                        .WithMany()
-                        .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Event");
-                });
-
             modelBuilder.Entity("POLK_DOTNET.Data.EventParticipant", b =>
                 {
                     b.HasOne("POLK_DOTNET.Data.EventRegistration", "EventRegistration")
@@ -583,17 +403,6 @@ namespace POLK_DOTNET.Migrations
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("POLK_DOTNET.Data.GalleryImage", b =>
-                {
-                    b.HasOne("POLK_DOTNET.Data.GalleryAlbum", "GalleryAlbum")
-                        .WithMany("Images")
-                        .HasForeignKey("GalleryAlbumId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("GalleryAlbum");
-                });
-
             modelBuilder.Entity("POLK_DOTNET.Data.Member", b =>
                 {
                     b.HasOne("POLK_DOTNET.Data.MembershipApplication", "MembershipApplication")
@@ -608,11 +417,6 @@ namespace POLK_DOTNET.Migrations
             modelBuilder.Entity("POLK_DOTNET.Data.EventRegistration", b =>
                 {
                     b.Navigation("Participants");
-                });
-
-            modelBuilder.Entity("POLK_DOTNET.Data.GalleryAlbum", b =>
-                {
-                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("POLK_DOTNET.Data.MembershipApplication", b =>

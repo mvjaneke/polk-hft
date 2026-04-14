@@ -1,0 +1,102 @@
+@page "/admin/events"
+@model POLK_DOTNET.Pages.AdminEvents.IndexModel
+@{
+    ViewData["Title"] = "Event Management";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <a asp-page="/Admin" class="text-sm text-gray-500 hover:underline">&larr; Admin Dashboard</a>
+            <h1 class="text-4xl font-bold mt-1">Event Management</h1>
+        </div>
+        <a asp-page="Create" class="px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-800">+ New Event</a>
+    </div>
+
+    <div class="overflow-x-auto bg-white rounded-lg shadow-md">
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b">
+                <tr>
+                    <th class="text-left p-4">Event</th>
+                    <th class="text-left p-4">Date</th>
+                    <th class="text-left p-4">Type</th>
+                    <th class="text-left p-4">Registration</th>
+                    <th class="text-left p-4">Stats</th>
+                    <th class="text-left p-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    var ev = row.Event;
+                    var regUrl = $"{Request.Scheme}://{Request.Host}/RegisterEvent/{ev.Id}";
+                    <tr class="border-b last:border-none hover:bg-gray-50">
+                        <td class="p-4">
+                            <a asp-page="Manage" asp-route-id="@ev.Id" class="font-semibold text-red-700 hover:underline">@ev.Title</a>
+                            <div class="text-xs text-gray-500">@ev.Location</div>
+                        </td>
+                        <td class="p-4 whitespace-nowrap">
+                            @ev.StartDate.ToString("dd MMM yyyy")
+                            @if (ev.EndDate.HasValue)
+                            {
+                                <span>– @ev.EndDate.Value.ToString("dd MMM yyyy")</span>
+                            }
+                        </td>
+                        <td class="p-4">@ev.EventType</td>
+                        <td class="p-4">
+                            @if (ev.IsRegistrationOpen)
+                            {
+                                <div class="flex flex-col gap-1">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 w-fit">Open</span>
+                                    @if (ev.RegistrationCloseDate.HasValue)
+                                    {
+                                        <span class="text-xs text-gray-500">Closes @ev.RegistrationCloseDate.Value.ToString("dd MMM")</span>
+                                    }
+                                    <div class="flex items-center gap-1 mt-1">
+                                        <button type="button" onclick="copyUrl(this, '@regUrl')" class="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded">Copy Link</button>
+                                        <a href="@regUrl" target="_blank" class="text-xs text-blue-600 hover:underline">Open</a>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-200 text-gray-700">Closed</span>
+                            }
+                        </td>
+                        <td class="p-4 whitespace-nowrap text-sm">
+                            Total: <strong>@row.Total</strong><br/>
+                            Paid: <strong class="text-green-700">@row.Paid</strong><br/>
+                            Pending: <strong class="text-yellow-700">@row.Pending</strong>
+                        </td>
+                        <td class="p-4">
+                            <div class="flex flex-wrap gap-2">
+                                <a asp-page="Manage" asp-route-id="@ev.Id" class="text-xs px-3 py-1 bg-red-700 text-white rounded hover:bg-red-800">Manage</a>
+                                <a asp-page="/EditEvent" asp-route-id="@ev.Id" class="text-xs px-3 py-1 border rounded hover:bg-gray-100">Edit</a>
+                                <form method="post" asp-page-handler="ToggleRegistration" asp-route-id="@ev.Id">
+                                    <button type="submit" class="text-xs px-3 py-1 border rounded hover:bg-gray-100">@(ev.IsRegistrationOpen ? "Close Reg" : "Open Reg")</button>
+                                </form>
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@ev.Id" onsubmit="return confirm('Delete this event and all registrations?');">
+                                    <button type="submit" class="text-xs px-3 py-1 border border-red-300 text-red-700 rounded hover:bg-red-50">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Rows.Any())
+                {
+                    <tr><td colspan="6" class="p-8 text-center text-gray-500">No events yet. Click "New Event" to create one.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function copyUrl(btn, url) {
+        navigator.clipboard.writeText(url).then(function () {
+            var original = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(function () { btn.textContent = original; }, 1500);
+        });
+    }
+</script>

@@ -1,0 +1,36 @@
+@page "{id:int}"
+@model POLK_DOTNET.Pages.RegistrationConfirmationModel
+@{
+    ViewData["Title"] = "Registration Confirmation";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md text-center">
+        <svg class="mx-auto h-16 w-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <h1 class="text-3xl font-bold text-gray-900 mt-4">Registration Successful!</h1>
+        <p class="text-lg text-gray-700 mt-2">Thank you, <span class="font-semibold">@Model.EventRegistration.Name @Model.EventRegistration.Surname</span>, for registering.</p>
+        <p class="text-lg text-gray-700 mt-1">You have successfully registered for the event: <span class="font-semibold">@Model.Event.Title</span>.</p>
+        <p class="text-md text-gray-600 mt-4">A confirmation email will be sent to <span class="font-medium">@Model.EventRegistration.EmailAddress</span> shortly.</p>
+
+        @if (Model.EventRegistration.PaymentMethod == "EFT")
+        {
+            <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md text-left text-sm">
+                <strong>Next step:</strong> please make payment via EFT using the banking details in your email and reply with proof of payment.
+            </div>
+        }
+        else if (Model.EventRegistration.PaymentMethod == "AtVenue")
+        {
+            <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md text-left text-sm">
+                <strong>Next step:</strong> pay on arrival at the venue (card machine or cash).
+            </div>
+        }
+
+        <div class="mt-8">
+            <a href="/" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                Back to Home
+            </a>
+        </div>
+    </div>
+</div>

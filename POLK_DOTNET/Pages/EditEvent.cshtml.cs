@@ -69,7 +69,7 @@ namespace POLK_DOTNET.Pages
                 }
             }
 
-            return RedirectToPage("/Admin");
+            return RedirectToPage("/AdminEvents/Manage", new { id = Event.Id });
         }
 
         private bool EventExists(int id)

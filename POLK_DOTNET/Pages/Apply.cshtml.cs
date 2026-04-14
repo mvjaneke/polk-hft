@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using POLK_DOTNET.Data;
+using POLK_DOTNET.Services;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -13,10 +14,16 @@ namespace POLK_DOTNET.Pages
     public class ApplyModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly YocoCheckoutService _yocoService;
+        private readonly EmailService _emailService;
+        private readonly ApplicationPdfService _pdfService;
 
-        public ApplyModel(ApplicationDbContext context)
+        public ApplyModel(ApplicationDbContext context, YocoCheckoutService yocoService, EmailService emailService, ApplicationPdfService pdfService)
         {
             _context = context;
+            _yocoService = yocoService;
+            _emailService = emailService;
+            _pdfService = pdfService;
         }
 
         [BindProperty]
@@ -33,8 +40,8 @@ namespace POLK_DOTNET.Pages
         public decimal IndividualMembershipCost { get; set; } = 450.00m;
         public decimal FamilyMembershipCost { get; set; } = 750.00m;
         public decimal PensionerMembershipCost { get; set; } = 300.00m;
-        public decimal SahftaAdultCost { get; set; } = 180.00m;
-        public decimal SahftaChildCost { get; set; } = 120.00m;
+        public decimal SahftaAdultCost { get; set; } = 200.00m;
+        public decimal SahftaChildCost { get; set; } = 140.00m;
 
         public void OnGet()
         {
@@ -87,8 +94,116 @@ namespace POLK_DOTNET.Pages
             }
             await _context.SaveChangesAsync();
 
-            // Redirect to a confirmation page or home page
+            // Reload application with members for email/PDF
+            var savedApplication = await _context.MembershipApplications
+                .Include(a => a.Members)
+                .FirstAsync(a => a.Id == MembershipApplication.Id);
+
+            await SendApplicationEmailsAsync(savedApplication);
+
+            // Attempt Yoco checkout if configured
+            if (MembershipApplication.TotalAmount > 0)
+            {
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                var metadata = new Dictionary<string, string>
+                {
+                    { "applicationId", MembershipApplication.Id.ToString() }
+                };
+
+                var appId = MembershipApplication.Id;
+                var checkout = await _yocoService.CreateCheckoutAsync(
+                    MembershipApplication.TotalAmount,
+                    $"Membership Application #{appId}",
+                    $"{baseUrl}/payment-result?status=success&applicationId={appId}",
+                    $"{baseUrl}/payment-result?status=cancelled&applicationId={appId}",
+                    $"{baseUrl}/payment-result?status=failed&applicationId={appId}",
+                    metadata
+                );
+
+                if (checkout != null && !string.IsNullOrEmpty(checkout.RedirectUrl))
+                {
+                    return Redirect(checkout.RedirectUrl);
+                }
+            }
+
+            // Fallback: redirect to home if Yoco not configured or amount is 0
             return RedirectToPage("/Index");
+        }
+
+        private async Task SendApplicationEmailsAsync(MembershipApplication application)
+        {
+            var address = $"{application.StreetAddress}";
+            if (!string.IsNullOrEmpty(application.ComplexOrBuilding))
+                address += $", {application.ComplexOrBuilding}";
+            address += $", {application.Suburb}, {application.City}, {application.Province}, {application.PostalCode}";
+
+            var membersHtml = string.Join("", application.Members.Select(m =>
+                $"<tr><td style='padding:8px;border:1px solid #ddd;'>{m.FirstName} {m.Surname}{(m.IsPrimary ? " (Primary)" : "")}</td>" +
+                $"<td style='padding:8px;border:1px solid #ddd;'>{m.IdNumber}</td>" +
+                $"<td style='padding:8px;border:1px solid #ddd;'>{m.EmailAddress}</td>" +
+                $"<td style='padding:8px;border:1px solid #ddd;'>{m.ContactNumber}</td>" +
+                $"<td style='padding:8px;border:1px solid #ddd;'>{(m.HasSahftaAffiliation ? $"Yes (R{m.SahftaFee:F2})" : "No")}</td></tr>"));
+
+            var emailBody = $@"
+                <h2>New Membership Application #{application.Id}</h2>
+                <p><strong>Date:</strong> {application.SubmittedDate:dd MMMM yyyy}</p>
+                <p><strong>Type:</strong> {application.MembershipType}</p>
+                <p><strong>Total Amount:</strong> R{application.TotalAmount:F2}</p>
+                <p><strong>Payment Status:</strong> Awaiting Payment</p>
+                <h3>Address</h3>
+                <p>{address}</p>
+                <h3>Members</h3>
+                <table style='border-collapse:collapse;width:100%;'>
+                    <tr style='background:#f2f2f2;'>
+                        <th style='padding:8px;border:1px solid #ddd;text-align:left;'>Name</th>
+                        <th style='padding:8px;border:1px solid #ddd;text-align:left;'>ID Number</th>
+                        <th style='padding:8px;border:1px solid #ddd;text-align:left;'>Email</th>
+                        <th style='padding:8px;border:1px solid #ddd;text-align:left;'>Contact</th>
+                        <th style='padding:8px;border:1px solid #ddd;text-align:left;'>SAHFTA</th>
+                    </tr>
+                    {membersHtml}
+                </table>";
+
+            // Send notification to accounts
+            await _emailService.SendEmailAsync(
+                "accounts@polk-hft.co.za",
+                $"New Membership Application #{application.Id} - {application.MembershipType}",
+                emailBody);
+
+            // Send PDF copy to applicant
+            var primaryMember = application.Members.FirstOrDefault(m => m.IsPrimary);
+            if (primaryMember != null)
+            {
+                var pdfBytes = _pdfService.GenerateApplicationPdf(application);
+                var attachments = new List<EmailAttachment>
+                {
+                    new EmailAttachment
+                    {
+                        FileName = $"MembershipApplication_{application.Id}.pdf",
+                        Content = pdfBytes,
+                        ContentType = "application/pdf"
+                    }
+                };
+
+                var applicantBody = $@"
+                    <h2>Your Membership Application</h2>
+                    <p>Dear {primaryMember.FirstName},</p>
+                    <p>Thank you for submitting your membership application to POLK.</p>
+                    <p><strong>Application #:</strong> {application.Id}</p>
+                    <p><strong>Membership Type:</strong> {application.MembershipType}</p>
+                    <p><strong>Total Amount:</strong> R{application.TotalAmount:F2}</p>
+                    <p><strong>Payment Status:</strong> Awaiting Payment</p>
+                    <p>Please find a copy of your application attached as a PDF.</p>
+                    <p>Once payment is completed, you will receive a confirmation email.</p>
+                    <br/>
+                    <p>Kind regards,<br/>Pretoria Oos Lug Geweer Klub</p>";
+
+                await _emailService.SendEmailAsync(
+                    primaryMember.EmailAddress,
+                    $"Your Membership Application #{application.Id} - POLK",
+                    applicantBody,
+                    attachments);
+            }
         }
 
         private async Task<decimal> CalculateTotalAmount()

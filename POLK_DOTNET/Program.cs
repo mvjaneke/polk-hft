@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using POLK_DOTNET.Data;
+using POLK_DOTNET.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,12 @@ builder.Services.AddSession(options =>
 });
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<YocoCheckoutService>();
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<ApplicationPdfService>();
+builder.Services.AddScoped<ScorecardPdfService>();
+builder.Services.AddScoped<SahftaMembersClient>();
 
 var app = builder.Build();
 
@@ -30,6 +37,13 @@ using (var scope = app.Services.CreateScope())
     context.Database.Migrate(); // Apply pending migrations
 
     SeedData.Initialize(services);
+
+    // Seed default SAHFTA API base URL if missing
+    if (!context.SiteSettings.Any(s => s.Key == "Sahfta:ApiBaseUrl"))
+    {
+        context.SiteSettings.Add(new SiteSettings { Key = "Sahfta:ApiBaseUrl", Value = "https://braaifever.co.za" });
+        context.SaveChanges();
+    }
 }
 
 app.UseSession();

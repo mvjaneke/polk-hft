@@ -1,0 +1,118 @@
+@page "/admin/events/{id:int}/registrations/{regId:int}"
+@model POLK_DOTNET.Pages.AdminEvents.RegistrationModel
+@{
+    ViewData["Title"] = $"Registration #{Model.Registration.Id}";
+    var r = Model.Registration;
+}
+
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <a asp-page="Manage" asp-route-id="@Model.Event.Id" class="text-sm text-gray-500 hover:underline">&larr; Back to @Model.Event.Title</a>
+
+    <div class="flex items-start justify-between mt-2 mb-6 flex-wrap gap-4">
+        <div>
+            <h1 class="text-3xl font-bold">@r.Name @r.Surname</h1>
+            <p class="text-gray-600">Registration #@r.Id &middot; @r.RegistrationDate.ToString("dd MMM yyyy HH:mm")</p>
+            @{
+                var badge = r.Status switch
+                {
+                    "Paid" => "bg-green-100 text-green-800",
+                    "Pending" => "bg-yellow-100 text-yellow-800",
+                    "Confirmed" => "bg-blue-100 text-blue-800",
+                    "Cancelled" => "bg-red-100 text-red-800",
+                    _ => "bg-gray-100 text-gray-800"
+                };
+            }
+            <span class="inline-flex items-center px-3 py-1 rounded text-sm font-semibold @badge mt-2">@r.Status</span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            @if (r.Status != "Paid")
+            {
+                <form method="post" asp-page-handler="MarkPaid" asp-route-id="@Model.Event.Id" asp-route-regId="@r.Id">
+                    <button type="submit" class="px-3 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700">Mark Paid</button>
+                </form>
+            }
+            @if (r.Status != "Cancelled")
+            {
+                <form method="post" asp-page-handler="Cancel" asp-route-id="@Model.Event.Id" asp-route-regId="@r.Id" onsubmit="return confirm('Cancel this registration?');">
+                    <button type="submit" class="px-3 py-2 border border-red-300 text-red-700 text-sm rounded hover:bg-red-50">Cancel</button>
+                </form>
+            }
+            <form method="post" asp-page-handler="Delete" asp-route-id="@Model.Event.Id" asp-route-regId="@r.Id" onsubmit="return confirm('Permanently delete this registration? This cannot be undone.');">
+                <button type="submit" class="px-3 py-2 border border-red-500 text-red-700 text-sm rounded hover:bg-red-100">Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-lg font-bold mb-3">Personal Details</h2>
+            <dl class="space-y-2 text-sm">
+                <div><dt class="text-gray-500">Full Name</dt><dd class="font-medium">@r.Name @r.Surname</dd></div>
+                <div><dt class="text-gray-500">Email</dt><dd class="font-medium"><a href="mailto:@r.EmailAddress" class="text-blue-600 hover:underline">@r.EmailAddress</a></dd></div>
+                <div><dt class="text-gray-500">Cell</dt><dd class="font-medium">@r.CellNumber</dd></div>
+                <div><dt class="text-gray-500">ID Number</dt><dd class="font-medium">@r.IdNumber</dd></div>
+                @if (!string.IsNullOrWhiteSpace(r.GuardianName) || !string.IsNullOrWhiteSpace(r.GuardianSurname))
+                {
+                    <div><dt class="text-gray-500">Guardian / Parent</dt><dd class="font-medium">@r.GuardianName @r.GuardianSurname</dd></div>
+                }
+            </dl>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-lg font-bold mb-3">Competition Details</h2>
+            <dl class="space-y-2 text-sm">
+                @if (!string.IsNullOrWhiteSpace(r.AttendanceType))
+                {
+                    <div><dt class="text-gray-500">Attendance</dt><dd class="font-medium">@r.AttendanceType</dd></div>
+                }
+                <div><dt class="text-gray-500">Gun Type</dt><dd class="font-medium">@r.GunType</dd></div>
+                @if (!string.IsNullOrWhiteSpace(r.RifleOwnership))
+                {
+                    <div><dt class="text-gray-500">Rifle</dt><dd class="font-medium">@(r.RifleOwnership == "Own" ? "Own rifle and pellets" : "Club rifle and pellets")</dd></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(r.Division))
+                {
+                    <div><dt class="text-gray-500">Division</dt><dd class="font-medium">@r.Division @(string.IsNullOrWhiteSpace(r.OtherDivision) ? "" : $"({r.OtherDivision})")</dd></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(r.SAHFTANumber))
+                {
+                    <div><dt class="text-gray-500">SAHFTA Number</dt><dd class="font-medium">@r.SAHFTANumber</dd></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(r.ClubName))
+                {
+                    <div><dt class="text-gray-500">Club</dt><dd class="font-medium">@r.ClubName</dd></div>
+                }
+            </dl>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-lg font-bold mb-3">Payment</h2>
+            <dl class="space-y-2 text-sm">
+                <div><dt class="text-gray-500">Method</dt><dd class="font-medium">@(r.PaymentMethod ?? "N/A")</dd></div>
+                <div><dt class="text-gray-500">Amount Paid</dt><dd class="font-medium">@($"R{r.AmountPaid:F2}")</dd></div>
+                @if (!string.IsNullOrWhiteSpace(r.PaymentReference))
+                {
+                    <div><dt class="text-gray-500">Reference</dt><dd class="font-medium">@r.PaymentReference</dd></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(r.YocoCheckoutId))
+                {
+                    <div><dt class="text-gray-500">Yoco Checkout ID</dt><dd class="font-mono text-xs break-all">@r.YocoCheckoutId</dd></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(r.YocoPaymentId))
+                {
+                    <div><dt class="text-gray-500">Yoco Payment ID</dt><dd class="font-mono text-xs break-all">@r.YocoPaymentId</dd></div>
+                }
+            </dl>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-lg font-bold mb-3">Consents &amp; Indemnity</h2>
+            <dl class="space-y-2 text-sm">
+                <div><dt class="text-gray-500">Info Accurate</dt><dd>@(r.InfoAccurateConfirmed ? "✓ Confirmed" : "✗ Not confirmed")</dd></div>
+                <div><dt class="text-gray-500">Indemnity</dt><dd>@(r.IndemnityAgreed ? "✓ Agreed" : "✗ Not agreed")</dd></div>
+                <div><dt class="text-gray-500">Guardian Indemnity</dt><dd>@(r.GuardianIndemnityAgreed ? "✓ Agreed" : "— N/A")</dd></div>
+                <div><dt class="text-gray-500">Social Media Consent</dt><dd>@(r.SocialMediaConsent ?? "Not answered")</dd></div>
+            </dl>
+        </div>
+    </div>
+</div>

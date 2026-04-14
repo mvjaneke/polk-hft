@@ -42,6 +42,50 @@
             </div>
         </div>
 
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Residential Address</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="md:col-span-2">
+                <label asp-for="MembershipApplication.StreetAddress" class="block text-sm font-medium text-gray-700">Street Address</label>
+                <input asp-for="MembershipApplication.StreetAddress" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" required placeholder="e.g. 123 Main Road" />
+                <span asp-validation-for="MembershipApplication.StreetAddress" class="text-red-600 text-sm"></span>
+            </div>
+            <div class="md:col-span-2">
+                <label asp-for="MembershipApplication.ComplexOrBuilding" class="block text-sm font-medium text-gray-700">Complex / Building Name (optional)</label>
+                <input asp-for="MembershipApplication.ComplexOrBuilding" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" placeholder="e.g. Unit 5, Sunrise Estate" />
+            </div>
+            <div>
+                <label asp-for="MembershipApplication.Suburb" class="block text-sm font-medium text-gray-700">Suburb</label>
+                <input asp-for="MembershipApplication.Suburb" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" required placeholder="e.g. Moreleta Park" />
+                <span asp-validation-for="MembershipApplication.Suburb" class="text-red-600 text-sm"></span>
+            </div>
+            <div>
+                <label asp-for="MembershipApplication.City" class="block text-sm font-medium text-gray-700">City / Town</label>
+                <input asp-for="MembershipApplication.City" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" required placeholder="e.g. Pretoria" />
+                <span asp-validation-for="MembershipApplication.City" class="text-red-600 text-sm"></span>
+            </div>
+            <div>
+                <label asp-for="MembershipApplication.Province" class="block text-sm font-medium text-gray-700">Province</label>
+                <select asp-for="MembershipApplication.Province" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" required>
+                    <option value="">Select a province</option>
+                    <option value="Eastern Cape">Eastern Cape</option>
+                    <option value="Free State">Free State</option>
+                    <option value="Gauteng">Gauteng</option>
+                    <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                    <option value="Limpopo">Limpopo</option>
+                    <option value="Mpumalanga">Mpumalanga</option>
+                    <option value="North West">North West</option>
+                    <option value="Northern Cape">Northern Cape</option>
+                    <option value="Western Cape">Western Cape</option>
+                </select>
+                <span asp-validation-for="MembershipApplication.Province" class="text-red-600 text-sm"></span>
+            </div>
+            <div>
+                <label asp-for="MembershipApplication.PostalCode" class="block text-sm font-medium text-gray-700">Postal Code</label>
+                <input asp-for="MembershipApplication.PostalCode" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" required placeholder="e.g. 0044" maxlength="10" />
+                <span asp-validation-for="MembershipApplication.PostalCode" class="text-red-600 text-sm"></span>
+            </div>
+        </div>
+
         <hr class="my-8 border-gray-200" />
 
         <h2 class="text-2xl font-bold text-gray-900 mb-4">Member Details</h2>

@@ -1,0 +1,467 @@
+@page "{eventId:int}"
+@model POLK_DOTNET.Pages.RegisterEventModel
+@{
+    ViewData["Title"] = "Register for Event";
+}
+
+<style>
+    .form-input {
+        display: block;
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        color: #111827;
+        background-color: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .form-input:focus {
+        outline: none;
+        border-color: #b91c1c;
+        box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15);
+    }
+    .form-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.375rem;
+    }
+    .form-hint {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+    .form-error {
+        font-size: 0.8125rem;
+        color: #b91c1c;
+        margin-top: 0.25rem;
+        display: block;
+    }
+    .section-heading {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #111827;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #b91c1c;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .option-tile {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.625rem;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all .15s;
+        background: #fff;
+    }
+    .option-tile:hover {
+        border-color: #b91c1c;
+        background: #fef2f2;
+    }
+    .option-tile input[type=radio],
+    .option-tile input[type=checkbox] {
+        margin-top: 0.125rem;
+        accent-color: #b91c1c;
+        width: 1rem;
+        height: 1rem;
+    }
+    .legal-box {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 1rem 1.25rem;
+        font-size: 0.8125rem;
+        color: #374151;
+        line-height: 1.55;
+    }
+    .legal-box p { margin-bottom: 0.5rem; }
+    .legal-box p:last-child { margin-bottom: 0; }
+    .submit-btn {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        padding: 0.875rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        color: #fff;
+        background: #b91c1c;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 10px rgba(185, 28, 28, 0.25);
+        transition: all .15s;
+        border: none;
+        cursor: pointer;
+    }
+    .submit-btn:hover { background: #991b1b; box-shadow: 0 6px 14px rgba(185, 28, 28, 0.35); }
+</style>
+
+<div class="min-h-screen bg-gray-100 py-8">
+    <div class="max-w-3xl mx-auto px-4">
+
+        <!-- Event hero -->
+        <div class="bg-gradient-to-r from-red-700 to-red-900 rounded-xl shadow-lg p-6 mb-6 text-white">
+            <p class="text-sm uppercase tracking-wider text-red-200 mb-1">Event Registration</p>
+            <h1 class="text-3xl md:text-4xl font-bold">@Model.Event.Title</h1>
+            <p class="text-red-100 mt-2">
+                <span class="inline-block mr-4">📅 @Model.Event.StartDate.ToString("dddd, dd MMMM yyyy")</span>
+                <span class="inline-block mr-4">🕐 @Model.Event.Time</span>
+                @if (!string.IsNullOrWhiteSpace(Model.Event.Location))
+                {
+                    <span class="inline-block">📍 @Model.Event.Location</span>
+                }
+            </p>
+        </div>
+
+        <!-- Main card -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+
+            @if (!string.IsNullOrWhiteSpace(Model.Event.Description))
+            {
+                <div class="p-6 border-b bg-gray-50 prose max-w-none text-sm">
+                    @Html.Raw(Model.Event.Description)
+                </div>
+            }
+
+            @if (Model.Event.EntryFee.HasValue)
+            {
+                <div class="p-4 bg-amber-50 border-b border-amber-200 flex items-center gap-3">
+                    <span class="text-2xl">💰</span>
+                    <div>
+                        <strong class="text-amber-900">Entry Fee:</strong>
+                        <span class="text-amber-900 text-lg font-semibold">@($"R{Model.Event.EntryFee.Value:F2}")</span>
+                        @if (!string.IsNullOrWhiteSpace(Model.Event.EntryFeeDescription))
+                        {
+                            <span class="text-amber-800 text-sm">(@Model.Event.EntryFeeDescription)</span>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (Model.RegistrationClosed)
+            {
+                <div class="p-8 text-center">
+                    <div class="text-5xl mb-3">🚫</div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-2">Registration Closed</h2>
+                    <p class="text-gray-600">Registration for this event is no longer available.</p>
+                </div>
+            }
+            else
+            {
+                <form method="post" class="p-6 md:p-8 space-y-8">
+                    <div asp-validation-summary="All" class="bg-red-50 border border-red-200 text-red-800 rounded-md p-3 text-sm"></div>
+
+                    <input type="hidden" asp-for="EventId" />
+                    <input type="hidden" asp-for="EventRegistration.EventId" />
+
+                    <!-- Personal Details -->
+                    <section>
+                        <h2 class="section-heading">Your Details</h2>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label asp-for="EventRegistration.EmailAddress" class="form-label">Email Address <span class="text-red-600">*</span></label>
+                                <input asp-for="EventRegistration.EmailAddress" type="email" class="form-input" placeholder="you@example.com" />
+                                <span asp-validation-for="EventRegistration.EmailAddress" class="form-error"></span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label asp-for="EventRegistration.Name" class="form-label">First Name <span class="text-red-600">*</span></label>
+                                    <input asp-for="EventRegistration.Name" class="form-input" />
+                                    <span asp-validation-for="EventRegistration.Name" class="form-error"></span>
+                                </div>
+                                <div>
+                                    <label asp-for="EventRegistration.Surname" class="form-label">Surname <span class="text-red-600">*</span></label>
+                                    <input asp-for="EventRegistration.Surname" class="form-input" />
+                                    <span asp-validation-for="EventRegistration.Surname" class="form-error"></span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label asp-for="EventRegistration.IdNumber" class="form-label">ID Number <span class="text-red-600">*</span></label>
+                                    <input asp-for="EventRegistration.IdNumber" class="form-input" />
+                                    <span asp-validation-for="EventRegistration.IdNumber" class="form-error"></span>
+                                </div>
+                                <div>
+                                    <label asp-for="EventRegistration.CellNumber" class="form-label">Contact Number <span class="text-red-600">*</span></label>
+                                    <input asp-for="EventRegistration.CellNumber" class="form-input" placeholder="082 123 4567" />
+                                    <span asp-validation-for="EventRegistration.CellNumber" class="form-error"></span>
+                                </div>
+                            </div>
+
+                            @if (Model.Event.RequiresAttendanceType)
+                            {
+                                <div>
+                                    <label class="form-label">Attendance <span class="text-red-600">*</span></label>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <label class="option-tile">
+                                            <input type="radio" asp-for="EventRegistration.AttendanceType" value="Competitor" />
+                                            <span><strong>Competitor</strong><br/><span class="text-xs text-gray-500">I'm shooting the event</span></span>
+                                        </label>
+                                        <label class="option-tile">
+                                            <input type="radio" asp-for="EventRegistration.AttendanceType" value="Spectator" />
+                                            <span><strong>Spectator</strong><br/><span class="text-xs text-gray-500">I'm attending, not shooting</span></span>
+                                        </label>
+                                    </div>
+                                    <span asp-validation-for="EventRegistration.AttendanceType" class="form-error"></span>
+                                </div>
+                            }
+                        </div>
+                    </section>
+
+                    <!-- Rifle Details -->
+                    <section>
+                        <h2 class="section-heading">Rifle Details</h2>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="form-label">Rifle Type <span class="text-red-600">*</span></label>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    @if (Model.Event.EventType == "Benchrest")
+                                    {
+                                        <label class="option-tile"><input type="radio" asp-for="EventRegistration.GunType" value="PCP .177" /><span>PCP .177</span></label>
+                                        <label class="option-tile"><input type="radio" asp-for="EventRegistration.GunType" value="PCP .22" /><span>PCP .22</span></label>
+                                        <label class="option-tile"><input type="radio" asp-for="EventRegistration.GunType" value="Recoil / Springer" /><span>Recoil / Springer</span></label>
+                                    }
+                                    else
+                                    {
+                                        <label class="option-tile"><input type="radio" asp-for="EventRegistration.GunType" value="PCP" /><span>PCP</span></label>
+                                        <label class="option-tile"><input type="radio" asp-for="EventRegistration.GunType" value="Recoil / Springer" /><span>Recoil / Springer</span></label>
+                                    }
+                                </div>
+                                <span asp-validation-for="EventRegistration.GunType" class="form-error"></span>
+                            </div>
+
+                            @if (Model.Event.AllowsClubRifle)
+                            {
+                                <div>
+                                    <label class="form-label">Rifle Ownership <span class="text-red-600">*</span></label>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <label class="option-tile">
+                                            <input type="radio" asp-for="EventRegistration.RifleOwnership" value="Own" />
+                                            <span>I will use my own air-rifle and pellets</span>
+                                        </label>
+                                        <label class="option-tile">
+                                            <input type="radio" asp-for="EventRegistration.RifleOwnership" value="Club" />
+                                            <span>I need to use a club air-rifle and pellets</span>
+                                        </label>
+                                    </div>
+                                    <span asp-validation-for="EventRegistration.RifleOwnership" class="form-error"></span>
+                                </div>
+                            }
+                        </div>
+                    </section>
+
+                    @if (Model.Event.RequiresSahfta || Model.Event.RequiresClubName || Model.Event.RequiresDivision)
+                    {
+                        <section>
+                            <h2 class="section-heading">Competitor Details</h2>
+
+                            <div class="space-y-4">
+                                @if (Model.Event.RequiresSahfta)
+                                {
+                                    <div>
+                                        <label asp-for="EventRegistration.SAHFTANumber" class="form-label">SAHFTA Number</label>
+                                        <input asp-for="EventRegistration.SAHFTANumber" class="form-input" placeholder="e.g. 19-5001" />
+                                        <p class="form-hint">Leave blank if you are not a SAHFTA member.</p>
+                                        <span asp-validation-for="EventRegistration.SAHFTANumber" class="form-error"></span>
+                                    </div>
+                                }
+
+                                @if (Model.Event.RequiresClubName)
+                                {
+                                    <div>
+                                        <label asp-for="EventRegistration.ClubName" class="form-label">Club Name</label>
+                                        <input asp-for="EventRegistration.ClubName" class="form-input" />
+                                        <p class="form-hint">Leave blank if you are not a member of a club.</p>
+                                        <span asp-validation-for="EventRegistration.ClubName" class="form-error"></span>
+                                    </div>
+                                }
+
+                                @if (Model.Event.RequiresDivision)
+                                {
+                                    <div>
+                                        <label class="form-label">Division <span class="text-red-600">*</span></label>
+                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            <label class="option-tile"><input type="radio" asp-for="EventRegistration.Division" value="Open PCP" /><span>Open PCP</span></label>
+                                            <label class="option-tile"><input type="radio" asp-for="EventRegistration.Division" value="Ladies" /><span>Ladies</span></label>
+                                            <label class="option-tile"><input type="radio" asp-for="EventRegistration.Division" value="U/18" /><span>Under 18</span></label>
+                                            <label class="option-tile"><input type="radio" asp-for="EventRegistration.Division" value="U/13" /><span>Under 13</span></label>
+                                        </div>
+                                        <div class="mt-3">
+                                            <label class="option-tile">
+                                                <input type="radio" asp-for="EventRegistration.Division" value="Other" />
+                                                <span class="flex-1">
+                                                    <strong>Other:</strong>
+                                                    <input type="text" asp-for="EventRegistration.OtherDivision" class="form-input mt-2" placeholder="Specify division" />
+                                                </span>
+                                            </label>
+                                        </div>
+                                        <span asp-validation-for="EventRegistration.Division" class="form-error"></span>
+                                    </div>
+                                }
+                            </div>
+                        </section>
+                    }
+
+                    <!-- Guardian (for minors) -->
+                    <section>
+                        <h2 class="section-heading">For Minors (Under 18)</h2>
+                        <p class="text-sm text-gray-600 mb-4">Only complete this section if the competitor is under 18 years old.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label asp-for="EventRegistration.GuardianName" class="form-label">Guardian / Parent Name</label>
+                                <input asp-for="EventRegistration.GuardianName" class="form-input" />
+                            </div>
+                            <div>
+                                <label asp-for="EventRegistration.GuardianSurname" class="form-label">Guardian / Parent Surname</label>
+                                <input asp-for="EventRegistration.GuardianSurname" class="form-input" />
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Acknowledgements -->
+                    <section>
+                        <h2 class="section-heading">Acknowledgement &amp; Indemnity</h2>
+
+                        <label class="option-tile mb-4">
+                            <input type="checkbox" asp-for="EventRegistration.InfoAccurateConfirmed" />
+                            <span><strong>I confirm that the information provided above is accurate</strong> <span class="text-red-600">*</span></span>
+                        </label>
+                        <span asp-validation-for="EventRegistration.InfoAccurateConfirmed" class="form-error"></span>
+
+                        <div class="mt-4">
+                            <p class="font-semibold text-gray-700 mb-2">Indemnity Declaration <span class="text-red-600">*</span></p>
+                            <div class="legal-box">
+                                <p>I hereby declare and certify that:</p>
+                                <p>1.&nbsp; I am aware that field target and / or any other shooting is a potentially dangerous sport and that I will obey the safety rules and regulations as explained to me at the shooter's briefing.</p>
+                                <p>2.&nbsp; I voluntarily and out of free will choose to participate in the activities hosted by Pretoria East Air-Gun Club / Shooting Range.</p>
+                                <p>3.&nbsp; My participation in the presence at said activities / premises is conducted upon my exclusive and sole liability and risk and with the acceptance of any and all effects and results including any damages that may occur, and / or to the suffered, from whatever cause.</p>
+                                <p>4.&nbsp; I herewith unconditionally, irrevocably and in its entirety, in consequence of my aforesaid participation and / or presence:</p>
+                                <p class="ml-4">4.1&nbsp; Indemnify the said club and / or its officers, staff members, participants, guests and supporters of any liability or claim in consequence of negligence and / or intention of whatever kind;</p>
+                                <p class="ml-4">4.2&nbsp; Without any reservation whatsoever, surrender and renounce any claim, right, demand or action against any party.</p>
+                                <p>5.&nbsp; This indemnity and renouncement have been thoroughly read and studied before it has been signed by me. I confirm that the content hereof has been properly understood before it was signed, out of free will and without any influence, duress or manipulation.</p>
+                            </div>
+                            <label class="option-tile mt-3">
+                                <input type="checkbox" asp-for="EventRegistration.IndemnityAgreed" />
+                                <span>I acknowledge the above and provide my digital signature for this indemnity <span class="text-red-600">*</span></span>
+                            </label>
+                            <span asp-validation-for="EventRegistration.IndemnityAgreed" class="form-error"></span>
+
+                            <label class="option-tile mt-2">
+                                <input type="checkbox" asp-for="EventRegistration.GuardianIndemnityAgreed" />
+                                <span class="text-sm"><em>(For minors under 18)</em> I, the Legal Guardian / Parent, hereby agree with the above and provide my digital signature for this indemnity</span>
+                            </label>
+                        </div>
+                    </section>
+
+                    <!-- Social Media -->
+                    <section>
+                        <h2 class="section-heading">Website &amp; Social Media Release</h2>
+                        <div class="legal-box mb-3">
+                            <p>I hereby declare and certify that:</p>
+                            <p>1.&nbsp; I understand and here grant permission to Pretoria Oos Luggeweer Klub / Pretoria East Airrifle Club to post my and / or my child's story, photo, or other item (e.g. Video), hereinafter referred to as "Materials" (The only items allowed to use will be in respect of Photos, Videos and at most announcements, in no way will any personal information like ID numbers, email addresses, contact details, or addresses be disclosed). I submit to and for all of Pretoria Oos Luggeweer Klub / Pretoria East Airrifle Club's social media platforms.</p>
+                            <p>2.&nbsp; I hereby release you, your representative, employees, managers, members, officers, parent companies, subsidiaries and directors, from all claims and demands arising out of or in connection with any use of said "Materials".</p>
+                            <p>3.&nbsp; I acknowledge and agree that no sums whatsoever will be due to me as a result of the use of the "Materials" or any rights therein.</p>
+                            <p>4.&nbsp; I acknowledge that my child is under 18 years of age and lack the legal capacity to enter into binding agreements. Accordingly, I read this release and consent to my child's inclusion in the "Materials" and will not contest the rights granted in this release.</p>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="option-tile">
+                                <input type="radio" asp-for="EventRegistration.SocialMediaConsent" value="Agreed" />
+                                <span>I acknowledge the above and provide my digital signature for this indemnity and release</span>
+                            </label>
+                            <label class="option-tile">
+                                <input type="radio" asp-for="EventRegistration.SocialMediaConsent" value="GuardianAgreed" />
+                                <span><em>(For minors under 18)</em> I, the Legal Guardian / Parent, hereby agree with the above and provide my digital signature for this indemnity and release</span>
+                            </label>
+                            <label class="option-tile">
+                                <input type="radio" asp-for="EventRegistration.SocialMediaConsent" value="Declined" />
+                                <span>I do <strong>not</strong> give my consent for the "Materials" to be used on any Social Media Platform</span>
+                            </label>
+                        </div>
+                        <span asp-validation-for="EventRegistration.SocialMediaConsent" class="form-error"></span>
+                    </section>
+
+                    @if (Model.Event.EntryFee.HasValue && Model.Event.EntryFee.Value > 0)
+                    {
+                        <section>
+                            <h2 class="section-heading">Payment</h2>
+                            <p class="text-sm text-gray-700 mb-3">
+                                Entry Fee: <strong class="text-lg">@($"R{Model.Event.EntryFee.Value:F2}")</strong>
+                                @if (!string.IsNullOrWhiteSpace(Model.Event.EntryFeeDescription))
+                                {
+                                    <span class="text-gray-500">(@Model.Event.EntryFeeDescription)</span>
+                                }
+                            </p>
+
+                            <label class="form-label">Payment Method <span class="text-red-600">*</span></label>
+                            <div class="space-y-2">
+                                @if (Model.Event.EnableYocoPayment)
+                                {
+                                    <label class="option-tile">
+                                        <input type="radio" asp-for="EventRegistration.PaymentMethod" value="Yoco" />
+                                        <span><strong>💳 Pay online now</strong><br/><span class="text-xs text-gray-500">Secure card payment via Yoco</span></span>
+                                    </label>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Model.Event.BankingDetailsHtml))
+                                {
+                                    <label class="option-tile">
+                                        <input type="radio" asp-for="EventRegistration.PaymentMethod" value="EFT" />
+                                        <span><strong>🏦 Pay by EFT</strong><br/><span class="text-xs text-gray-500">Banking details will be emailed to you</span></span>
+                                    </label>
+                                }
+                                <label class="option-tile">
+                                    <input type="radio" asp-for="EventRegistration.PaymentMethod" value="AtVenue" />
+                                    <span><strong>💵 Pay at the venue</strong><br/><span class="text-xs text-gray-500">Card machine or cash available on the day</span></span>
+                                </label>
+                            </div>
+                            <span asp-validation-for="EventRegistration.PaymentMethod" class="form-error"></span>
+
+                            @if (!string.IsNullOrWhiteSpace(Model.Event.BankingDetailsHtml))
+                            {
+                                <details class="mt-4 bg-gray-50 p-3 rounded-md text-sm border">
+                                    <summary class="cursor-pointer font-medium">View banking details</summary>
+                                    <div class="mt-2 prose max-w-none">@Html.Raw(Model.Event.BankingDetailsHtml)</div>
+                                </details>
+
+                                <div class="mt-4">
+                                    <label asp-for="EventRegistration.PaymentReference" class="form-label">EFT Payment Reference (if already paid)</label>
+                                    <input asp-for="EventRegistration.PaymentReference" class="form-input" placeholder="Your payment reference" />
+                                </div>
+                            }
+                        </section>
+                    }
+
+                    <button type="submit" class="submit-btn">
+                        Submit Registration
+                    </button>
+
+                    <p class="text-center text-xs text-gray-500">
+                        By submitting, you agree to the indemnity above and that the information is accurate.
+                    </p>
+                </form>
+            }
+        </div>
+
+        <div class="text-center mt-6 text-sm text-gray-500">
+            Pretoria Oos Lug Geweer Klub &middot; <a href="/" class="hover:underline">polk-hft.co.za</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -17,6 +17,29 @@ namespace POLK_DOTNET.Data
         [ModelBinder(typeof(DecimalInvariantModelBinder))]
         public decimal TotalAmount { get; set; }
 
+        [Required]
+        [StringLength(200)]
+        public string StreetAddress { get; set; } = null!;
+
+        [StringLength(200)]
+        public string? ComplexOrBuilding { get; set; }
+
+        [Required]
+        [StringLength(100)]
+        public string Suburb { get; set; } = null!;
+
+        [Required]
+        [StringLength(100)]
+        public string City { get; set; } = null!;
+
+        [Required]
+        [StringLength(50)]
+        public string Province { get; set; } = null!;
+
+        [Required]
+        [StringLength(10)]
+        public string PostalCode { get; set; } = null!;
+
         public string Status { get; set; } = "Pending"; // Pending, Approved, Rejected
 
         public DateTime SubmittedDate { get; set; } = DateTime.UtcNow;

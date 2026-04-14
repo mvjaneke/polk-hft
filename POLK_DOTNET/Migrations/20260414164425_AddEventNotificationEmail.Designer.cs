@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using POLK_DOTNET.Data;
 
@@ -10,9 +11,11 @@ using POLK_DOTNET.Data;
 namespace POLK_DOTNET.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260414164425_AddEventNotificationEmail")]
+    partial class AddEventNotificationEmail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0-preview.3.24172.4");
@@ -54,44 +57,6 @@ namespace POLK_DOTNET.Migrations
                     b.ToTable("Constitutions");
                 });
 
-            modelBuilder.Entity("POLK_DOTNET.Data.CourseTarget", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("DistanceMeters")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<int>("EventId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsInclineDecline")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsShaded")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("KillZoneMm")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Lane")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Posture")
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("TargetNumber")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EventId");
-
-                    b.ToTable("CourseTargets");
-                });
-
             modelBuilder.Entity("POLK_DOTNET.Data.Event", b =>
                 {
                     b.Property<int>("Id")
@@ -106,9 +71,6 @@ namespace POLK_DOTNET.Migrations
 
                     b.Property<string>("Color")
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("CourseTargetCount")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -131,9 +93,6 @@ namespace POLK_DOTNET.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsClubEvent")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsLeagueShoot")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsRegistrationOpen")
@@ -548,17 +507,6 @@ namespace POLK_DOTNET.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("SiteSettings");
-                });
-
-            modelBuilder.Entity("POLK_DOTNET.Data.CourseTarget", b =>
-                {
-                    b.HasOne("POLK_DOTNET.Data.Event", "Event")
-                        .WithMany()
-                        .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Event");
                 });
 
             modelBuilder.Entity("POLK_DOTNET.Data.EventParticipant", b =>
