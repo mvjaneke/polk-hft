@@ -63,7 +63,7 @@ namespace POLK_DOTNET.Pages
                     {
                         reg.Status = "Paid";
                         if (reg.Event != null)
-                            reg.AmountPaid = RegisterEventModel.ComputeEffectiveFee(reg.Event, reg.ShootSelection);
+                            reg.AmountPaid = RegisterEventModel.ComputeEffectiveFee(reg.Event, reg.ShootSelection, reg.RifleOwnership);
                         await _context.SaveChangesAsync();
                         await SendEventPaymentEmailsAsync(reg);
                     }

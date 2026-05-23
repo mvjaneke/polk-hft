@@ -59,5 +59,9 @@ namespace POLK_DOTNET.Data
 
         // When true, scorecards for both shoots use the Shoot=1 course; admin only edits one course.
         public bool UseSameCourseForBothShoots { get; set; } = true;
+
+        // Extra fee added once per registration when AllowsClubRifle and the registrant chose "Club".
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal? ClubRifleFee { get; set; }
     }
 }

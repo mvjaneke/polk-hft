@@ -121,6 +121,11 @@
                 <div class="flex items-center"><input type="checkbox" asp-for="Event.RequiresClubName" class="h-4 w-4 rounded" /><label asp-for="Event.RequiresClubName" class="ml-2 text-sm">Club Name</label></div>
                 <div class="flex items-center"><input type="checkbox" asp-for="Event.RequiresDivision" class="h-4 w-4 rounded" /><label asp-for="Event.RequiresDivision" class="ml-2 text-sm">Division</label></div>
                 <div class="flex items-center"><input type="checkbox" asp-for="Event.AllowsClubRifle" class="h-4 w-4 rounded" /><label asp-for="Event.AllowsClubRifle" class="ml-2 text-sm">Offer "use club rifle" option</label></div>
+                <div class="pl-6">
+                    <label asp-for="Event.ClubRifleFee" class="block text-sm font-medium text-gray-700">Club Rifle Fee (R)</label>
+                    <input type="number" step="0.01" asp-for="Event.ClubRifleFee" class="w-full px-4 py-2 border rounded-md" placeholder="e.g. 70.00" />
+                    <p class="text-xs text-gray-500 mt-1">Added once per registration when the registrant selects "use club rifle". Leave blank for no extra charge.</p>
+                </div>
             </div>
 
             <div>

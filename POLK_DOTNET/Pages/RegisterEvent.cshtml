@@ -136,7 +136,7 @@
             {
                 var singleFee = Model.Event.EntryFee.Value;
                 var bothFee = Model.Event.DoubleHeaderFee ?? singleFee * 2;
-                <div class="p-4 bg-amber-50 border-b border-amber-200 flex items-center gap-3">
+                <div class="p-4 bg-amber-50 border-b border-amber-200 flex items-start gap-3">
                     <span class="text-2xl">💰</span>
                     <div>
                         @if (Model.Event.IsDoubleHeader)
@@ -153,6 +153,10 @@
                         @if (!string.IsNullOrWhiteSpace(Model.Event.EntryFeeDescription))
                         {
                             <span class="text-amber-800 text-sm">(@Model.Event.EntryFeeDescription)</span>
+                        }
+                        @if (Model.Event.AllowsClubRifle && Model.Event.ClubRifleFee.HasValue && Model.Event.ClubRifleFee.Value > 0)
+                        {
+                            <p class="text-xs text-amber-800 mt-1">+@($"R{Model.Event.ClubRifleFee.Value:F2}") if you need to use a club air-rifle and pellets.</p>
                         }
                     </div>
                 </div>
@@ -268,6 +272,10 @@
                                             <span>I need to use a club air-rifle and pellets</span>
                                         </label>
                                     </div>
+                                    @if (Model.Event.ClubRifleFee.HasValue && Model.Event.ClubRifleFee.Value > 0)
+                                    {
+                                        <p class="form-hint mt-2"><strong>Please note:</strong> selecting "club air-rifle and pellets" adds <strong>@($"R{Model.Event.ClubRifleFee.Value:F2}")</strong> to your entry fee.</p>
+                                    }
                                     <span asp-validation-for="EventRegistration.RifleOwnership" class="form-error"></span>
                                 </div>
                             }
@@ -280,7 +288,7 @@
                         var bothFee = Model.Event.DoubleHeaderFee ?? singleFee * 2;
                         <section>
                             <h2 class="section-heading">Shoot Selection</h2>
-                            <p class="text-sm text-gray-700 mb-3">This is a <strong>Double Header</strong> — two league shoots are held on the day. Choose which you will enter.</p>
+                            <p class="text-sm text-gray-700 mb-3">This is a <strong>Double Header</strong> — two league shoots are held on the day. Make your selection.</p>
                             <div class="space-y-2">
                                 <label class="option-tile">
                                     <input type="radio" asp-for="EventRegistration.ShootSelection" value="First" />
@@ -441,6 +449,10 @@
                                         <span class="text-gray-500">(@Model.Event.EntryFeeDescription)</span>
                                     }
                                 </p>
+                            }
+                            @if (Model.Event.AllowsClubRifle && Model.Event.ClubRifleFee.HasValue && Model.Event.ClubRifleFee.Value > 0)
+                            {
+                                <p class="text-xs text-gray-500 mb-3">If you selected "club air-rifle and pellets" above, an additional <strong>@($"R{Model.Event.ClubRifleFee.Value:F2}")</strong> will be added to the total.</p>
                             }
 
                             <label class="form-label">Payment Method <span class="text-red-600">*</span></label>

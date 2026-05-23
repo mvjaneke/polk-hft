@@ -109,7 +109,7 @@ namespace POLK_DOTNET.Pages
                 ModelState.AddModelError("EventRegistration.SocialMediaConsent", "Please select a social media consent option.");
 
             // Compute the effective fee server-side (single, both, or single-shoot of a double header)
-            var effectiveFee = ComputeEffectiveFee(ev, EventRegistration.ShootSelection);
+            var effectiveFee = ComputeEffectiveFee(ev, EventRegistration.ShootSelection, EventRegistration.RifleOwnership);
             var hasFee = effectiveFee > 0;
 
             if (hasFee)
@@ -198,13 +198,22 @@ namespace POLK_DOTNET.Pages
                 reg.SAHFTANumber = api.membershipNumber;
         }
 
-        public static decimal ComputeEffectiveFee(Event ev, string? shootSelection)
+        public static decimal ComputeEffectiveFee(Event ev, string? shootSelection, string? rifleOwnership = null)
         {
             var single = ev.EntryFee ?? 0;
-            if (!ev.IsDoubleHeader) return single;
-            if (string.Equals(shootSelection, "Both", StringComparison.OrdinalIgnoreCase))
-                return ev.DoubleHeaderFee ?? (single * 2);
-            return single;
+            decimal shootFee;
+            if (!ev.IsDoubleHeader)
+                shootFee = single;
+            else if (string.Equals(shootSelection, "Both", StringComparison.OrdinalIgnoreCase))
+                shootFee = ev.DoubleHeaderFee ?? (single * 2);
+            else
+                shootFee = single;
+
+            var rifleFee = (ev.AllowsClubRifle && string.Equals(rifleOwnership, "Club", StringComparison.OrdinalIgnoreCase))
+                ? (ev.ClubRifleFee ?? 0m)
+                : 0m;
+
+            return shootFee + rifleFee;
         }
 
         private static bool IsOpenForRegistration(Event ev)
@@ -217,8 +226,10 @@ namespace POLK_DOTNET.Pages
 
         private async Task SendInitialEmailsAsync(EventRegistration reg, Event ev, decimal effectiveFee)
         {
+            var usesClubRifle = ev.AllowsClubRifle && string.Equals(reg.RifleOwnership, "Club", StringComparison.OrdinalIgnoreCase) && ev.ClubRifleFee.HasValue && ev.ClubRifleFee.Value > 0;
             var feeText = effectiveFee > 0
                 ? $"R{effectiveFee:F2}" + (!string.IsNullOrWhiteSpace(ev.EntryFeeDescription) ? $" ({ev.EntryFeeDescription})" : "")
+                  + (usesClubRifle ? $" — includes R{ev.ClubRifleFee!.Value:F2} club rifle &amp; pellets" : "")
                 : "No fee";
 
             var shootLine = ev.IsDoubleHeader && !string.IsNullOrWhiteSpace(reg.ShootSelection)
