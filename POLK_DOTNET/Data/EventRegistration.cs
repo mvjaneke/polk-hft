@@ -55,6 +55,10 @@ namespace POLK_DOTNET.Data
         [StringLength(50)]
         public string? Division { get; set; }
 
+        // For double-header events: "First" | "Second" | "Both". Null for single-shoot events.
+        [StringLength(20)]
+        public string? ShootSelection { get; set; }
+
         [StringLength(100)]
         public string? OtherDivision { get; set; }
 

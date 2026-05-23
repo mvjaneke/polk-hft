@@ -104,15 +104,31 @@
                 <label asp-for="Event.IsLeagueShoot" class="ml-2 text-sm">This is a League shoot (enables Troyer course setup)</label>
             </div>
 
+            <div class="flex items-center">
+                <input type="checkbox" asp-for="Event.IsDoubleHeader" class="h-4 w-4 rounded" />
+                <label asp-for="Event.IsDoubleHeader" class="ml-2 text-sm">Double Header (two league shoots on the day)</label>
+            </div>
+
+            <div class="flex items-center pl-6">
+                <input type="checkbox" asp-for="Event.UseSameCourseForBothShoots" class="h-4 w-4 rounded" />
+                <label asp-for="Event.UseSameCourseForBothShoots" class="ml-2 text-sm">Use the same course for both shoots</label>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label asp-for="Event.EntryFee" class="block text-sm font-medium text-gray-700">Entry Fee (R)</label>
+                    <label asp-for="Event.EntryFee" class="block text-sm font-medium text-gray-700">Entry Fee (R) — single shoot</label>
                     <input type="number" step="0.01" asp-for="Event.EntryFee" class="w-full px-4 py-2 border rounded-md" placeholder="e.g. 30.00" />
                 </div>
                 <div>
                     <label asp-for="Event.EntryFeeDescription" class="block text-sm font-medium text-gray-700">Entry Fee Description</label>
                     <input type="text" asp-for="Event.EntryFeeDescription" class="w-full px-4 py-2 border rounded-md" placeholder="e.g. per target sheet" />
                 </div>
+            </div>
+
+            <div>
+                <label asp-for="Event.DoubleHeaderFee" class="block text-sm font-medium text-gray-700">Double Header Fee (R) — both shoots</label>
+                <input type="number" step="0.01" asp-for="Event.DoubleHeaderFee" class="w-full px-4 py-2 border rounded-md" placeholder="Leave blank for 2 x single-shoot fee" />
+                <p class="text-xs text-gray-500 mt-1">Only used when Double Header is checked. If left blank, the cost for both shoots is twice the single-shoot fee.</p>
             </div>
 
             <div class="space-y-2">

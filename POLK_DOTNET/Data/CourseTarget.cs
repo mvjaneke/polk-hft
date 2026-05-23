@@ -13,6 +13,9 @@ namespace POLK_DOTNET.Data
         public int TargetNumber { get; set; }
         public int Lane { get; set; }
 
+        // 1 = first shoot (default for single-shoot events), 2 = second shoot (double-header only)
+        public int Shoot { get; set; } = 1;
+
         // "UnStand" | "UnKneel" | "SupStand" | "SupKneel" | null (not yet set)
         [StringLength(20)]
         public string? Posture { get; set; }

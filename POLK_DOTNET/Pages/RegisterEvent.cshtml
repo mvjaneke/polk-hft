@@ -134,11 +134,22 @@
 
             @if (Model.Event.EntryFee.HasValue)
             {
+                var singleFee = Model.Event.EntryFee.Value;
+                var bothFee = Model.Event.DoubleHeaderFee ?? singleFee * 2;
                 <div class="p-4 bg-amber-50 border-b border-amber-200 flex items-center gap-3">
                     <span class="text-2xl">💰</span>
                     <div>
-                        <strong class="text-amber-900">Entry Fee:</strong>
-                        <span class="text-amber-900 text-lg font-semibold">@($"R{Model.Event.EntryFee.Value:F2}")</span>
+                        @if (Model.Event.IsDoubleHeader)
+                        {
+                            <strong class="text-amber-900">Entry Fees:</strong>
+                            <span class="text-amber-900 text-lg font-semibold">@($"R{singleFee:F2}") per shoot</span>
+                            <span class="text-amber-900 text-lg font-semibold">&middot; @($"R{bothFee:F2}") both shoots</span>
+                        }
+                        else
+                        {
+                            <strong class="text-amber-900">Entry Fee:</strong>
+                            <span class="text-amber-900 text-lg font-semibold">@($"R{singleFee:F2}")</span>
+                        }
                         @if (!string.IsNullOrWhiteSpace(Model.Event.EntryFeeDescription))
                         {
                             <span class="text-amber-800 text-sm">(@Model.Event.EntryFeeDescription)</span>
@@ -263,31 +274,48 @@
                         </div>
                     </section>
 
-                    @if (Model.Event.RequiresSahfta || Model.Event.RequiresClubName || Model.Event.RequiresDivision)
+                    @if (Model.Event.IsDoubleHeader)
                     {
+                        var singleFee = Model.Event.EntryFee ?? 0;
+                        var bothFee = Model.Event.DoubleHeaderFee ?? singleFee * 2;
                         <section>
-                            <h2 class="section-heading">Competitor Details</h2>
+                            <h2 class="section-heading">Shoot Selection</h2>
+                            <p class="text-sm text-gray-700 mb-3">This is a <strong>Double Header</strong> — two league shoots are held on the day. Choose which you will enter.</p>
+                            <div class="space-y-2">
+                                <label class="option-tile">
+                                    <input type="radio" asp-for="EventRegistration.ShootSelection" value="First" />
+                                    <span><strong>First shoot only</strong> &middot; @($"R{singleFee:F2}")</span>
+                                </label>
+                                <label class="option-tile">
+                                    <input type="radio" asp-for="EventRegistration.ShootSelection" value="Second" />
+                                    <span><strong>Second shoot only</strong> &middot; @($"R{singleFee:F2}")</span>
+                                </label>
+                                <label class="option-tile">
+                                    <input type="radio" asp-for="EventRegistration.ShootSelection" value="Both" />
+                                    <span><strong>Both shoots</strong> &middot; @($"R{bothFee:F2}")</span>
+                                </label>
+                            </div>
+                            <span asp-validation-for="EventRegistration.ShootSelection" class="form-error"></span>
+                        </section>
+                    }
 
-                            <div class="space-y-4">
-                                @if (Model.Event.RequiresSahfta)
-                                {
-                                    <div>
-                                        <label asp-for="EventRegistration.SAHFTANumber" class="form-label">SAHFTA Number</label>
-                                        <input asp-for="EventRegistration.SAHFTANumber" class="form-input" placeholder="e.g. 19-5001" />
-                                        <p class="form-hint">Leave blank if you are not a SAHFTA member.</p>
-                                        <span asp-validation-for="EventRegistration.SAHFTANumber" class="form-error"></span>
-                                    </div>
-                                }
+                    <section>
+                        <h2 class="section-heading">Competitor Details</h2>
 
-                                @if (Model.Event.RequiresClubName)
-                                {
-                                    <div>
-                                        <label asp-for="EventRegistration.ClubName" class="form-label">Club Name</label>
-                                        <input asp-for="EventRegistration.ClubName" class="form-input" />
-                                        <p class="form-hint">Leave blank if you are not a member of a club.</p>
-                                        <span asp-validation-for="EventRegistration.ClubName" class="form-error"></span>
-                                    </div>
-                                }
+                        <div class="space-y-4">
+                            <div>
+                                <label asp-for="EventRegistration.ClubName" class="form-label">Club Name</label>
+                                <input asp-for="EventRegistration.ClubName" class="form-input" />
+                                <p class="form-hint">Leave blank if you are not a member of a club.</p>
+                                <span asp-validation-for="EventRegistration.ClubName" class="form-error"></span>
+                            </div>
+
+                            <div>
+                                <label asp-for="EventRegistration.SAHFTANumber" class="form-label">Membership Number</label>
+                                <input asp-for="EventRegistration.SAHFTANumber" class="form-input" placeholder="e.g. 19-5001" />
+                                <p class="form-hint">Your SAHFTA or club membership number. Leave blank if not applicable.</p>
+                                <span asp-validation-for="EventRegistration.SAHFTANumber" class="form-error"></span>
+                            </div>
 
                                 @if (Model.Event.RequiresDivision)
                                 {
@@ -311,9 +339,8 @@
                                         <span asp-validation-for="EventRegistration.Division" class="form-error"></span>
                                     </div>
                                 }
-                            </div>
-                        </section>
-                    }
+                        </div>
+                    </section>
 
                     <!-- Guardian (for minors) -->
                     <section>
@@ -397,13 +424,24 @@
                     {
                         <section>
                             <h2 class="section-heading">Payment</h2>
-                            <p class="text-sm text-gray-700 mb-3">
-                                Entry Fee: <strong class="text-lg">@($"R{Model.Event.EntryFee.Value:F2}")</strong>
-                                @if (!string.IsNullOrWhiteSpace(Model.Event.EntryFeeDescription))
-                                {
-                                    <span class="text-gray-500">(@Model.Event.EntryFeeDescription)</span>
-                                }
-                            </p>
+                            @if (Model.Event.IsDoubleHeader)
+                            {
+                                var singleFee = Model.Event.EntryFee.Value;
+                                var bothFee = Model.Event.DoubleHeaderFee ?? singleFee * 2;
+                                <p class="text-sm text-gray-700 mb-3">
+                                    Fee depends on your shoot selection above: <strong>@($"R{singleFee:F2}")</strong> for a single shoot, <strong>@($"R{bothFee:F2}")</strong> for both shoots.
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="text-sm text-gray-700 mb-3">
+                                    Entry Fee: <strong class="text-lg">@($"R{Model.Event.EntryFee.Value:F2}")</strong>
+                                    @if (!string.IsNullOrWhiteSpace(Model.Event.EntryFeeDescription))
+                                    {
+                                        <span class="text-gray-500">(@Model.Event.EntryFeeDescription)</span>
+                                    }
+                                </p>
+                            }
 
                             <label class="form-label">Payment Method <span class="text-red-600">*</span></label>
                             <div class="space-y-2">

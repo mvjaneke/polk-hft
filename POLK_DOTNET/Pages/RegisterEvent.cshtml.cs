@@ -16,12 +16,14 @@ namespace POLK_DOTNET.Pages
         private readonly ApplicationDbContext _context;
         private readonly YocoCheckoutService _yocoService;
         private readonly EmailService _emailService;
+        private readonly SahftaMembersClient _sahftaClient;
 
-        public RegisterEventModel(ApplicationDbContext context, YocoCheckoutService yocoService, EmailService emailService)
+        public RegisterEventModel(ApplicationDbContext context, YocoCheckoutService yocoService, EmailService emailService, SahftaMembersClient sahftaClient)
         {
             _context = context;
             _yocoService = yocoService;
             _emailService = emailService;
+            _sahftaClient = sahftaClient;
         }
 
         [BindProperty]
@@ -40,6 +42,7 @@ namespace POLK_DOTNET.Pages
 
             var ev = await _context.Events.FindAsync(EventId);
             if (ev == null) return NotFound();
+            if (!ev.IsClubEvent) return NotFound();
 
             Event = ev;
             RegistrationClosed = !IsOpenForRegistration(ev);
@@ -52,6 +55,7 @@ namespace POLK_DOTNET.Pages
         {
             var ev = await _context.Events.FindAsync(EventId);
             if (ev == null) return NotFound();
+            if (!ev.IsClubEvent) return NotFound();
 
             Event = ev;
             RegistrationClosed = !IsOpenForRegistration(ev);
@@ -73,6 +77,7 @@ namespace POLK_DOTNET.Pages
             if (!ev.RequiresClubName) ModelState.Remove("EventRegistration.ClubName");
             if (!ev.RequiresDivision) ModelState.Remove("EventRegistration.Division");
             if (!ev.AllowsClubRifle) ModelState.Remove("EventRegistration.RifleOwnership");
+            if (!ev.IsDoubleHeader) ModelState.Remove("EventRegistration.ShootSelection");
 
             if (ev.RequiresAttendanceType && string.IsNullOrWhiteSpace(EventRegistration.AttendanceType))
                 ModelState.AddModelError("EventRegistration.AttendanceType", "Please select Competitor or Spectator.");
@@ -83,6 +88,17 @@ namespace POLK_DOTNET.Pages
             if (ev.AllowsClubRifle && string.IsNullOrWhiteSpace(EventRegistration.RifleOwnership))
                 ModelState.AddModelError("EventRegistration.RifleOwnership", "Please select own or club rifle.");
 
+            if (ev.IsDoubleHeader)
+            {
+                var sel = EventRegistration.ShootSelection;
+                if (sel != "First" && sel != "Second" && sel != "Both")
+                    ModelState.AddModelError("EventRegistration.ShootSelection", "Please choose which shoot(s) you will enter.");
+            }
+            else
+            {
+                EventRegistration.ShootSelection = null;
+            }
+
             if (!EventRegistration.InfoAccurateConfirmed)
                 ModelState.AddModelError("EventRegistration.InfoAccurateConfirmed", "You must confirm your information is accurate.");
 
@@ -92,8 +108,10 @@ namespace POLK_DOTNET.Pages
             if (string.IsNullOrWhiteSpace(EventRegistration.SocialMediaConsent))
                 ModelState.AddModelError("EventRegistration.SocialMediaConsent", "Please select a social media consent option.");
 
-            // Payment method validation
-            var hasFee = ev.EntryFee.HasValue && ev.EntryFee.Value > 0;
+            // Compute the effective fee server-side (single, both, or single-shoot of a double header)
+            var effectiveFee = ComputeEffectiveFee(ev, EventRegistration.ShootSelection);
+            var hasFee = effectiveFee > 0;
+
             if (hasFee)
             {
                 if (string.IsNullOrWhiteSpace(EventRegistration.PaymentMethod))
@@ -108,10 +126,9 @@ namespace POLK_DOTNET.Pages
 
             if (!ModelState.IsValid) return Page();
 
-            // Set status + amount based on fee presence
             if (hasFee)
             {
-                EventRegistration.AmountPaid = 0; // will be set on payment confirmation
+                EventRegistration.AmountPaid = 0; // set on payment confirmation
                 EventRegistration.Status = "Pending";
             }
             else
@@ -120,13 +137,13 @@ namespace POLK_DOTNET.Pages
                 EventRegistration.Status = "Confirmed";
             }
 
+            await EnrichFromSahftaAsync(EventRegistration);
+
             _context.EventRegistrations.Add(EventRegistration);
             await _context.SaveChangesAsync();
 
-            // Send initial emails (fire-and-forget errors shouldn't block registration)
-            await SendInitialEmailsAsync(EventRegistration, ev);
+            await SendInitialEmailsAsync(EventRegistration, ev, effectiveFee);
 
-            // If Yoco payment: create checkout and redirect
             if (hasFee && EventRegistration.PaymentMethod == "Yoco" && ev.EnableYocoPayment)
             {
                 var baseUrl = $"{Request.Scheme}://{Request.Host}";
@@ -138,7 +155,7 @@ namespace POLK_DOTNET.Pages
                 };
 
                 var checkout = await _yocoService.CreateCheckoutAsync(
-                    ev.EntryFee!.Value,
+                    effectiveFee,
                     $"{ev.Title} - Registration #{regId}",
                     $"{baseUrl}/payment-result?status=success&registrationId={regId}",
                     $"{baseUrl}/payment-result?status=cancelled&registrationId={regId}",
@@ -152,10 +169,42 @@ namespace POLK_DOTNET.Pages
                     await _context.SaveChangesAsync();
                     return Redirect(checkout.RedirectUrl);
                 }
-                // Yoco failed — fall through to confirmation; admin will reconcile manually
             }
 
             return RedirectToPage("/RegistrationConfirmation", new { id = EventRegistration.Id });
+        }
+
+        private async Task EnrichFromSahftaAsync(EventRegistration reg)
+        {
+            // 1. Try name + surname first (only returns when there's an exact or unambiguous match)
+            var api = await _sahftaClient.LookupByNameAsync(reg.Name, reg.Surname);
+
+            // 2. Fall back to SAHFTA membership number if supplied
+            if (api == null &&
+                !string.IsNullOrWhiteSpace(reg.SAHFTANumber) &&
+                !reg.SAHFTANumber.Equals("none", StringComparison.OrdinalIgnoreCase) &&
+                !reg.SAHFTANumber.Equals("n/a", StringComparison.OrdinalIgnoreCase) &&
+                reg.SAHFTANumber != "0")
+            {
+                api = await _sahftaClient.LookupByMembershipNumberAsync(reg.SAHFTANumber);
+            }
+
+            if (api == null) return;
+
+            // Overwrite club and membership # with the canonical values from the API.
+            if (!string.IsNullOrWhiteSpace(api.club))
+                reg.ClubName = api.club;
+            if (!string.IsNullOrWhiteSpace(api.membershipNumber))
+                reg.SAHFTANumber = api.membershipNumber;
+        }
+
+        public static decimal ComputeEffectiveFee(Event ev, string? shootSelection)
+        {
+            var single = ev.EntryFee ?? 0;
+            if (!ev.IsDoubleHeader) return single;
+            if (string.Equals(shootSelection, "Both", StringComparison.OrdinalIgnoreCase))
+                return ev.DoubleHeaderFee ?? (single * 2);
+            return single;
         }
 
         private static bool IsOpenForRegistration(Event ev)
@@ -166,11 +215,15 @@ namespace POLK_DOTNET.Pages
             return true;
         }
 
-        private async Task SendInitialEmailsAsync(EventRegistration reg, Event ev)
+        private async Task SendInitialEmailsAsync(EventRegistration reg, Event ev, decimal effectiveFee)
         {
-            var feeText = ev.EntryFee.HasValue && ev.EntryFee.Value > 0
-                ? $"R{ev.EntryFee.Value:F2}" + (!string.IsNullOrWhiteSpace(ev.EntryFeeDescription) ? $" ({ev.EntryFeeDescription})" : "")
+            var feeText = effectiveFee > 0
+                ? $"R{effectiveFee:F2}" + (!string.IsNullOrWhiteSpace(ev.EntryFeeDescription) ? $" ({ev.EntryFeeDescription})" : "")
                 : "No fee";
+
+            var shootLine = ev.IsDoubleHeader && !string.IsNullOrWhiteSpace(reg.ShootSelection)
+                ? $"<p><strong>Shoot(s):</strong> {FormatShoot(reg.ShootSelection)}</p>"
+                : "";
 
             var paymentInstructions = BuildPaymentInstructions(reg, ev);
 
@@ -181,6 +234,7 @@ namespace POLK_DOTNET.Pages
                 <p><strong>Event date:</strong> {ev.StartDate:dd MMMM yyyy}</p>
                 <p><strong>Time:</strong> {ev.Time}</p>
                 <p><strong>Location:</strong> {ev.Location}</p>
+                {shootLine}
                 <p><strong>Entry fee:</strong> {feeText}</p>
                 <p><strong>Status:</strong> {reg.Status}</p>
                 {paymentInstructions}
@@ -205,6 +259,8 @@ namespace POLK_DOTNET.Pages
                 {(string.IsNullOrWhiteSpace(reg.SAHFTANumber) ? "" : $"<p><strong>SAHFTA:</strong> {reg.SAHFTANumber}</p>")}
                 {(string.IsNullOrWhiteSpace(reg.ClubName) ? "" : $"<p><strong>Club:</strong> {reg.ClubName}</p>")}
                 {(string.IsNullOrWhiteSpace(reg.RifleOwnership) ? "" : $"<p><strong>Rifle:</strong> {reg.RifleOwnership}</p>")}
+                {shootLine}
+                <p><strong>Fee:</strong> {feeText}</p>
                 <p><strong>Payment method:</strong> {reg.PaymentMethod ?? "N/A"}</p>
                 <p><strong>Status:</strong> {reg.Status}</p>";
 
@@ -215,10 +271,17 @@ namespace POLK_DOTNET.Pages
                 accountsBody);
         }
 
+        private static string FormatShoot(string? sel) => sel switch
+        {
+            "First" => "Shoot 1 only",
+            "Second" => "Shoot 2 only",
+            "Both" => "Both shoots",
+            _ => sel ?? ""
+        };
+
         private static string BuildPaymentInstructions(EventRegistration reg, Event ev)
         {
-            if (!ev.EntryFee.HasValue || ev.EntryFee.Value <= 0)
-                return "<p>No payment required for this event.</p>";
+            if (ev.EntryFee is null or <= 0) return "<p>No payment required for this event.</p>";
 
             return reg.PaymentMethod switch
             {

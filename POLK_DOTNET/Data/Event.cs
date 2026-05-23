@@ -50,5 +50,14 @@ namespace POLK_DOTNET.Data
 
         // Selected Troyer variant: 30 or 40 (nullable = not yet configured)
         public int? CourseTargetCount { get; set; }
+
+        // Double-header: two league shoots held on the same day
+        public bool IsDoubleHeader { get; set; } = false;
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal? DoubleHeaderFee { get; set; }
+
+        // When true, scorecards for both shoots use the Shoot=1 course; admin only edits one course.
+        public bool UseSameCourseForBothShoots { get; set; } = true;
     }
 }

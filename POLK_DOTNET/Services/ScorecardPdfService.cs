@@ -62,7 +62,7 @@ namespace POLK_DOTNET.Services
                 return;
             }
 
-            var targetCount = ev.CourseTargetCount ?? (course.Count > 0 ? course.Count : 40);
+            var targetCount = course.Count > 0 ? course.Count : (ev.CourseTargetCount ?? 40);
 
             card.Column(col =>
             {
@@ -224,8 +224,9 @@ namespace POLK_DOTNET.Services
                         int span = 1;
                         while (i2 + span < row.Count && row[i2 + span].Lane == lane) span++;
 
+                        var laneBg = lane % 2 == 1 ? Colors.Grey.Lighten3 : Colors.White;
                         table.Cell().ColumnSpan((uint)span).Border(1).BorderColor(Colors.Grey.Darken1)
-                            .Background(Colors.Grey.Lighten3).AlignCenter().PaddingVertical(2)
+                            .Background(laneBg).AlignCenter().PaddingVertical(2)
                             .Text($"Lane {lane}").SemiBold().FontSize(9);
 
                         i2 += span;

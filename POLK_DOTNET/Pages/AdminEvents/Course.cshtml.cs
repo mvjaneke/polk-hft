@@ -17,11 +17,18 @@ namespace POLK_DOTNET.Pages.AdminEvents
         [BindProperty(SupportsGet = true)]
         public int Id { get; set; }
 
+        [BindProperty(SupportsGet = true)]
+        public int Shoot { get; set; } = 1;
+
         [BindProperty]
         public List<CourseTargetInput> Targets { get; set; } = new();
 
         public Dictionary<int, TroyerCalculator.RowResult> RowResults { get; private set; } = new();
         public TroyerCalculator.SummaryResult? Summary { get; private set; }
+
+        public bool ShowShootTabs => Event.IsDoubleHeader && !Event.UseSameCourseForBothShoots;
+        public int CurrentTargetCount => Targets.Count;
+        public bool CurrentShootConfigured => Targets.Count > 0;
 
         public class CourseTargetInput
         {
@@ -44,6 +51,8 @@ namespace POLK_DOTNET.Pages.AdminEvents
             if (ev == null) return NotFound();
             Event = ev;
 
+            NormalizeShoot(ev);
+
             await LoadOrInitializeAsync(ev);
             ComputeResults();
             return Page();
@@ -60,10 +69,14 @@ namespace POLK_DOTNET.Pages.AdminEvents
             var ev = await _context.Events.FindAsync(Id);
             if (ev == null) return NotFound();
 
-            ev.CourseTargetCount = targetCount;
+            NormalizeShoot(ev);
 
-            // Seed empty targets if count changed / none exist
-            var existing = await _context.CourseTargets.Where(c => c.EventId == Id).ToListAsync();
+            // Event.CourseTargetCount tracks the primary (Shoot 1) count. Don't overwrite for Shoot 2.
+            if (Shoot == 1)
+                ev.CourseTargetCount = targetCount;
+
+            // Reset only rows for the current shoot
+            var existing = await _context.CourseTargets.Where(c => c.EventId == Id && c.Shoot == Shoot).ToListAsync();
             if (existing.Count != targetCount)
             {
                 _context.CourseTargets.RemoveRange(existing);
@@ -72,6 +85,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
                     _context.CourseTargets.Add(new CourseTarget
                     {
                         EventId = Id,
+                        Shoot = Shoot,
                         TargetNumber = i,
                         Lane = (i + 1) / 2,
                         Posture = "Prone",
@@ -82,7 +96,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
             }
 
             await _context.SaveChangesAsync();
-            return RedirectToPage(new { id = Id });
+            return RedirectToPage(new { id = Id, shoot = Shoot });
         }
 
         public async Task<IActionResult> OnPostAsync()
@@ -94,8 +108,10 @@ namespace POLK_DOTNET.Pages.AdminEvents
             if (ev == null) return NotFound();
             Event = ev;
 
+            NormalizeShoot(ev);
+
             var dbRows = await _context.CourseTargets
-                .Where(c => c.EventId == Id)
+                .Where(c => c.EventId == Id && c.Shoot == Shoot)
                 .ToListAsync();
 
             foreach (var input in Targets)
@@ -113,15 +129,20 @@ namespace POLK_DOTNET.Pages.AdminEvents
             await _context.SaveChangesAsync();
 
             TempData["CourseSaved"] = "Course saved.";
-            return RedirectToPage(new { id = Id });
+            return RedirectToPage(new { id = Id, shoot = Shoot });
+        }
+
+        private void NormalizeShoot(Event ev)
+        {
+            // Force Shoot=1 when there's no second shoot to configure
+            if (!ev.IsDoubleHeader || ev.UseSameCourseForBothShoots) Shoot = 1;
+            if (Shoot != 1 && Shoot != 2) Shoot = 1;
         }
 
         private async Task LoadOrInitializeAsync(Event ev)
         {
-            if (ev.CourseTargetCount == null) return;
-
             var rows = await _context.CourseTargets
-                .Where(c => c.EventId == ev.Id)
+                .Where(c => c.EventId == ev.Id && c.Shoot == Shoot)
                 .OrderBy(c => c.TargetNumber)
                 .ToListAsync();
 
@@ -140,7 +161,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
         private void ComputeResults()
         {
-            if (Event.CourseTargetCount == null || Targets.Count == 0) return;
+            if (Targets.Count == 0) return;
 
             var entities = Targets.Select(i => new CourseTarget
             {
@@ -157,7 +178,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
             foreach (var e in entities)
                 RowResults[e.Id] = TroyerCalculator.ComputeRow(e);
 
-            Summary = TroyerCalculator.ComputeSummary(entities, Event.CourseTargetCount.Value);
+            Summary = TroyerCalculator.ComputeSummary(entities, Targets.Count);
         }
     }
 }

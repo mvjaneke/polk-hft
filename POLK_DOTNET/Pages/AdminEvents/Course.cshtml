@@ -15,12 +15,28 @@
         <div class="mb-4 p-3 bg-green-100 text-green-800 rounded-md">@msg</div>
     }
 
-    @if (Model.Event.CourseTargetCount == null)
+    @if (Model.ShowShootTabs)
+    {
+        <div class="flex items-center gap-2 mb-6 border-b pb-3">
+            <span class="text-sm text-gray-500 mr-2">Editing:</span>
+            <a asp-route-id="@Model.Event.Id" asp-route-shoot="1"
+               class="px-4 py-2 rounded-md text-sm font-semibold @(Model.Shoot == 1 ? "bg-red-700 text-white" : "border hover:bg-gray-100")">
+                Shoot 1
+            </a>
+            <a asp-route-id="@Model.Event.Id" asp-route-shoot="2"
+               class="px-4 py-2 rounded-md text-sm font-semibold @(Model.Shoot == 2 ? "bg-red-700 text-white" : "border hover:bg-gray-100")">
+                Shoot 2
+            </a>
+        </div>
+    }
+
+    @if (!Model.CurrentShootConfigured)
     {
         <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold mb-3">Select Troyer Variant</h2>
-            <p class="text-gray-600 mb-4">Choose the number of targets for this event's course. Normally done the day before the event.</p>
+            <h2 class="text-xl font-bold mb-3">Select Troyer Variant @(Model.ShowShootTabs ? $"— Shoot {Model.Shoot}" : "")</h2>
+            <p class="text-gray-600 mb-4">Choose the number of targets for this @(Model.ShowShootTabs ? "shoot's" : "event's") course. Normally done the day before the event.</p>
             <form method="post" asp-page-handler="SetTargetCount" class="flex gap-2">
+                <input type="hidden" name="shoot" value="@Model.Shoot" />
                 <button type="submit" name="targetCount" value="30" class="px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800">30-Target Course</button>
                 <button type="submit" name="targetCount" value="40" class="px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800">40-Target Course</button>
             </form>
@@ -29,10 +45,11 @@
     else
     {
         <div class="flex items-center gap-4 mb-4">
-            <span class="text-lg font-semibold">@Model.Event.CourseTargetCount-Target Course</span>
-            <form method="post" asp-page-handler="SetTargetCount" onsubmit="return confirm('Switching target count will reset all target data. Continue?');">
-                <input type="hidden" name="targetCount" value="@(Model.Event.CourseTargetCount == 30 ? 40 : 30)" />
-                <button type="submit" class="text-xs px-3 py-1 border rounded hover:bg-gray-100">Switch to @(Model.Event.CourseTargetCount == 30 ? "40" : "30")-Target</button>
+            <span class="text-lg font-semibold">@Model.CurrentTargetCount-Target Course</span>
+            <form method="post" asp-page-handler="SetTargetCount" onsubmit="return confirm('Switching target count will reset all target data for this shoot. Continue?');">
+                <input type="hidden" name="shoot" value="@Model.Shoot" />
+                <input type="hidden" name="targetCount" value="@(Model.CurrentTargetCount == 30 ? 40 : 30)" />
+                <button type="submit" class="text-xs px-3 py-1 border rounded hover:bg-gray-100">Switch to @(Model.CurrentTargetCount == 30 ? "40" : "30")-Target</button>
             </form>
         </div>
 
@@ -93,6 +110,7 @@
         }
 
         <form method="post" class="bg-white rounded-lg shadow-md p-6">
+            <input type="hidden" name="shoot" value="@Model.Shoot" />
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead class="bg-gray-50 border-b">

@@ -54,7 +54,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
             return Page();
         }
 
-        public async Task<IActionResult> OnGetSampleScorecardAsync()
+        public async Task<IActionResult> OnGetSampleScorecardAsync(int shoot = 1)
         {
             if (HttpContext.Session.GetString("IsAuthenticated") != "true")
                 return RedirectToPage("/Admin");
@@ -62,10 +62,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
             var ev = await _context.Events.FindAsync(Id);
             if (ev == null) return NotFound();
 
-            var course = await _context.CourseTargets
-                .Where(c => c.EventId == Id)
-                .OrderBy(c => c.TargetNumber)
-                .ToListAsync();
+            var course = await LoadCourseForShootAsync(ev, shoot);
 
             var sample = new ScorecardPdfService.ParticipantInfo
             {
@@ -77,11 +74,12 @@ namespace POLK_DOTNET.Pages.AdminEvents
                 GunType = "PCP"
             };
 
+            var suffix = ev.IsDoubleHeader ? $"_shoot{shoot}" : "";
             var pdf = _scorecardService.GenerateBatch(ev, course, new[] { sample });
-            return File(pdf, "application/pdf", $"scorecard_sample_{ev.Id}.pdf");
+            return File(pdf, "application/pdf", $"scorecard_sample{suffix}_{ev.Id}.pdf");
         }
 
-        public async Task<IActionResult> OnGetGenerateScorecardsAsync()
+        public async Task<IActionResult> OnGetGenerateScorecardsAsync(int shoot = 1)
         {
             if (HttpContext.Session.GetString("IsAuthenticated") != "true")
                 return RedirectToPage("/Admin");
@@ -89,13 +87,20 @@ namespace POLK_DOTNET.Pages.AdminEvents
             var ev = await _context.Events.FindAsync(Id);
             if (ev == null) return NotFound();
 
-            var course = await _context.CourseTargets
-                .Where(c => c.EventId == Id)
-                .OrderBy(c => c.TargetNumber)
-                .ToListAsync();
+            var course = await LoadCourseForShootAsync(ev, shoot);
 
-            var regs = await _context.EventRegistrations
-                .Where(r => r.EventId == Id && r.Status != "Cancelled")
+            var regsQuery = _context.EventRegistrations
+                .Where(r => r.EventId == Id && r.Status != "Cancelled");
+
+            if (ev.IsDoubleHeader)
+            {
+                // Shoot 1: First + Both. Shoot 2: Second + Both.
+                regsQuery = shoot == 2
+                    ? regsQuery.Where(r => r.ShootSelection == "Second" || r.ShootSelection == "Both")
+                    : regsQuery.Where(r => r.ShootSelection == "First" || r.ShootSelection == "Both");
+            }
+
+            var regs = await regsQuery
                 .OrderBy(r => r.Surname).ThenBy(r => r.Name)
                 .ToListAsync();
 
@@ -111,25 +116,33 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
             var pdf = _scorecardService.GenerateBatch(ev, course, participants);
             var safeTitle = string.Concat((ev.Title ?? "event").Split(Path.GetInvalidFileNameChars()));
-            return File(pdf, "application/pdf", $"scorecards_{safeTitle}_{ev.Id}.pdf");
+            var suffix = ev.IsDoubleHeader ? $"_shoot{shoot}" : "";
+            return File(pdf, "application/pdf", $"scorecards_{safeTitle}{suffix}_{ev.Id}.pdf");
+        }
+
+        private async Task<List<CourseTarget>> LoadCourseForShootAsync(Event ev, int shoot)
+        {
+            // Same-course double headers always read Shoot=1. Non-double-header events also use Shoot=1.
+            var effectiveShoot = (ev.IsDoubleHeader && !ev.UseSameCourseForBothShoots && shoot == 2) ? 2 : 1;
+            return await _context.CourseTargets
+                .Where(c => c.EventId == ev.Id && c.Shoot == effectiveShoot)
+                .OrderBy(c => c.TargetNumber)
+                .ToListAsync();
         }
 
         private async Task<ScorecardPdfService.ParticipantInfo> EnrichAsync(EventRegistration reg)
         {
-            // 1. If SAHFTA # supplied → exact lookup
-            SahftaMembersClient.MemberDto? api = null;
-            if (!string.IsNullOrWhiteSpace(reg.SAHFTANumber) &&
+            // 1. Try name lookup first (only returns when exactly one match)
+            var api = await _sahftaClient.LookupByNameAsync(reg.Name, reg.Surname);
+
+            // 2. Fall back to SAHFTA membership number if supplied
+            if (api == null &&
+                !string.IsNullOrWhiteSpace(reg.SAHFTANumber) &&
                 !reg.SAHFTANumber.Equals("none", StringComparison.OrdinalIgnoreCase) &&
                 !reg.SAHFTANumber.Equals("n/a", StringComparison.OrdinalIgnoreCase) &&
                 reg.SAHFTANumber != "0")
             {
                 api = await _sahftaClient.LookupByMembershipNumberAsync(reg.SAHFTANumber);
-            }
-
-            // 2. Fall back to name lookup
-            if (api == null)
-            {
-                api = await _sahftaClient.LookupByNameAsync(reg.Name, reg.Surname);
             }
 
             if (api != null)
@@ -264,8 +277,8 @@ namespace POLK_DOTNET.Pages.AdminEvents
             if (reg != null && reg.Status != "Paid")
             {
                 reg.Status = "Paid";
-                if (reg.Event?.EntryFee.HasValue == true && reg.AmountPaid == 0)
-                    reg.AmountPaid = reg.Event.EntryFee.Value;
+                if (reg.Event != null && reg.AmountPaid == 0)
+                    reg.AmountPaid = Pages.RegisterEventModel.ComputeEffectiveFee(reg.Event, reg.ShootSelection);
                 await _context.SaveChangesAsync();
 
                 if (reg.Event != null)

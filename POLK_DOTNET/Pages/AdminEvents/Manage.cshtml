@@ -46,9 +46,20 @@
                         </a>
                         @if (Model.Event.CourseTargetCount.HasValue)
                         {
-                            <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample Scorecard</a>
                             <a asp-page-handler="SampleScorecardUneven" asp-route-id="@Model.Event.Id" class="text-xs px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">Sample (Uneven Lanes)</a>
-                            <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate All Scorecards</a>
+
+                            @if (Model.Event.IsDoubleHeader)
+                            {
+                                <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample (Shoot 1)</a>
+                                <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate Shoot 1 Cards</a>
+                                <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample (Shoot 2)</a>
+                                <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate Shoot 2 Cards</a>
+                            }
+                            else
+                            {
+                                <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample Scorecard</a>
+                                <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate All Scorecards</a>
+                            }
                         }
                     }
                 </div>

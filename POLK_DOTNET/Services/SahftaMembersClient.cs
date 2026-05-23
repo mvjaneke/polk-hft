@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using POLK_DOTNET.Data;
 
 namespace POLK_DOTNET.Services
@@ -8,11 +9,13 @@ namespace POLK_DOTNET.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IHttpClientFactory _httpFactory;
+        private readonly ILogger<SahftaMembersClient> _logger;
 
-        public SahftaMembersClient(ApplicationDbContext context, IHttpClientFactory httpFactory)
+        public SahftaMembersClient(ApplicationDbContext context, IHttpClientFactory httpFactory, ILogger<SahftaMembersClient> logger)
         {
             _context = context;
             _httpFactory = httpFactory;
+            _logger = logger;
         }
 
         public class MemberDto
@@ -51,29 +54,51 @@ namespace POLK_DOTNET.Services
             if (!string.IsNullOrWhiteSpace(surname)) parts.Add($"surname={Uri.EscapeDataString(surname.Trim())}");
             var url = "/api/public/members?" + string.Join("&", parts);
             var result = await CallAsync(url, ct);
-            // When one match, return it; when multiple, return the first (caller fall back to registration data if ambiguous).
             if (result == null) return null;
-            return result.matchCount == 1 ? result.members.FirstOrDefault() : null;
+
+            // The API does case-insensitive CONTAINS matching, so multiple rows can come back even for a "unique" name.
+            // Prefer an exact case-insensitive match on both firstName and surname; fall back to the lone match otherwise.
+            var fn = firstName?.Trim() ?? "";
+            var sn = surname?.Trim() ?? "";
+            var exact = result.members.FirstOrDefault(m =>
+                string.Equals(m.firstName?.Trim(), fn, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(m.surname?.Trim(), sn, StringComparison.OrdinalIgnoreCase));
+
+            if (exact != null) return exact;
+            if (result.matchCount == 1) return result.members.FirstOrDefault();
+            _logger.LogInformation("SAHFTA name lookup '{First} {Surname}' returned {Count} matches but no exact match; skipping.", fn, sn, result.matchCount);
+            return null;
         }
 
         private async Task<ApiResponse?> CallAsync(string relativeUrl, CancellationToken ct)
         {
             var baseUrl = await GetBaseUrlAsync();
-            if (string.IsNullOrWhiteSpace(baseUrl)) return null;
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                _logger.LogWarning("SAHFTA lookup skipped — Sahfta:ApiBaseUrl is not configured in Site Settings.");
+                return null;
+            }
 
+            var fullUrl = baseUrl.TrimEnd('/') + relativeUrl;
             try
             {
                 var client = _httpFactory.CreateClient();
                 client.Timeout = TimeSpan.FromSeconds(6);
-                var fullUrl = baseUrl.TrimEnd('/') + relativeUrl;
                 var response = await client.GetAsync(fullUrl, ct);
-                if (!response.IsSuccessStatusCode) return null;
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("SAHFTA lookup {Url} returned HTTP {Status}.", fullUrl, (int)response.StatusCode);
+                    return null;
+                }
                 var json = await response.Content.ReadAsStringAsync(ct);
-                return JsonSerializer.Deserialize<ApiResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var parsed = JsonSerializer.Deserialize<ApiResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                _logger.LogInformation("SAHFTA lookup {Url} -> {Count} match(es).", fullUrl, parsed?.matchCount ?? 0);
+                return parsed;
             }
-            catch
+            catch (Exception ex)
             {
-                return null; // fail silent — caller falls back to registration data
+                _logger.LogWarning(ex, "SAHFTA lookup {Url} failed.", fullUrl);
+                return null;
             }
         }
 
