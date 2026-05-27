@@ -22,6 +22,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<YocoCheckoutService>();
+builder.Services.AddScoped<IkhokhaPaymentService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<ApplicationPdfService>();
 builder.Services.AddScoped<ScorecardPdfService>();
@@ -42,6 +43,13 @@ using (var scope = app.Services.CreateScope())
     if (!context.SiteSettings.Any(s => s.Key == "Sahfta:ApiBaseUrl"))
     {
         context.SiteSettings.Add(new SiteSettings { Key = "Sahfta:ApiBaseUrl", Value = "https://braaifever.co.za" });
+        context.SaveChanges();
+    }
+
+    // Default active payment gateway to Ikhokha (Yoco was unreliable — only ~1 in 7 payments cleared).
+    if (!context.SiteSettings.Any(s => s.Key == "PaymentGateway"))
+    {
+        context.SiteSettings.Add(new SiteSettings { Key = "PaymentGateway", Value = "Ikhokha" });
         context.SaveChanges();
     }
 }

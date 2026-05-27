@@ -82,7 +82,7 @@ namespace POLK_DOTNET.Pages
                 <p><strong>Membership Type:</strong> {application.MembershipType}</p>
                 <p><strong>Amount Paid:</strong> R{application.TotalAmount:F2}</p>
                 <p><strong>Status:</strong> {application.Status}</p>
-                <p>Payment has been confirmed via Yoco.</p>";
+                <p>Payment has been confirmed.</p>";
 
             await _emailService.SendEmailAsync(
                 AccountsEmail,

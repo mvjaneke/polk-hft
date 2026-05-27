@@ -15,13 +15,15 @@ namespace POLK_DOTNET.Pages
 
         private readonly ApplicationDbContext _context;
         private readonly YocoCheckoutService _yocoService;
+        private readonly IkhokhaPaymentService _ikhokhaService;
         private readonly EmailService _emailService;
         private readonly SahftaMembersClient _sahftaClient;
 
-        public RegisterEventModel(ApplicationDbContext context, YocoCheckoutService yocoService, EmailService emailService, SahftaMembersClient sahftaClient)
+        public RegisterEventModel(ApplicationDbContext context, YocoCheckoutService yocoService, IkhokhaPaymentService ikhokhaService, EmailService emailService, SahftaMembersClient sahftaClient)
         {
             _context = context;
             _yocoService = yocoService;
+            _ikhokhaService = ikhokhaService;
             _emailService = emailService;
             _sahftaClient = sahftaClient;
         }
@@ -148,26 +150,54 @@ namespace POLK_DOTNET.Pages
             {
                 var baseUrl = $"{Request.Scheme}://{Request.Host}";
                 var regId = EventRegistration.Id;
-                var metadata = new Dictionary<string, string>
-                {
-                    { "eventRegistrationId", regId.ToString() },
-                    { "eventId", ev.Id.ToString() }
-                };
+                var successUrl = $"{baseUrl}/payment-result?status=success&registrationId={regId}";
+                var cancelUrl = $"{baseUrl}/payment-result?status=cancelled&registrationId={regId}";
+                var failureUrl = $"{baseUrl}/payment-result?status=failed&registrationId={regId}";
 
-                var checkout = await _yocoService.CreateCheckoutAsync(
-                    effectiveFee,
-                    $"{ev.Title} - Registration #{regId}",
-                    $"{baseUrl}/payment-result?status=success&registrationId={regId}",
-                    $"{baseUrl}/payment-result?status=cancelled&registrationId={regId}",
-                    $"{baseUrl}/payment-result?status=failed&registrationId={regId}",
-                    metadata
-                );
+                var gateway = (await _context.SiteSettings.FirstOrDefaultAsync(s => s.Key == "PaymentGateway"))?.Value ?? "Ikhokha";
 
-                if (checkout != null && !string.IsNullOrEmpty(checkout.RedirectUrl))
+                if (string.Equals(gateway, "Ikhokha", StringComparison.OrdinalIgnoreCase))
                 {
-                    EventRegistration.YocoCheckoutId = checkout.Id;
-                    await _context.SaveChangesAsync();
-                    return Redirect(checkout.RedirectUrl);
+                    var paylink = await _ikhokhaService.CreatePaymentLinkAsync(
+                        effectiveFee,
+                        $"{ev.Title} - Registration #{regId}",
+                        externalTransactionId: $"EVT-{regId}",
+                        requesterUrl: baseUrl,
+                        callbackUrl: $"{baseUrl}/api/ikhokha/callback",
+                        successPageUrl: successUrl,
+                        failurePageUrl: failureUrl,
+                        cancelUrl: cancelUrl);
+
+                    if (paylink != null && !string.IsNullOrEmpty(paylink.PaylinkUrl))
+                    {
+                        EventRegistration.YocoCheckoutId = paylink.PaylinkID;
+                        await _context.SaveChangesAsync();
+                        return Redirect(paylink.PaylinkUrl);
+                    }
+                }
+                else
+                {
+                    var metadata = new Dictionary<string, string>
+                    {
+                        { "eventRegistrationId", regId.ToString() },
+                        { "eventId", ev.Id.ToString() }
+                    };
+
+                    var checkout = await _yocoService.CreateCheckoutAsync(
+                        effectiveFee,
+                        $"{ev.Title} - Registration #{regId}",
+                        successUrl,
+                        cancelUrl,
+                        failureUrl,
+                        metadata
+                    );
+
+                    if (checkout != null && !string.IsNullOrEmpty(checkout.RedirectUrl))
+                    {
+                        EventRegistration.YocoCheckoutId = checkout.Id;
+                        await _context.SaveChangesAsync();
+                        return Redirect(checkout.RedirectUrl);
+                    }
                 }
             }
 

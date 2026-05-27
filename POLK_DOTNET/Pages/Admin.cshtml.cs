@@ -54,6 +54,9 @@ namespace POLK_DOTNET.Pages
         public string? SettingsMessage { get; set; }
         public string YocoPublicKey { get; set; } = string.Empty;
         public string YocoSecretKey { get; set; } = string.Empty;
+        public string IkhokhaAppId { get; set; } = string.Empty;
+        public string IkhokhaAppSecret { get; set; } = string.Empty;
+        public string PaymentGateway { get; set; } = "Ikhokha";
         public string SmtpHost { get; set; } = string.Empty;
         public string SmtpPort { get; set; } = string.Empty;
         public string SmtpUsername { get; set; } = string.Empty;
@@ -123,6 +126,9 @@ namespace POLK_DOTNET.Pages
                 var settings = await _context.SiteSettings.ToListAsync();
                 YocoPublicKey = settings.FirstOrDefault(s => s.Key == "Yoco:PublicKey")?.Value ?? string.Empty;
                 YocoSecretKey = settings.FirstOrDefault(s => s.Key == "Yoco:SecretKey")?.Value ?? string.Empty;
+                IkhokhaAppId = settings.FirstOrDefault(s => s.Key == "Ikhokha:AppId")?.Value ?? string.Empty;
+                IkhokhaAppSecret = settings.FirstOrDefault(s => s.Key == "Ikhokha:AppSecret")?.Value ?? string.Empty;
+                PaymentGateway = settings.FirstOrDefault(s => s.Key == "PaymentGateway")?.Value ?? "Ikhokha";
                 SmtpHost = settings.FirstOrDefault(s => s.Key == "Email:SmtpHost")?.Value ?? string.Empty;
                 SmtpPort = settings.FirstOrDefault(s => s.Key == "Email:SmtpPort")?.Value ?? string.Empty;
                 SmtpUsername = settings.FirstOrDefault(s => s.Key == "Email:SmtpUsername")?.Value ?? string.Empty;
@@ -522,6 +528,30 @@ namespace POLK_DOTNET.Pages
 
             await SaveSettingAsync("Yoco:PublicKey", yocoPublicKey ?? string.Empty);
             await SaveSettingAsync("Yoco:SecretKey", yocoSecretKey ?? string.Empty);
+            await _context.SaveChangesAsync();
+
+            return RedirectToPage(new { ActiveTab = "settings" });
+        }
+
+        public async Task<IActionResult> OnPostSaveIkhokhaSettingsAsync(string ikhokhaAppId, string ikhokhaAppSecret)
+        {
+            if (HttpContext.Session.GetString("IsAuthenticated") != "true")
+                return RedirectToPage();
+
+            await SaveSettingAsync("Ikhokha:AppId", ikhokhaAppId ?? string.Empty);
+            await SaveSettingAsync("Ikhokha:AppSecret", ikhokhaAppSecret ?? string.Empty);
+            await _context.SaveChangesAsync();
+
+            return RedirectToPage(new { ActiveTab = "settings" });
+        }
+
+        public async Task<IActionResult> OnPostSavePaymentGatewayAsync(string paymentGateway)
+        {
+            if (HttpContext.Session.GetString("IsAuthenticated") != "true")
+                return RedirectToPage();
+
+            var normalized = string.Equals(paymentGateway, "Yoco", StringComparison.OrdinalIgnoreCase) ? "Yoco" : "Ikhokha";
+            await SaveSettingAsync("PaymentGateway", normalized);
             await _context.SaveChangesAsync();
 
             return RedirectToPage(new { ActiveTab = "settings" });

@@ -15,13 +15,15 @@ namespace POLK_DOTNET.Pages
     {
         private readonly ApplicationDbContext _context;
         private readonly YocoCheckoutService _yocoService;
+        private readonly IkhokhaPaymentService _ikhokhaService;
         private readonly EmailService _emailService;
         private readonly ApplicationPdfService _pdfService;
 
-        public ApplyModel(ApplicationDbContext context, YocoCheckoutService yocoService, EmailService emailService, ApplicationPdfService pdfService)
+        public ApplyModel(ApplicationDbContext context, YocoCheckoutService yocoService, IkhokhaPaymentService ikhokhaService, EmailService emailService, ApplicationPdfService pdfService)
         {
             _context = context;
             _yocoService = yocoService;
+            _ikhokhaService = ikhokhaService;
             _emailService = emailService;
             _pdfService = pdfService;
         }
@@ -101,32 +103,54 @@ namespace POLK_DOTNET.Pages
 
             await SendApplicationEmailsAsync(savedApplication);
 
-            // Attempt Yoco checkout if configured
+            // Attempt online checkout if configured. Gateway picked from SiteSettings.
             if (MembershipApplication.TotalAmount > 0)
             {
                 var baseUrl = $"{Request.Scheme}://{Request.Host}";
-                var metadata = new Dictionary<string, string>
-                {
-                    { "applicationId", MembershipApplication.Id.ToString() }
-                };
-
                 var appId = MembershipApplication.Id;
-                var checkout = await _yocoService.CreateCheckoutAsync(
-                    MembershipApplication.TotalAmount,
-                    $"Membership Application #{appId}",
-                    $"{baseUrl}/payment-result?status=success&applicationId={appId}",
-                    $"{baseUrl}/payment-result?status=cancelled&applicationId={appId}",
-                    $"{baseUrl}/payment-result?status=failed&applicationId={appId}",
-                    metadata
-                );
+                var successUrl = $"{baseUrl}/payment-result?status=success&applicationId={appId}";
+                var cancelUrl = $"{baseUrl}/payment-result?status=cancelled&applicationId={appId}";
+                var failureUrl = $"{baseUrl}/payment-result?status=failed&applicationId={appId}";
 
-                if (checkout != null && !string.IsNullOrEmpty(checkout.RedirectUrl))
+                var gateway = (await _context.SiteSettings.FirstOrDefaultAsync(s => s.Key == "PaymentGateway"))?.Value ?? "Ikhokha";
+
+                if (string.Equals(gateway, "Ikhokha", StringComparison.OrdinalIgnoreCase))
                 {
-                    return Redirect(checkout.RedirectUrl);
+                    var paylink = await _ikhokhaService.CreatePaymentLinkAsync(
+                        MembershipApplication.TotalAmount,
+                        $"Membership Application #{appId}",
+                        externalTransactionId: $"APP-{appId}",
+                        requesterUrl: baseUrl,
+                        callbackUrl: $"{baseUrl}/api/ikhokha/callback",
+                        successPageUrl: successUrl,
+                        failurePageUrl: failureUrl,
+                        cancelUrl: cancelUrl);
+
+                    if (paylink != null && !string.IsNullOrEmpty(paylink.PaylinkUrl))
+                        return Redirect(paylink.PaylinkUrl);
+                }
+                else
+                {
+                    var metadata = new Dictionary<string, string>
+                    {
+                        { "applicationId", appId.ToString() }
+                    };
+
+                    var checkout = await _yocoService.CreateCheckoutAsync(
+                        MembershipApplication.TotalAmount,
+                        $"Membership Application #{appId}",
+                        successUrl,
+                        cancelUrl,
+                        failureUrl,
+                        metadata
+                    );
+
+                    if (checkout != null && !string.IsNullOrEmpty(checkout.RedirectUrl))
+                        return Redirect(checkout.RedirectUrl);
                 }
             }
 
-            // Fallback: redirect to home if Yoco not configured or amount is 0
+            // Fallback: redirect to home if no gateway configured or amount is 0
             return RedirectToPage("/Index");
         }
 
