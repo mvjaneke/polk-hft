@@ -125,6 +125,10 @@
                         <th class="text-left p-3">Cell</th>
                         <th class="text-left p-3">Gun</th>
                         <th class="text-left p-3">Division</th>
+                        @if (Model.Event.IsDoubleHeader)
+                        {
+                            <th class="text-left p-3">Shoot</th>
+                        }
                         <th class="text-left p-3">Payment</th>
                         <th class="text-left p-3">Status</th>
                         <th class="text-left p-3">Amount</th>
@@ -142,6 +146,17 @@
                             <td class="p-3 whitespace-nowrap">@r.CellNumber</td>
                             <td class="p-3 whitespace-nowrap">@r.GunType</td>
                             <td class="p-3 whitespace-nowrap">@(r.Division ?? "-")</td>
+                            @if (Model.Event.IsDoubleHeader)
+                            {
+                                var shootLabel = r.ShootSelection switch
+                                {
+                                    "First" => "Shoot 1",
+                                    "Second" => "Shoot 2",
+                                    "Both" => "Both",
+                                    _ => "-"
+                                };
+                                <td class="p-3 whitespace-nowrap">@shootLabel</td>
+                            }
                             <td class="p-3 whitespace-nowrap">@(r.PaymentMethod ?? "-")</td>
                             <td class="p-3">
                                 @{
@@ -180,7 +195,8 @@
                     }
                     @if (!Model.Registrations.Any())
                     {
-                        <tr><td colspan="9" class="p-8 text-center text-gray-500">No registrations match the current filters.</td></tr>
+                        var emptyColspan = Model.Event.IsDoubleHeader ? 10 : 9;
+                        <tr><td colspan="@emptyColspan" class="p-8 text-center text-gray-500">No registrations match the current filters.</td></tr>
                     }
                 </tbody>
             </table>

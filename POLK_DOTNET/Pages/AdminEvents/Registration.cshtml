@@ -3,10 +3,16 @@
 @{
     ViewData["Title"] = $"Registration #{Model.Registration.Id}";
     var r = Model.Registration;
+    var benchrest = Model.Event.EventType == "Benchrest";
 }
 
-<div class="container mx-auto px-4 py-8 max-w-4xl">
+<div class="container mx-auto px-4 py-8 max-w-5xl">
     <a asp-page="Manage" asp-route-id="@Model.Event.Id" class="text-sm text-gray-500 hover:underline">&larr; Back to @Model.Event.Title</a>
+
+    @if (TempData["SaveMessage"] is string saveMessage && !string.IsNullOrEmpty(saveMessage))
+    {
+        <div class="mt-3 mb-3 p-3 bg-green-100 border border-green-200 text-green-800 rounded-md text-sm">@saveMessage</div>
+    }
 
     <div class="flex items-start justify-between mt-2 mb-6 flex-wrap gap-4">
         <div>
@@ -22,7 +28,13 @@
                     _ => "bg-gray-100 text-gray-800"
                 };
             }
-            <span class="inline-flex items-center px-3 py-1 rounded text-sm font-semibold @badge mt-2">@r.Status</span>
+            <div class="flex flex-wrap gap-2 mt-2">
+                <span class="inline-flex items-center px-3 py-1 rounded text-sm font-semibold @badge">@r.Status</span>
+                @if (Model.Event.IsDoubleHeader)
+                {
+                    <span class="inline-flex items-center px-3 py-1 rounded text-sm font-semibold bg-purple-100 text-purple-800">Double Header Event</span>
+                }
+            </div>
         </div>
         <div class="flex flex-wrap gap-2">
             @if (r.Status != "Paid")
@@ -43,76 +55,260 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-lg font-bold mb-3">Personal Details</h2>
-            <dl class="space-y-2 text-sm">
-                <div><dt class="text-gray-500">Full Name</dt><dd class="font-medium">@r.Name @r.Surname</dd></div>
-                <div><dt class="text-gray-500">Email</dt><dd class="font-medium"><a href="mailto:@r.EmailAddress" class="text-blue-600 hover:underline">@r.EmailAddress</a></dd></div>
-                <div><dt class="text-gray-500">Cell</dt><dd class="font-medium">@r.CellNumber</dd></div>
-                <div><dt class="text-gray-500">ID Number</dt><dd class="font-medium">@r.IdNumber</dd></div>
-                @if (!string.IsNullOrWhiteSpace(r.GuardianName) || !string.IsNullOrWhiteSpace(r.GuardianSurname))
-                {
-                    <div><dt class="text-gray-500">Guardian / Parent</dt><dd class="font-medium">@r.GuardianName @r.GuardianSurname</dd></div>
-                }
-            </dl>
+    <form method="post" asp-page-handler="Save" asp-route-id="@Model.Event.Id" asp-route-regId="@r.Id">
+        <div asp-validation-summary="ModelOnly" class="mb-4 text-sm text-red-700"></div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Personal Details -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-bold mb-4">Personal Details</h2>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="form-label">First Name <span class="text-red-600">*</span></label>
+                            <input asp-for="Edit.Name" class="form-input" />
+                            <span asp-validation-for="Edit.Name" class="form-error"></span>
+                        </div>
+                        <div>
+                            <label class="form-label">Surname <span class="text-red-600">*</span></label>
+                            <input asp-for="Edit.Surname" class="form-input" />
+                            <span asp-validation-for="Edit.Surname" class="form-error"></span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Email <span class="text-red-600">*</span></label>
+                        <input asp-for="Edit.EmailAddress" type="email" class="form-input" />
+                        <span asp-validation-for="Edit.EmailAddress" class="form-error"></span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="form-label">Cell Number <span class="text-red-600">*</span></label>
+                            <input asp-for="Edit.CellNumber" type="tel" class="form-input" placeholder="082 123 4567" />
+                            <span asp-validation-for="Edit.CellNumber" class="form-error"></span>
+                        </div>
+                        <div>
+                            <label class="form-label">ID Number <span class="text-red-600">*</span></label>
+                            <input asp-for="Edit.IdNumber" class="form-input" />
+                            <span asp-validation-for="Edit.IdNumber" class="form-error"></span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="form-label">Guardian First Name</label>
+                            <input asp-for="Edit.GuardianName" class="form-input" />
+                        </div>
+                        <div>
+                            <label class="form-label">Guardian Surname</label>
+                            <input asp-for="Edit.GuardianSurname" class="form-input" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Competition Details -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-bold mb-4">Competition Details</h2>
+                <div class="space-y-4">
+                    @if (Model.Event.RequiresAttendanceType)
+                    {
+                        <div>
+                            <label class="form-label">Attendance</label>
+                            <select asp-for="Edit.AttendanceType" class="form-input">
+                                <option value="">-- Select --</option>
+                                @foreach (var opt in new[] { "Competitor", "Spectator" })
+                                {
+                                    if (Model.Edit.AttendanceType == opt)
+                                    {
+                                        <option value="@opt" selected>@opt</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@opt">@opt</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    }
+
+                    <div>
+                        <label class="form-label">Gun Type <span class="text-red-600">*</span></label>
+                        <select asp-for="Edit.GunType" class="form-input">
+                            <option value="">-- Select --</option>
+                            @{
+                                var gunOpts = benchrest
+                                    ? new[] { "PCP .177", "PCP .22", "Recoil / Springer" }
+                                    : new[] { "PCP", "Recoil / Springer" };
+                            }
+                            @foreach (var opt in gunOpts)
+                            {
+                                if (Model.Edit.GunType == opt)
+                                {
+                                    <option value="@opt" selected>@opt</option>
+                                }
+                                else
+                                {
+                                    <option value="@opt">@opt</option>
+                                }
+                            }
+                        </select>
+                        <span asp-validation-for="Edit.GunType" class="form-error"></span>
+                    </div>
+
+                    @if (Model.Event.AllowsClubRifle)
+                    {
+                        <div>
+                            <label class="form-label">Rifle Ownership</label>
+                            <select asp-for="Edit.RifleOwnership" class="form-input">
+                                <option value="">-- Select --</option>
+                                @foreach (var opt in new[] { ("Own", "Own rifle and pellets"), ("Club", "Club rifle and pellets") })
+                                {
+                                    if (Model.Edit.RifleOwnership == opt.Item1)
+                                    {
+                                        <option value="@opt.Item1" selected>@opt.Item2</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@opt.Item1">@opt.Item2</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    }
+
+                    @if (Model.Event.RequiresDivision)
+                    {
+                        <div>
+                            <label class="form-label">Division</label>
+                            <select asp-for="Edit.Division" class="form-input">
+                                <option value="">-- Select --</option>
+                                @foreach (var opt in new[] { "Open PCP", "Ladies", "U/18", "U/13", "Other" })
+                                {
+                                    if (Model.Edit.Division == opt)
+                                    {
+                                        <option value="@opt" selected>@opt</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@opt">@opt</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Other Division <span class="text-gray-500 text-xs">(only if Division = Other)</span></label>
+                            <input asp-for="Edit.OtherDivision" class="form-input" placeholder="Specify division" />
+                        </div>
+                    }
+
+                    @if (Model.Event.IsDoubleHeader)
+                    {
+                        <div>
+                            <label class="form-label">Shoot Selection <span class="text-red-600">*</span></label>
+                            <select asp-for="Edit.ShootSelection" class="form-input">
+                                <option value="">-- Select --</option>
+                                @foreach (var opt in new[] { ("First", "Shoot 1 only"), ("Second", "Shoot 2 only"), ("Both", "Both shoots") })
+                                {
+                                    if (Model.Edit.ShootSelection == opt.Item1)
+                                    {
+                                        <option value="@opt.Item1" selected>@opt.Item2</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@opt.Item1">@opt.Item2</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="Edit.ShootSelection" class="form-error"></span>
+                        </div>
+                    }
+
+                    <div>
+                        <label class="form-label">SAHFTA Number</label>
+                        <input asp-for="Edit.SAHFTANumber" class="form-input" placeholder="e.g. 19-5001" />
+                    </div>
+                    <div>
+                        <label class="form-label">Club Name</label>
+                        <input asp-for="Edit.ClubName" class="form-input" placeholder="Club or leave blank if independent" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-bold mb-4">Payment</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="form-label">Payment Method</label>
+                        <select asp-for="Edit.PaymentMethod" class="form-input">
+                            <option value="">-- Select --</option>
+                            @foreach (var opt in new[] { ("Yoco", "Online (Card)"), ("EFT", "EFT"), ("AtVenue", "At Venue") })
+                            {
+                                if (Model.Edit.PaymentMethod == opt.Item1)
+                                {
+                                    <option value="@opt.Item1" selected>@opt.Item2</option>
+                                }
+                                else
+                                {
+                                    <option value="@opt.Item1">@opt.Item2</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Amount Paid (ZAR)</label>
+                        <input asp-for="Edit.AmountPaid" type="number" step="0.01" min="0" class="form-input" />
+                        <span asp-validation-for="Edit.AmountPaid" class="form-error"></span>
+                    </div>
+                    <div>
+                        <label class="form-label">Payment Reference</label>
+                        <input asp-for="Edit.PaymentReference" class="form-input" />
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(r.YocoCheckoutId))
+                    {
+                        <div class="text-xs text-gray-500"><span class="font-semibold">Gateway checkout ID:</span> <span class="font-mono break-all">@r.YocoCheckoutId</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(r.YocoPaymentId))
+                    {
+                        <div class="text-xs text-gray-500"><span class="font-semibold">Gateway payment ID:</span> <span class="font-mono break-all">@r.YocoPaymentId</span></div>
+                    }
+                    <p class="text-xs text-gray-500">To mark this registration as <strong>Paid</strong> and send a confirmation email, use the <strong>Mark Paid</strong> button at the top of the page.</p>
+                </div>
+            </div>
+
+            <!-- Social Media + Consents (read-only indemnity, editable consent) -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-bold mb-4">Consents</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="form-label">Social Media Consent</label>
+                        <select asp-for="Edit.SocialMediaConsent" class="form-input">
+                            <option value="">-- Select --</option>
+                            @foreach (var opt in new[] { ("Agreed", "Agreed"), ("GuardianAgreed", "Guardian Agreed"), ("Declined", "Declined") })
+                            {
+                                if (Model.Edit.SocialMediaConsent == opt.Item1)
+                                {
+                                    <option value="@opt.Item1" selected>@opt.Item2</option>
+                                }
+                                else
+                                {
+                                    <option value="@opt.Item1">@opt.Item2</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <dl class="text-sm pt-2 border-t space-y-2">
+                        <div><dt class="text-gray-500 inline">Info Accurate Confirmed: </dt><dd class="inline font-medium">@(r.InfoAccurateConfirmed ? "✓ Yes" : "✗ No")</dd></div>
+                        <div><dt class="text-gray-500 inline">Indemnity Agreed: </dt><dd class="inline font-medium">@(r.IndemnityAgreed ? "✓ Yes" : "✗ No")</dd></div>
+                        <div><dt class="text-gray-500 inline">Guardian Indemnity Agreed: </dt><dd class="inline font-medium">@(r.GuardianIndemnityAgreed ? "✓ Yes" : "— N/A")</dd></div>
+                    </dl>
+                    <p class="text-xs text-gray-500">Indemnity and information-accuracy declarations are recorded as the registrant submitted them and cannot be changed by the admin.</p>
+                </div>
+            </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-lg font-bold mb-3">Competition Details</h2>
-            <dl class="space-y-2 text-sm">
-                @if (!string.IsNullOrWhiteSpace(r.AttendanceType))
-                {
-                    <div><dt class="text-gray-500">Attendance</dt><dd class="font-medium">@r.AttendanceType</dd></div>
-                }
-                <div><dt class="text-gray-500">Gun Type</dt><dd class="font-medium">@r.GunType</dd></div>
-                @if (!string.IsNullOrWhiteSpace(r.RifleOwnership))
-                {
-                    <div><dt class="text-gray-500">Rifle</dt><dd class="font-medium">@(r.RifleOwnership == "Own" ? "Own rifle and pellets" : "Club rifle and pellets")</dd></div>
-                }
-                @if (!string.IsNullOrWhiteSpace(r.Division))
-                {
-                    <div><dt class="text-gray-500">Division</dt><dd class="font-medium">@r.Division @(string.IsNullOrWhiteSpace(r.OtherDivision) ? "" : $"({r.OtherDivision})")</dd></div>
-                }
-                @if (!string.IsNullOrWhiteSpace(r.SAHFTANumber))
-                {
-                    <div><dt class="text-gray-500">SAHFTA Number</dt><dd class="font-medium">@r.SAHFTANumber</dd></div>
-                }
-                @if (!string.IsNullOrWhiteSpace(r.ClubName))
-                {
-                    <div><dt class="text-gray-500">Club</dt><dd class="font-medium">@r.ClubName</dd></div>
-                }
-            </dl>
+        <div class="mt-6 flex justify-end">
+            <button type="submit" class="px-6 py-3 bg-red-700 text-white font-semibold rounded-md hover:bg-red-800">Save Changes</button>
         </div>
-
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-lg font-bold mb-3">Payment</h2>
-            <dl class="space-y-2 text-sm">
-                <div><dt class="text-gray-500">Method</dt><dd class="font-medium">@(r.PaymentMethod ?? "N/A")</dd></div>
-                <div><dt class="text-gray-500">Amount Paid</dt><dd class="font-medium">@($"R{r.AmountPaid:F2}")</dd></div>
-                @if (!string.IsNullOrWhiteSpace(r.PaymentReference))
-                {
-                    <div><dt class="text-gray-500">Reference</dt><dd class="font-medium">@r.PaymentReference</dd></div>
-                }
-                @if (!string.IsNullOrWhiteSpace(r.YocoCheckoutId))
-                {
-                    <div><dt class="text-gray-500">Yoco Checkout ID</dt><dd class="font-mono text-xs break-all">@r.YocoCheckoutId</dd></div>
-                }
-                @if (!string.IsNullOrWhiteSpace(r.YocoPaymentId))
-                {
-                    <div><dt class="text-gray-500">Yoco Payment ID</dt><dd class="font-mono text-xs break-all">@r.YocoPaymentId</dd></div>
-                }
-            </dl>
-        </div>
-
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-lg font-bold mb-3">Consents &amp; Indemnity</h2>
-            <dl class="space-y-2 text-sm">
-                <div><dt class="text-gray-500">Info Accurate</dt><dd>@(r.InfoAccurateConfirmed ? "✓ Confirmed" : "✗ Not confirmed")</dd></div>
-                <div><dt class="text-gray-500">Indemnity</dt><dd>@(r.IndemnityAgreed ? "✓ Agreed" : "✗ Not agreed")</dd></div>
-                <div><dt class="text-gray-500">Guardian Indemnity</dt><dd>@(r.GuardianIndemnityAgreed ? "✓ Agreed" : "— N/A")</dd></div>
-                <div><dt class="text-gray-500">Social Media Consent</dt><dd>@(r.SocialMediaConsent ?? "Not answered")</dd></div>
-            </dl>
-        </div>
-    </div>
+    </form>
 </div>
