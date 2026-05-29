@@ -27,6 +27,17 @@ namespace POLK_DOTNET.Pages.AdminEvents
         public Event Event { get; private set; } = null!;
         public List<EventRegistration> Registrations { get; private set; } = new();
 
+        // Whether a Troyer course actually has target rows for each shoot. Drives the
+        // scorecard/score-sheet buttons. Based on real CourseTargets rows rather than
+        // Event.CourseTargetCount, which is a Shoot-1-only flag that an event edit can wipe.
+        public bool Shoot1Configured { get; private set; }
+        public bool Shoot2Configured { get; private set; }
+
+        // Shoot 2 reuses the Shoot-1 course when "use same course for both shoots" is on.
+        public bool Shoot1Ready => Shoot1Configured;
+        public bool Shoot2Ready => Event.UseSameCourseForBothShoots ? Shoot1Configured : Shoot2Configured;
+        public bool CourseConfigured => Shoot1Ready || Shoot2Ready;
+
         public int TotalCount { get; private set; }
         public int PaidCount { get; private set; }
         public int PendingCount { get; private set; }
@@ -50,6 +61,14 @@ namespace POLK_DOTNET.Pages.AdminEvents
             var ev = await _context.Events.FindAsync(Id);
             if (ev == null) return NotFound();
             Event = ev;
+
+            var configuredShoots = await _context.CourseTargets
+                .Where(c => c.EventId == Id)
+                .Select(c => c.Shoot)
+                .Distinct()
+                .ToListAsync();
+            Shoot1Configured = configuredShoots.Contains(1);
+            Shoot2Configured = configuredShoots.Contains(2);
 
             await LoadStatsAsync();
             await LoadRegistrationsAsync();

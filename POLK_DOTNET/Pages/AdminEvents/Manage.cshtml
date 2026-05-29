@@ -44,18 +44,24 @@
                                 <span>(@Model.Event.CourseTargetCount)</span>
                             }
                         </a>
-                        @if (Model.Event.CourseTargetCount.HasValue)
+                        @if (Model.CourseConfigured)
                         {
                             <a asp-page-handler="SampleScorecardUneven" asp-route-id="@Model.Event.Id" class="text-xs px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">Sample (Uneven Lanes)</a>
 
                             @if (Model.Event.IsDoubleHeader)
                             {
-                                <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample (Shoot 1)</a>
-                                <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate Shoot 1 Cards</a>
-                                <a asp-page-handler="Scoresheet" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">Score Sheet (Shoot 1)</a>
-                                <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample (Shoot 2)</a>
-                                <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate Shoot 2 Cards</a>
-                                <a asp-page-handler="Scoresheet" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">Score Sheet (Shoot 2)</a>
+                                @if (Model.Shoot1Ready)
+                                {
+                                    <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample (Shoot 1)</a>
+                                    <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate Shoot 1 Cards</a>
+                                    <a asp-page-handler="Scoresheet" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">Score Sheet (Shoot 1)</a>
+                                }
+                                @if (Model.Shoot2Ready)
+                                {
+                                    <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample (Shoot 2)</a>
+                                    <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate Shoot 2 Cards</a>
+                                    <a asp-page-handler="Scoresheet" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">Score Sheet (Shoot 2)</a>
+                                }
                             }
                             else
                             {
