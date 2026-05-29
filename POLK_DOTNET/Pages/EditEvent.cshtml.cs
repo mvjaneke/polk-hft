@@ -53,6 +53,11 @@ namespace POLK_DOTNET.Pages
 
             _context.Attach(Event).State = EntityState.Modified;
 
+            // CourseTargetCount is configured on the Course Setup page, not on this form.
+            // Without this, EntityState.Modified would write the (unbound) null value back
+            // and wipe the Troyer course, hiding all scorecard/score-sheet buttons on Manage.
+            _context.Entry(Event).Property(e => e.CourseTargetCount).IsModified = false;
+
             try
             {
                 await _context.SaveChangesAsync();
