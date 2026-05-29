@@ -11,13 +11,15 @@ namespace POLK_DOTNET.Pages.AdminEvents
     {
         private readonly ApplicationDbContext _context;
         private readonly ScorecardPdfService _scorecardService;
+        private readonly ExcelExportService _excelService;
         private readonly SahftaMembersClient _sahftaClient;
         private readonly EmailService _emailService;
 
-        public ManageModel(ApplicationDbContext context, ScorecardPdfService scorecardService, SahftaMembersClient sahftaClient, EmailService emailService)
+        public ManageModel(ApplicationDbContext context, ScorecardPdfService scorecardService, ExcelExportService excelService, SahftaMembersClient sahftaClient, EmailService emailService)
         {
             _context = context;
             _scorecardService = scorecardService;
+            _excelService = excelService;
             _sahftaClient = sahftaClient;
             _emailService = emailService;
         }
@@ -168,6 +170,41 @@ namespace POLK_DOTNET.Pages.AdminEvents
                 Division = reg.Division,
                 GunType = reg.GunType
             };
+        }
+
+        public async Task<IActionResult> OnGetScoresheetAsync(int shoot = 1)
+        {
+            if (HttpContext.Session.GetString("IsAuthenticated") != "true")
+                return RedirectToPage("/Admin");
+
+            var ev = await _context.Events.FindAsync(Id);
+            if (ev == null) return NotFound();
+
+            var regsQuery = _context.EventRegistrations
+                .Where(r => r.EventId == Id && r.Status != "Cancelled");
+
+            if (ev.IsDoubleHeader)
+            {
+                regsQuery = shoot == 2
+                    ? regsQuery.Where(r => r.ShootSelection == "Second" || r.ShootSelection == "Both")
+                    : regsQuery.Where(r => r.ShootSelection == "First" || r.ShootSelection == "Both");
+            }
+
+            var regs = await regsQuery
+                .OrderBy(r => r.Surname).ThenBy(r => r.Name)
+                .ToListAsync();
+
+            var participants = new List<ScorecardPdfService.ParticipantInfo>();
+            foreach (var reg in regs)
+                participants.Add(await EnrichAsync(reg));
+
+            var xlsx = _excelService.GenerateScoresheet(ev, participants, shoot);
+            var safeTitle = string.Concat((ev.Title ?? "event").Split(Path.GetInvalidFileNameChars()));
+            var suffix = ev.IsDoubleHeader ? $"_shoot{shoot}" : "";
+            return File(
+                xlsx,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"scoresheet_{safeTitle}{suffix}_{ev.Id}.xlsx");
         }
 
         public async Task<IActionResult> OnGetSampleScorecardUnevenAsync()

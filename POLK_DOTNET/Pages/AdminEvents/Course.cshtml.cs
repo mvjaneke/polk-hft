@@ -9,8 +9,13 @@ namespace POLK_DOTNET.Pages.AdminEvents
     public class CourseModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ExcelExportService _excelService;
 
-        public CourseModel(ApplicationDbContext context) { _context = context; }
+        public CourseModel(ApplicationDbContext context, ExcelExportService excelService)
+        {
+            _context = context;
+            _excelService = excelService;
+        }
 
         public Event Event { get; private set; } = null!;
 
@@ -97,6 +102,32 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
             await _context.SaveChangesAsync();
             return RedirectToPage(new { id = Id, shoot = Shoot });
+        }
+
+        public async Task<IActionResult> OnGetExportAsync()
+        {
+            if (HttpContext.Session.GetString("IsAuthenticated") != "true")
+                return RedirectToPage("/Admin");
+
+            var ev = await _context.Events.FindAsync(Id);
+            if (ev == null) return NotFound();
+
+            NormalizeShoot(ev);
+
+            var targets = await _context.CourseTargets
+                .Where(c => c.EventId == Id && c.Shoot == Shoot)
+                .OrderBy(c => c.TargetNumber)
+                .ToListAsync();
+
+            if (targets.Count == 0) return NotFound();
+
+            var xlsx = _excelService.GenerateCourseSheet(ev, targets, Shoot);
+            var safeTitle = string.Concat((ev.Title ?? "course").Split(Path.GetInvalidFileNameChars()));
+            var suffix = (ev.IsDoubleHeader && !ev.UseSameCourseForBothShoots) ? $"_shoot{Shoot}" : "";
+            return File(
+                xlsx,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"course_{safeTitle}{suffix}_{ev.Id}.xlsx");
         }
 
         public async Task<IActionResult> OnPostAsync()

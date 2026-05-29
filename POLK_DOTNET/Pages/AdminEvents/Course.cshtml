@@ -44,13 +44,14 @@
     }
     else
     {
-        <div class="flex items-center gap-4 mb-4">
+        <div class="flex items-center gap-4 mb-4 flex-wrap">
             <span class="text-lg font-semibold">@Model.CurrentTargetCount-Target Course</span>
             <form method="post" asp-page-handler="SetTargetCount" onsubmit="return confirm('Switching target count will reset all target data for this shoot. Continue?');">
                 <input type="hidden" name="shoot" value="@Model.Shoot" />
                 <input type="hidden" name="targetCount" value="@(Model.CurrentTargetCount == 30 ? 40 : 30)" />
                 <button type="submit" class="text-xs px-3 py-1 border rounded hover:bg-gray-100">Switch to @(Model.CurrentTargetCount == 30 ? "40" : "30")-Target</button>
             </form>
+            <a asp-page-handler="Export" asp-route-id="@Model.Event.Id" asp-route-shoot="@Model.Shoot" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">Download Course (Excel)</a>
         </div>
 
         @* Summary panel *@

@@ -26,6 +26,7 @@ builder.Services.AddScoped<IkhokhaPaymentService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<ApplicationPdfService>();
 builder.Services.AddScoped<ScorecardPdfService>();
+builder.Services.AddScoped<ExcelExportService>();
 builder.Services.AddScoped<SahftaMembersClient>();
 
 var app = builder.Build();

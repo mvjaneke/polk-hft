@@ -52,13 +52,16 @@
                             {
                                 <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample (Shoot 1)</a>
                                 <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate Shoot 1 Cards</a>
+                                <a asp-page-handler="Scoresheet" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">Score Sheet (Shoot 1)</a>
                                 <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample (Shoot 2)</a>
                                 <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate Shoot 2 Cards</a>
+                                <a asp-page-handler="Scoresheet" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">Score Sheet (Shoot 2)</a>
                             }
                             else
                             {
                                 <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample Scorecard</a>
                                 <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate All Scorecards</a>
+                                <a asp-page-handler="Scoresheet" asp-route-id="@Model.Event.Id" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">Score Sheet (Excel)</a>
                             }
                         }
                     }
