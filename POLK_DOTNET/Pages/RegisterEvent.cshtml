@@ -103,6 +103,12 @@
         cursor: pointer;
     }
     .submit-btn:hover { background: #991b1b; box-shadow: 0 6px 14px rgba(185, 28, 28, 0.35); }
+
+    /* Spectators don't shoot — hide all competition-only sections when "Spectator" is chosen.
+       Hidden required inputs are skipped by jQuery validation's default ignore:":hidden". */
+    .spectator-note { display: none; }
+    form:has(input[name="EventRegistration.AttendanceType"][value="Spectator"]:checked) .competitor-only { display: none; }
+    form:has(input[name="EventRegistration.AttendanceType"][value="Spectator"]:checked) .spectator-note { display: block; }
 </style>
 
 <div class="min-h-screen bg-gray-100 py-8">
@@ -230,13 +236,16 @@
                                         </label>
                                     </div>
                                     <span asp-validation-for="EventRegistration.AttendanceType" class="form-error"></span>
+                                    <div class="spectator-note legal-box mt-3" style="background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a;">
+                                        <p><strong>You're registering as a spectator.</strong> You don't need to provide rifle, division or shoot details, and <strong>no entry fee applies</strong>. Please still complete your contact details and sign the indemnity and media-release sections below.</p>
+                                    </div>
                                 </div>
                             }
                         </div>
                     </section>
 
                     <!-- Rifle Details -->
-                    <section>
+                    <section class="competitor-only">
                         <h2 class="section-heading">Rifle Details</h2>
 
                         <div class="space-y-4">
@@ -286,7 +295,7 @@
                     {
                         var singleFee = Model.Event.EntryFee ?? 0;
                         var bothFee = Model.Event.DoubleHeaderFee ?? singleFee * 2;
-                        <section>
+                        <section class="competitor-only">
                             <h2 class="section-heading">Shoot Selection</h2>
                             <p class="text-sm text-gray-700 mb-3">This is a <strong>Double Header</strong> — two league shoots are held on the day. Make your selection.</p>
                             <div class="space-y-2">
@@ -307,7 +316,7 @@
                         </section>
                     }
 
-                    <section>
+                    <section class="competitor-only">
                         <h2 class="section-heading">Competitor Details</h2>
 
                         <div class="space-y-4">
@@ -430,7 +439,7 @@
 
                     @if (Model.Event.EntryFee.HasValue && Model.Event.EntryFee.Value > 0)
                     {
-                        <section>
+                        <section class="competitor-only">
                             <h2 class="section-heading">Payment</h2>
                             @if (Model.Event.IsDoubleHeader)
                             {

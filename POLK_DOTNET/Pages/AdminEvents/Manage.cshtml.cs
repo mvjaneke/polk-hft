@@ -110,8 +110,9 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
             var course = await LoadCourseForShootAsync(ev, shoot);
 
+            // Spectators don't shoot, so they're never printed on scorecards.
             var regsQuery = _context.EventRegistrations
-                .Where(r => r.EventId == Id && r.Status != "Cancelled");
+                .Where(r => r.EventId == Id && r.Status != "Cancelled" && r.AttendanceType != "Spectator");
 
             if (ev.IsDoubleHeader)
             {
@@ -199,8 +200,9 @@ namespace POLK_DOTNET.Pages.AdminEvents
             var ev = await _context.Events.FindAsync(Id);
             if (ev == null) return NotFound();
 
+            // Spectators don't shoot, so they're never included on the scoresheet.
             var regsQuery = _context.EventRegistrations
-                .Where(r => r.EventId == Id && r.Status != "Cancelled");
+                .Where(r => r.EventId == Id && r.Status != "Cancelled" && r.AttendanceType != "Spectator");
 
             if (ev.IsDoubleHeader)
             {

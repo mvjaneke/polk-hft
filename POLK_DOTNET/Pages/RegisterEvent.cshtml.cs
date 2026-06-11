@@ -84,13 +84,27 @@ namespace POLK_DOTNET.Pages
             if (ev.RequiresAttendanceType && string.IsNullOrWhiteSpace(EventRegistration.AttendanceType))
                 ModelState.AddModelError("EventRegistration.AttendanceType", "Please select Competitor or Spectator.");
 
-            if (ev.RequiresDivision && string.IsNullOrWhiteSpace(EventRegistration.Division))
+            // Spectators attend but don't shoot — clear competition-only fields and skip their validation.
+            // They still complete contact details and sign the indemnity & media consent below.
+            bool isSpectator = ev.RequiresAttendanceType &&
+                string.Equals(EventRegistration.AttendanceType, "Spectator", StringComparison.OrdinalIgnoreCase);
+            if (isSpectator)
+            {
+                EventRegistration.GunType = "N/A";
+                EventRegistration.RifleOwnership = null;
+                EventRegistration.Division = null;
+                EventRegistration.OtherDivision = null;
+                EventRegistration.ShootSelection = null;
+                ModelState.Remove("EventRegistration.GunType");
+            }
+
+            if (ev.RequiresDivision && !isSpectator && string.IsNullOrWhiteSpace(EventRegistration.Division))
                 ModelState.AddModelError("EventRegistration.Division", "Division is required.");
 
-            if (ev.AllowsClubRifle && string.IsNullOrWhiteSpace(EventRegistration.RifleOwnership))
+            if (ev.AllowsClubRifle && !isSpectator && string.IsNullOrWhiteSpace(EventRegistration.RifleOwnership))
                 ModelState.AddModelError("EventRegistration.RifleOwnership", "Please select own or club rifle.");
 
-            if (ev.IsDoubleHeader)
+            if (ev.IsDoubleHeader && !isSpectator)
             {
                 var sel = EventRegistration.ShootSelection;
                 if (sel != "First" && sel != "Second" && sel != "Both")
@@ -110,8 +124,11 @@ namespace POLK_DOTNET.Pages
             if (string.IsNullOrWhiteSpace(EventRegistration.SocialMediaConsent))
                 ModelState.AddModelError("EventRegistration.SocialMediaConsent", "Please select a social media consent option.");
 
-            // Compute the effective fee server-side (single, both, or single-shoot of a double header)
-            var effectiveFee = ComputeEffectiveFee(ev, EventRegistration.ShootSelection, EventRegistration.RifleOwnership);
+            // Compute the effective fee server-side (single, both, or single-shoot of a double header).
+            // Spectators never pay an entry fee.
+            var effectiveFee = isSpectator
+                ? 0m
+                : ComputeEffectiveFee(ev, EventRegistration.ShootSelection, EventRegistration.RifleOwnership);
             var hasFee = effectiveFee > 0;
 
             if (hasFee)
