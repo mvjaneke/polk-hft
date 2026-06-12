@@ -15,6 +15,7 @@ namespace POLK_DOTNET.Services
             public string MembershipNumber { get; set; } = "";
             public string? Division { get; set; }
             public string? GunType { get; set; }
+            public bool IsPaid { get; set; }
         }
 
         static ScorecardPdfService()
@@ -68,21 +69,33 @@ namespace POLK_DOTNET.Services
             {
                 col.Spacing(3);
 
-                // Top: Logo (left) + Safety First (right)
-                col.Item().Row(r =>
+                // Top: Logo (left) + Safety First (right). PAID stamp overlays the top-right when payment is received.
+                col.Item().Layers(layers =>
                 {
-                    r.RelativeItem(3).AlignLeft().AlignMiddle().Height(32, Unit.Millimetre).Element(e =>
+                    layers.PrimaryLayer().Row(r =>
                     {
-                        if (logo != null) e.Image(logo).FitHeight();
-                        else e.Text("CLUB LOGO").FontColor(Colors.Grey.Medium);
+                        r.RelativeItem(3).AlignLeft().AlignMiddle().Height(32, Unit.Millimetre).Element(e =>
+                        {
+                            if (logo != null) e.Image(logo).FitHeight();
+                            else e.Text("CLUB LOGO").FontColor(Colors.Grey.Medium);
+                        });
+                        r.RelativeItem(4).AlignMiddle().Column(c =>
+                        {
+                            c.Item().Text("> Safety First!!").SemiBold().FontSize(10);
+                            c.Item().Text("> Never Cross the Firing Line").FontSize(9);
+                            c.Item().Text("> 1 Whistle:  Range Closed").FontSize(9);
+                            c.Item().Text("> 2 Whistles: Range Open").FontSize(9);
+                        });
                     });
-                    r.RelativeItem(4).AlignMiddle().Column(c =>
+
+                    if (p.IsPaid)
                     {
-                        c.Item().Text("> Safety First!!").SemiBold().FontSize(10);
-                        c.Item().Text("> Never Cross the Firing Line").FontSize(9);
-                        c.Item().Text("> 1 Whistle:  Range Closed").FontSize(9);
-                        c.Item().Text("> 2 Whistles: Range Open").FontSize(9);
-                    });
+                        layers.Layer().AlignTop().AlignRight().Element(e =>
+                            e.Border(2).BorderColor(Colors.Green.Darken2)
+                             .Background(Colors.Green.Lighten5)
+                             .PaddingHorizontal(8).PaddingVertical(2)
+                             .Text("PAID ✓").Bold().FontSize(13).FontColor(Colors.Green.Darken3));
+                    }
                 });
 
                 // Good Conduct (left) + Starting Lane (right)

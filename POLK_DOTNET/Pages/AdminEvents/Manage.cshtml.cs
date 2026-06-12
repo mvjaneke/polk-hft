@@ -154,6 +154,8 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
         private async Task<ScorecardPdfService.ParticipantInfo> EnrichAsync(EventRegistration reg)
         {
+            var isPaid = reg.Status == "Paid";
+
             // 1. Try name lookup first (only returns when exactly one match)
             var api = await _sahftaClient.LookupByNameAsync(reg.Name, reg.Surname);
 
@@ -176,7 +178,8 @@ namespace POLK_DOTNET.Pages.AdminEvents
                     Club = api.club ?? (reg.ClubName ?? ""),
                     MembershipNumber = api.membershipNumber ?? (reg.SAHFTANumber ?? ""),
                     Division = api.leaderboardDivision ?? reg.Division,
-                    GunType = reg.GunType
+                    GunType = reg.GunType,
+                    IsPaid = isPaid
                 };
             }
 
@@ -188,7 +191,8 @@ namespace POLK_DOTNET.Pages.AdminEvents
                 Club = "N/A",
                 MembershipNumber = "N/A",
                 Division = reg.Division,
-                GunType = reg.GunType
+                GunType = reg.GunType,
+                IsPaid = isPaid
             };
         }
 
