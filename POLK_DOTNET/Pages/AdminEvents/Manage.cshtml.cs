@@ -293,8 +293,9 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
             // Everyone who still owes: not yet Paid, not Cancelled. "Confirmed" is used
             // for free registrations (nothing to collect), so they're excluded too.
+            // Spectators never pay an entry fee, so they don't belong on the collection sheet.
             var regs = await _context.EventRegistrations
-                .Where(r => r.EventId == Id && r.Status != "Paid" && r.Status != "Cancelled")
+                .Where(r => r.EventId == Id && r.Status != "Paid" && r.Status != "Cancelled" && r.AttendanceType != "Spectator")
                 .OrderBy(r => r.Surname).ThenBy(r => r.Name)
                 .ToListAsync();
 
