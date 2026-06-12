@@ -96,7 +96,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
             };
 
             var suffix = ev.IsDoubleHeader ? $"_shoot{shoot}" : "";
-            var pdf = _scorecardService.GenerateBatch(ev, course, new[] { sample });
+            var pdf = _scorecardService.GenerateBatch(ev, course, new[] { sample }, shoot);
             return File(pdf, "application/pdf", $"scorecard_sample{suffix}_{ev.Id}.pdf");
         }
 
@@ -136,7 +136,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
             for (int i = 0; i < 6; i++)
                 participants.Add(new ScorecardPdfService.ParticipantInfo());
 
-            var pdf = _scorecardService.GenerateBatch(ev, course, participants);
+            var pdf = _scorecardService.GenerateBatch(ev, course, participants, shoot);
             var safeTitle = string.Concat((ev.Title ?? "event").Split(Path.GetInvalidFileNameChars()));
             var suffix = ev.IsDoubleHeader ? $"_shoot{shoot}" : "";
             return File(pdf, "application/pdf", $"scorecards_{safeTitle}{suffix}_{ev.Id}.pdf");

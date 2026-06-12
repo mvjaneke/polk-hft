@@ -27,7 +27,7 @@ namespace POLK_DOTNET.Services
 
         public ScorecardPdfService(IWebHostEnvironment env) { _env = env; }
 
-        public byte[] GenerateBatch(Event ev, IList<CourseTarget> course, IList<ParticipantInfo> participants)
+        public byte[] GenerateBatch(Event ev, IList<CourseTarget> course, IList<ParticipantInfo> participants, int shoot = 1)
         {
             var logoPath = Path.Combine(_env.ContentRootPath, "wwwroot", "img", "scorecard-logo.jpg");
             byte[]? logoBytes = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : null;
@@ -41,7 +41,7 @@ namespace POLK_DOTNET.Services
                         page.Size(PageSizes.A5);
                         page.Margin(7, Unit.Millimetre);
                         page.DefaultTextStyle(x => x.FontSize(9));
-                        page.Content().Element(c => RenderCard(c, ev, course, p, logoBytes));
+                        page.Content().Element(c => RenderCard(c, ev, course, p, logoBytes, shoot));
                         page.Footer().Row(r =>
                         {
                             r.RelativeItem().BorderTop(1).PaddingTop(2).Text("Shooter").SemiBold();
@@ -55,7 +55,7 @@ namespace POLK_DOTNET.Services
             return doc.GeneratePdf();
         }
 
-        private static void RenderCard(IContainer card, Event ev, IList<CourseTarget> course, ParticipantInfo? p, byte[]? logo)
+        private static void RenderCard(IContainer card, Event ev, IList<CourseTarget> course, ParticipantInfo? p, byte[]? logo, int shoot)
         {
             if (p == null)
             {
@@ -64,10 +64,29 @@ namespace POLK_DOTNET.Services
             }
 
             var targetCount = course.Count > 0 ? course.Count : (ev.CourseTargetCount ?? 40);
+            var eventDate = ev.StartDate.ToString("dddd, d MMMM yyyy");
+            var shootLabel = ev.IsDoubleHeader ? $"SHOOT {(shoot == 2 ? 2 : 1)} OF 2" : null;
 
             card.Column(col =>
             {
                 col.Spacing(3);
+
+                // Header bar: event date (left) + shoot badge for double-headers (right)
+                col.Item().BorderBottom(1).BorderColor(Colors.Grey.Darken1).PaddingBottom(3).Row(r =>
+                {
+                    r.RelativeItem().AlignMiddle().Text(txt =>
+                    {
+                        txt.Span("DATE:  ").SemiBold().FontSize(10);
+                        txt.Span(eventDate).FontSize(10);
+                    });
+                    if (shootLabel != null)
+                    {
+                        r.AutoItem().AlignMiddle().Border(1).BorderColor(Colors.Black)
+                            .Background(Colors.Grey.Lighten3)
+                            .PaddingHorizontal(6).PaddingVertical(2)
+                            .Text(shootLabel).Bold().FontSize(10);
+                    }
+                });
 
                 // Top: Logo (left) + Safety First (right). PAID stamp overlays the top-right when payment is received.
                 col.Item().Layers(layers =>
@@ -154,7 +173,7 @@ namespace POLK_DOTNET.Services
                 });
 
                 // Drop = X / Miss = O + posture legend
-                col.Item().PaddingTop(2).AlignCenter().Text("Drop = X  /  Miss = O").SemiBold().FontSize(10);
+                col.Item().PaddingTop(2).AlignCenter().Text("Drop = 1  /  Miss = O").SemiBold().FontSize(10);
                 col.Item().PaddingTop(1).Row(r =>
                 {
                     r.RelativeItem();
