@@ -95,6 +95,107 @@
         </div>
     </div>
 
+    @if (Model.Event.EventType == "HFT" && Model.Event.IsLeagueShoot)
+    {
+        <!-- Starting Lanes -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+                <h2 class="text-2xl font-bold">Starting Lanes</h2>
+                <div class="text-sm text-gray-600">
+                    @if (Model.Event.IsDoubleHeader)
+                    {
+                        <span>Assigned — Shoot 1: <strong>@Model.LanesAssignedShoot1</strong> &middot; Shoot 2: <strong>@Model.LanesAssignedShoot2</strong></span>
+                    }
+                    else
+                    {
+                        <span>Assigned: <strong>@Model.LanesAssignedShoot1</strong></span>
+                    }
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.LaneImportMessage))
+            {
+                <div class="mb-3 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-900">@Model.LaneImportMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(Model.LaneImportError))
+            {
+                <div class="mb-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-900">@Model.LaneImportError</div>
+            }
+
+            <p class="text-sm text-gray-600 mb-3">
+                Upload the squadding spreadsheet to pre-fill the starting lane on each scorecard.
+                @if (Model.Event.IsDoubleHeader)
+                {
+                    <span>Use sheet tabs named <strong>Shoot1</strong> and <strong>Shoot2</strong>.</span>
+                }
+                Columns required: <strong>Name</strong>, <strong>Surname</strong>, <strong>Starting Lane</strong>.
+                Rows that match exactly one registration are assigned automatically; the rest appear below for manual matching.
+            </p>
+
+            <form method="post" asp-page-handler="ImportLanes" asp-route-id="@Model.Event.Id" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
+                <input type="file" name="laneFile" accept=".xlsx" required
+                       class="text-sm border rounded px-3 py-2 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-gray-200 file:text-sm" />
+                <button type="submit" class="px-4 py-2 bg-blue-700 text-white rounded text-sm hover:bg-blue-800">Import Lanes</button>
+            </form>
+
+            @if (Model.PendingLanes.Any())
+            {
+                <div class="mt-6 border-t pt-4">
+                    <h3 class="text-lg font-semibold mb-1">Manual match needed (@Model.PendingLanes.Count)</h3>
+                    <p class="text-sm text-gray-600 mb-3">These sheet rows didn't match exactly one registration. Pick the right person for each, then save.</p>
+                    <form method="post" asp-page-handler="AssignLanes" asp-route-id="@Model.Event.Id">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 border-b">
+                                    <tr>
+                                        @if (Model.Event.IsDoubleHeader)
+                                        {
+                                            <th class="text-left p-2">Shoot</th>
+                                        }
+                                        <th class="text-left p-2">From sheet</th>
+                                        <th class="text-left p-2">Lane</th>
+                                        <th class="text-left p-2">Assign to registration</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in Model.PendingLanes)
+                                    {
+                                        var candidates = p.Shoot == 2 ? Model.Shoot2Candidates : Model.Shoot1Candidates;
+                                        <tr class="border-b last:border-none">
+                                            <input type="hidden" name="shoots" value="@p.Shoot" />
+                                            <input type="hidden" name="lanes" value="@p.Lane" />
+                                            @if (Model.Event.IsDoubleHeader)
+                                            {
+                                                <td class="p-2 whitespace-nowrap">Shoot @p.Shoot</td>
+                                            }
+                                            <td class="p-2 whitespace-nowrap font-medium">@($"{p.Name} {p.Surname}".Trim())</td>
+                                            <td class="p-2 whitespace-nowrap">@p.Lane</td>
+                                            <td class="p-2">
+                                                <select name="regIds" class="w-full min-w-[220px] px-2 py-1 border rounded">
+                                                    <option value="0">— skip —</option>
+                                                    @foreach (var c in candidates)
+                                                    {
+                                                        var laneNow = p.Shoot == 2 ? c.StartingLaneShoot2 : c.StartingLaneShoot1;
+                                                        var laneNote = laneNow.HasValue ? $" — lane {laneNow}" : "";
+                                                        var div = string.IsNullOrWhiteSpace(c.Division) ? "" : $" · {c.Division}";
+                                                        <option value="@c.Id">@c.Name @c.Surname@(div)@(laneNote)</option>
+                                                    }
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="px-4 py-2 bg-green-700 text-white rounded text-sm hover:bg-green-800 font-semibold">Save Assignments</button>
+                        </div>
+                    </form>
+                </div>
+            }
+        </div>
+    }
+
     <!-- Registrations -->
     <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex items-center justify-between flex-wrap gap-4 mb-4">

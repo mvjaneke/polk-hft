@@ -16,6 +16,7 @@ namespace POLK_DOTNET.Services
             public string? Division { get; set; }
             public string? GunType { get; set; }
             public bool IsPaid { get; set; }
+            public int? StartingLane { get; set; }
         }
 
         static ScorecardPdfService()
@@ -130,7 +131,8 @@ namespace POLK_DOTNET.Services
                     r.RelativeItem(1).Border(1).Column(c =>
                     {
                         c.Item().Background(Colors.Grey.Lighten3).AlignCenter().Padding(2).Text("Starting Lane").SemiBold().FontSize(9);
-                        c.Item().Height(9, Unit.Millimetre);
+                        c.Item().Height(9, Unit.Millimetre).AlignCenter().AlignMiddle()
+                            .Text(p.StartingLane?.ToString() ?? "").Bold().FontSize(16);
                     });
                 });
 

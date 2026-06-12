@@ -97,6 +97,11 @@ namespace POLK_DOTNET.Data
         [StringLength(100)]
         public string? PaymentReference { get; set; }
 
+        // Starting lane on the squadding sheet, imported from the "Indeling" spreadsheet.
+        // Shoot2 is only used for double-header events; single-shoot events use Shoot1.
+        public int? StartingLaneShoot1 { get; set; }
+        public int? StartingLaneShoot2 { get; set; }
+
         // "Yoco" | "EFT" | "AtVenue"
         [StringLength(30)]
         public string? PaymentMethod { get; set; }

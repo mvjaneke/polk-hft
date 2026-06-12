@@ -44,6 +44,25 @@ namespace POLK_DOTNET.Pages.AdminEvents
         public int ConfirmedCount { get; private set; }
         public int CancelledCount { get; private set; }
 
+        // Starting-lane import state.
+        public int LanesAssignedShoot1 { get; private set; }
+        public int LanesAssignedShoot2 { get; private set; }
+        public string? LaneImportMessage { get; private set; }
+        public string? LaneImportError { get; private set; }
+        // Rows from the imported sheet that couldn't be matched to exactly one registration.
+        public List<PendingLaneRow> PendingLanes { get; private set; } = new();
+        // Registrations eligible for each shoot, used to populate the manual-match dropdowns.
+        public List<EventRegistration> Shoot1Candidates { get; private set; } = new();
+        public List<EventRegistration> Shoot2Candidates { get; private set; } = new();
+
+        public class PendingLaneRow
+        {
+            public int Shoot { get; set; }
+            public string Name { get; set; } = "";
+            public string Surname { get; set; } = "";
+            public int Lane { get; set; }
+        }
+
         [BindProperty(SupportsGet = true)]
         public int Id { get; set; }
 
@@ -72,7 +91,42 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
             await LoadStatsAsync();
             await LoadRegistrationsAsync();
+            await LoadLaneStateAsync();
             return Page();
+        }
+
+        // Loads lane assignment counts and, if an import just ran, the unmatched rows
+        // (stashed in TempData) plus the candidate registrations for the manual match UI.
+        private async Task LoadLaneStateAsync()
+        {
+            var all = await _context.EventRegistrations.Where(r => r.EventId == Id).ToListAsync();
+            LanesAssignedShoot1 = all.Count(r => r.StartingLaneShoot1.HasValue);
+            LanesAssignedShoot2 = all.Count(r => r.StartingLaneShoot2.HasValue);
+
+            LaneImportMessage = TempData["LaneImportMessage"] as string;
+            LaneImportError = TempData["LaneImportError"] as string;
+
+            if (TempData["PendingLanes"] is string json && !string.IsNullOrWhiteSpace(json))
+            {
+                PendingLanes = System.Text.Json.JsonSerializer.Deserialize<List<PendingLaneRow>>(json) ?? new();
+            }
+
+            if (PendingLanes.Count > 0)
+            {
+                var active = all.Where(r => r.Status != "Cancelled" && r.AttendanceType != "Spectator").ToList();
+                Shoot1Candidates = FilterForShoot(active, Event, 1).OrderBy(r => r.Surname).ThenBy(r => r.Name).ToList();
+                Shoot2Candidates = FilterForShoot(active, Event, 2).OrderBy(r => r.Surname).ThenBy(r => r.Name).ToList();
+            }
+        }
+
+        // Registrations that take part in a given shoot. Single-shoot events ignore the
+        // shoot number; double-headers split on ShootSelection (First/Second/Both).
+        private static IEnumerable<EventRegistration> FilterForShoot(IEnumerable<EventRegistration> regs, Event ev, int shoot)
+        {
+            if (!ev.IsDoubleHeader) return regs;
+            return shoot == 2
+                ? regs.Where(r => r.ShootSelection == "Second" || r.ShootSelection == "Both")
+                : regs.Where(r => r.ShootSelection == "First" || r.ShootSelection == "Both");
         }
 
         public async Task<IActionResult> OnGetSampleScorecardAsync(int shoot = 1)
@@ -129,7 +183,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
             var participants = new List<ScorecardPdfService.ParticipantInfo>();
             foreach (var reg in regs)
             {
-                participants.Add(await EnrichAsync(reg));
+                participants.Add(await EnrichAsync(reg, shoot));
             }
 
             // 6 blank cards for walk-ins
@@ -152,9 +206,10 @@ namespace POLK_DOTNET.Pages.AdminEvents
                 .ToListAsync();
         }
 
-        private async Task<ScorecardPdfService.ParticipantInfo> EnrichAsync(EventRegistration reg)
+        private async Task<ScorecardPdfService.ParticipantInfo> EnrichAsync(EventRegistration reg, int shoot = 1)
         {
             var isPaid = reg.Status == "Paid";
+            var lane = shoot == 2 ? reg.StartingLaneShoot2 : reg.StartingLaneShoot1;
 
             // 1. Try name lookup first (only returns when exactly one match)
             var api = await _sahftaClient.LookupByNameAsync(reg.Name, reg.Surname);
@@ -179,7 +234,8 @@ namespace POLK_DOTNET.Pages.AdminEvents
                     MembershipNumber = api.membershipNumber ?? (reg.SAHFTANumber ?? ""),
                     Division = api.leaderboardDivision ?? reg.Division,
                     GunType = reg.GunType,
-                    IsPaid = isPaid
+                    IsPaid = isPaid,
+                    StartingLane = lane
                 };
             }
 
@@ -192,7 +248,8 @@ namespace POLK_DOTNET.Pages.AdminEvents
                 MembershipNumber = "N/A",
                 Division = reg.Division,
                 GunType = reg.GunType,
-                IsPaid = isPaid
+                IsPaid = isPaid,
+                StartingLane = lane
             };
         }
 
@@ -221,7 +278,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
             var participants = new List<ScorecardPdfService.ParticipantInfo>();
             foreach (var reg in regs)
-                participants.Add(await EnrichAsync(reg));
+                participants.Add(await EnrichAsync(reg, shoot));
 
             var xlsx = _excelService.GenerateScoresheet(ev, participants, shoot);
             var safeTitle = string.Concat((ev.Title ?? "event").Split(Path.GetInvalidFileNameChars()));
@@ -425,6 +482,175 @@ namespace POLK_DOTNET.Pages.AdminEvents
             }
             return RedirectToPage(new { id = Id });
         }
+
+        // Imports the squadding spreadsheet and auto-assigns starting lanes wherever a
+        // row matches exactly one registration (by Name+Surname, or unique surname when
+        // no first name is given). Ambiguous/unmatched rows go to the manual-match list.
+        public async Task<IActionResult> OnPostImportLanesAsync(IFormFile? laneFile)
+        {
+            if (HttpContext.Session.GetString("IsAuthenticated") != "true")
+                return RedirectToPage("/Admin");
+
+            var ev = await _context.Events.FindAsync(Id);
+            if (ev == null) return NotFound();
+
+            if (laneFile == null || laneFile.Length == 0)
+            {
+                TempData["LaneImportError"] = "Please choose a spreadsheet to import.";
+                return RedirectToPage(new { id = Id });
+            }
+
+            var regs = await _context.EventRegistrations
+                .Where(r => r.EventId == Id && r.Status != "Cancelled" && r.AttendanceType != "Spectator")
+                .ToListAsync();
+
+            // Per-shoot candidate pools; a registration can only be claimed by one row per shoot.
+            var pools = new Dictionary<int, List<EventRegistration>>
+            {
+                [1] = FilterForShoot(regs, ev, 1).ToList(),
+                [2] = FilterForShoot(regs, ev, 2).ToList()
+            };
+            var used = new Dictionary<int, HashSet<int>> { [1] = new(), [2] = new() };
+
+            int assigned = 0;
+            var pending = new List<PendingLaneRow>();
+
+            try
+            {
+                using var stream = laneFile.OpenReadStream();
+                using var wb = new ClosedXML.Excel.XLWorkbook(stream);
+
+                // Single-shoot events: only the first sheet, mapped to shoot 1.
+                var sheets = ev.IsDoubleHeader
+                    ? wb.Worksheets.ToList()
+                    : new List<ClosedXML.Excel.IXLWorksheet> { wb.Worksheets.First() };
+
+                foreach (var ws in sheets)
+                {
+                    int shoot = ShootOfSheet(ws.Name, ev.IsDoubleHeader);
+                    if (shoot == 0) continue; // can't tell which shoot — skip
+
+                    if (!FindHeader(ws, out int headerRow, out int nameCol, out int surCol, out int laneCol))
+                        continue;
+
+                    var pool = pools[shoot];
+                    var usedSet = used[shoot];
+
+                    foreach (var row in ws.RowsUsed().Where(r => r.RowNumber() > headerRow))
+                    {
+                        var name = nameCol > 0 ? row.Cell(nameCol).GetString().Trim() : "";
+                        var surname = row.Cell(surCol).GetString().Trim();
+                        var laneStr = row.Cell(laneCol).GetString().Trim();
+
+                        if (string.IsNullOrWhiteSpace(surname) && string.IsNullOrWhiteSpace(name)) continue;
+                        if (!TryParseLane(laneStr, out int lane)) continue;
+
+                        var matches = pool.Where(r =>
+                            !usedSet.Contains(r.Id) &&
+                            Norm(r.Surname) == Norm(surname) &&
+                            (name.Length == 0 || Norm(r.Name) == Norm(name))).ToList();
+
+                        if (matches.Count == 1)
+                        {
+                            var reg = matches[0];
+                            if (shoot == 2) reg.StartingLaneShoot2 = lane; else reg.StartingLaneShoot1 = lane;
+                            usedSet.Add(reg.Id);
+                            assigned++;
+                        }
+                        else
+                        {
+                            pending.Add(new PendingLaneRow { Shoot = shoot, Name = name, Surname = surname, Lane = lane });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["LaneImportError"] = $"Could not read the spreadsheet: {ex.Message}";
+                return RedirectToPage(new { id = Id });
+            }
+
+            await _context.SaveChangesAsync();
+
+            TempData["LaneImportMessage"] = pending.Count == 0
+                ? $"Imported starting lanes: {assigned} assigned automatically."
+                : $"Imported starting lanes: {assigned} assigned automatically, {pending.Count} need a manual match below.";
+            if (pending.Count > 0)
+                TempData["PendingLanes"] = System.Text.Json.JsonSerializer.Serialize(pending);
+
+            return RedirectToPage(new { id = Id });
+        }
+
+        // Saves the manual matches: each posted row carries its shoot, lane, and the chosen
+        // registration id (0 = skip). Arrays are aligned positionally by form order.
+        public async Task<IActionResult> OnPostAssignLanesAsync(int[] shoots, int[] lanes, int[] regIds)
+        {
+            if (HttpContext.Session.GetString("IsAuthenticated") != "true")
+                return RedirectToPage("/Admin");
+
+            int count = Math.Min(regIds.Length, Math.Min(shoots.Length, lanes.Length));
+            int assigned = 0;
+            for (int i = 0; i < count; i++)
+            {
+                if (regIds[i] <= 0) continue;
+                var reg = await _context.EventRegistrations
+                    .FirstOrDefaultAsync(r => r.Id == regIds[i] && r.EventId == Id);
+                if (reg == null) continue;
+                if (shoots[i] == 2) reg.StartingLaneShoot2 = lanes[i]; else reg.StartingLaneShoot1 = lanes[i];
+                assigned++;
+            }
+            await _context.SaveChangesAsync();
+
+            TempData["LaneImportMessage"] = $"Saved {assigned} manual lane assignment(s).";
+            return RedirectToPage(new { id = Id });
+        }
+
+        // Decides which shoot a worksheet belongs to from its name. Single-shoot events
+        // always map to shoot 1. Returns 0 when a double-header sheet name is ambiguous.
+        private static int ShootOfSheet(string sheetName, bool isDouble)
+        {
+            if (!isDouble) return 1;
+            var n = (sheetName ?? "").ToLowerInvariant().Replace(" ", "");
+            if (n.Contains("2")) return 2;
+            if (n.Contains("1")) return 1;
+            return 0;
+        }
+
+        // Finds the header row and the Name/Surname/Lane column numbers. Name is optional
+        // (the Shoot 1 sheet lists surnames only); Surname and Lane are required.
+        private static bool FindHeader(ClosedXML.Excel.IXLWorksheet ws, out int headerRow, out int nameCol, out int surCol, out int laneCol)
+        {
+            headerRow = 0; nameCol = 0; surCol = 0; laneCol = 0;
+            foreach (var row in ws.RowsUsed().Take(10))
+            {
+                int n = 0, s = 0, l = 0;
+                foreach (var cell in row.CellsUsed())
+                {
+                    var txt = cell.GetString().Trim().ToLowerInvariant();
+                    if (txt is "name" or "first name" or "firstname" or "naam") n = cell.Address.ColumnNumber;
+                    else if (txt is "surname" or "last name" or "lastname" or "van") s = cell.Address.ColumnNumber;
+                    else if (txt.Contains("lane") || txt.Contains("baan")) l = cell.Address.ColumnNumber;
+                }
+                if (s > 0 && l > 0)
+                {
+                    headerRow = row.RowNumber(); nameCol = n; surCol = s; laneCol = l;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool TryParseLane(string raw, out int lane)
+        {
+            lane = 0;
+            if (string.IsNullOrWhiteSpace(raw)) return false;
+            // Accept "5", "5.0", "Lane 5" etc.
+            var digits = new string(raw.Where(char.IsDigit).ToArray());
+            return int.TryParse(digits, out lane) && lane > 0;
+        }
+
+        private static string Norm(string? s) =>
+            System.Text.RegularExpressions.Regex.Replace((s ?? "").Trim().ToLowerInvariant(), "\\s+", " ");
 
         private async Task LoadStatsAsync()
         {
