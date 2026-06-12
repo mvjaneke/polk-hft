@@ -99,7 +99,10 @@
     <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex items-center justify-between flex-wrap gap-4 mb-4">
             <h2 class="text-2xl font-bold">Registrations</h2>
-            <a asp-page-handler="ExportCsv" asp-route-id="@Model.Event.Id" asp-route-Search="@Model.Search" asp-route-StatusFilter="@Model.StatusFilter" class="px-3 py-2 bg-gray-700 text-white rounded text-sm hover:bg-gray-800">Export CSV</a>
+            <div class="flex gap-2">
+                <a asp-page-handler="UnpaidSheet" asp-route-id="@Model.Event.Id" class="px-3 py-2 bg-amber-600 text-white rounded text-sm hover:bg-amber-700">To Collect (Unpaid)</a>
+                <a asp-page-handler="ExportCsv" asp-route-id="@Model.Event.Id" asp-route-Search="@Model.Search" asp-route-StatusFilter="@Model.StatusFilter" class="px-3 py-2 bg-gray-700 text-white rounded text-sm hover:bg-gray-800">Export CSV</a>
+            </div>
         </div>
 
         <form method="get" class="flex flex-wrap gap-2 mb-4">

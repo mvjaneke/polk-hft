@@ -283,6 +283,54 @@ namespace POLK_DOTNET.Pages.AdminEvents
             return File(pdf, "application/pdf", $"scorecard_sample_uneven_{ev.Id}.pdf");
         }
 
+        public async Task<IActionResult> OnGetUnpaidSheetAsync()
+        {
+            if (HttpContext.Session.GetString("IsAuthenticated") != "true")
+                return RedirectToPage("/Admin");
+
+            var ev = await _context.Events.FindAsync(Id);
+            if (ev == null) return NotFound();
+
+            // Everyone who still owes: not yet Paid, not Cancelled. "Confirmed" is used
+            // for free registrations (nothing to collect), so they're excluded too.
+            var regs = await _context.EventRegistrations
+                .Where(r => r.EventId == Id && r.Status != "Paid" && r.Status != "Cancelled")
+                .OrderBy(r => r.Surname).ThenBy(r => r.Name)
+                .ToListAsync();
+
+            var rows = new List<ExcelExportService.UnpaidRow>();
+            foreach (var r in regs)
+            {
+                var owing = Pages.RegisterEventModel.ComputeEffectiveFee(ev, r.ShootSelection, r.RifleOwnership);
+                if (owing <= 0) continue; // nothing outstanding to collect
+
+                rows.Add(new ExcelExportService.UnpaidRow
+                {
+                    Surname = r.Surname,
+                    Name = r.Name,
+                    Cell = r.CellNumber,
+                    Gun = r.GunType,
+                    Division = r.Division ?? "",
+                    Shoot = r.ShootSelection switch
+                    {
+                        "First" => "Shoot 1",
+                        "Second" => "Shoot 2",
+                        "Both" => "Both",
+                        _ => ""
+                    },
+                    AmountOwing = owing,
+                    Method = r.PaymentMethod ?? ""
+                });
+            }
+
+            var xlsx = _excelService.GenerateUnpaidSheet(ev, rows);
+            var safeTitle = string.Concat((ev.Title ?? "event").Split(Path.GetInvalidFileNameChars()));
+            return File(
+                xlsx,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"to_collect_{safeTitle}_{ev.Id}.xlsx");
+        }
+
         public async Task<IActionResult> OnGetExportCsvAsync()
         {
             if (HttpContext.Session.GetString("IsAuthenticated") != "true")

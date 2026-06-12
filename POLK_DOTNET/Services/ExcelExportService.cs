@@ -108,6 +108,125 @@ namespace POLK_DOTNET.Services
             return ms.ToArray();
         }
 
+        // One unpaid registrant for the day-of payment collection sheet.
+        public class UnpaidRow
+        {
+            public string Surname { get; set; } = "";
+            public string Name { get; set; } = "";
+            public string Cell { get; set; } = "";
+            public string Gun { get; set; } = "";
+            public string Division { get; set; } = "";
+            public string Shoot { get; set; } = "";
+            public decimal AmountOwing { get; set; }
+            public string Method { get; set; } = "";
+        }
+
+        // Builds a "to collect" payment sheet listing everyone who still owes money,
+        // with blank columns the admin marks off by hand on the day (Paid tick,
+        // amount received, method, signature). Print-ready, sorted by surname.
+        public byte[] GenerateUnpaidSheet(Event ev, IList<UnpaidRow> rows)
+        {
+            using var wb = new XLWorkbook();
+            var ws = wb.Worksheets.Add("To Collect");
+
+            bool dh = ev.IsDoubleHeader;
+            // Column layout shifts by one when the Shoot column is present.
+            var headers = dh
+                ? new[] { "#", "Surname", "First Name", "Cell", "Gun", "Division", "Shoot", "Owing (R)", "Paid", "Received (R)", "Method", "Signature" }
+                : new[] { "#", "Surname", "First Name", "Cell", "Gun", "Division", "Owing (R)", "Paid", "Received (R)", "Method", "Signature" };
+            int cols = headers.Length;
+
+            // Title
+            ws.Cell(1, 1).Value = $"{ev.Title} — Outstanding Payments";
+            ws.Range(1, 1, 1, cols).Merge();
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 14;
+
+            ws.Cell(2, 1).Value = $"{ev.StartDate:dd MMMM yyyy} • {ev.Location} • {rows.Count} to collect";
+            ws.Range(2, 1, 2, cols).Merge();
+            ws.Cell(2, 1).Style.Font.FontSize = 10;
+            ws.Cell(2, 1).Style.Font.Italic = true;
+
+            // Header row at row 4
+            const int headerRow = 4;
+            for (int i = 0; i < cols; i++)
+            {
+                var cell = ws.Cell(headerRow, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = XLColor.LightGray;
+                cell.Style.Border.BottomBorder = XLBorderStyleValues.Medium;
+                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+            }
+
+            // Data rows
+            int row = headerRow + 1;
+            int num = 1;
+            foreach (var r in rows)
+            {
+                int c = 1;
+                ws.Cell(row, c++).Value = num;
+                ws.Cell(row, c++).Value = r.Surname;
+                ws.Cell(row, c++).Value = r.Name;
+                ws.Cell(row, c++).Value = r.Cell;
+                ws.Cell(row, c++).Value = r.Gun;
+                ws.Cell(row, c++).Value = r.Division;
+                if (dh) ws.Cell(row, c++).Value = r.Shoot;
+                ws.Cell(row, c++).Value = r.AmountOwing;
+                ws.Cell(row, c - 1).Style.NumberFormat.Format = "0.00";
+                // Remaining columns (Paid, Received, Method, Signature) left blank for the admin
+                row++;
+                num++;
+            }
+
+            // A few blank rows for walk-ins / late entries
+            for (int w = 0; w < WalkInRows; w++)
+            {
+                ws.Cell(row, 1).Value = num;
+                ws.Cell(row, 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+                row++;
+                num++;
+            }
+
+            var dataLastRow = row - 1;
+            var dataBlock = ws.Range(headerRow, 1, dataLastRow, cols);
+            dataBlock.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            dataBlock.Style.Border.InsideBorder = XLBorderStyleValues.Hair;
+            // Taller rows so there's room to write/sign by hand
+            for (int rr = headerRow + 1; rr <= dataLastRow; rr++)
+                ws.Row(rr).Height = 22;
+
+            // Column widths — final write-in columns are roomy
+            int col = 1;
+            ws.Column(col++).Width = 5;    // #
+            ws.Column(col++).Width = 22;   // Surname
+            ws.Column(col++).Width = 18;   // First Name
+            ws.Column(col++).Width = 16;   // Cell
+            ws.Column(col++).Width = 14;   // Gun
+            ws.Column(col++).Width = 14;   // Division
+            if (dh) ws.Column(col++).Width = 10; // Shoot
+            ws.Column(col++).Width = 11;   // Owing
+            ws.Column(col++).Width = 7;    // Paid (tick)
+            ws.Column(col++).Width = 13;   // Received
+            ws.Column(col++).Width = 14;   // Method
+            ws.Column(col++).Width = 22;   // Signature
+
+            ws.SheetView.FreezeRows(headerRow);
+
+            ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+            ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+            ws.PageSetup.FitToPages(1, 0);
+            ws.PageSetup.Margins.Top = 0.5;
+            ws.PageSetup.Margins.Bottom = 0.5;
+            ws.PageSetup.Margins.Left = 0.4;
+            ws.PageSetup.Margins.Right = 0.4;
+            ws.PageSetup.PrintAreas.Add(1, 1, dataLastRow, cols);
+
+            using var ms = new MemoryStream();
+            wb.SaveAs(ms);
+            return ms.ToArray();
+        }
+
         // Builds a Troyer-course reference workbook. Summary block at the top,
         // per-target table below with computed difficulty values + rating.
         public byte[] GenerateCourseSheet(Event ev, IList<CourseTarget> targets, int shoot)
