@@ -235,12 +235,30 @@ namespace POLK_DOTNET.Services
             return Convert.ToHexString(hash).ToLowerInvariant();
         }
 
+        // Matches the `js-string-escape` npm package that iKhokha's signature verifier
+        // uses: escape backslash, both quote characters, and line terminators — and
+        // crucially do NOT touch spaces. Verified against the live iK Pay API:
+        // escaping spaces (the previous behaviour), OR failing to escape single quotes,
+        // each produce "IK-001 Token or Hash invalid". Anything containing a space
+        // (every real description/redirect URL) broke under the old version.
         private static string JsStringEscape(string s)
         {
-            s = s.Replace("\\", "\\\\");
-            s = s.Replace("\"", "\\\"");
-            s = Regex.Replace(s, " ", "\\0");
-            return s;
+            var sb = new StringBuilder(s.Length);
+            foreach (var c in s)
+            {
+                switch (c)
+                {
+                    case '"': sb.Append("\\\""); break;
+                    case '\'': sb.Append("\\'"); break;
+                    case '\\': sb.Append("\\\\"); break;
+                    case '\n': sb.Append("\\n"); break;
+                    case '\r': sb.Append("\\r"); break;
+                    case '\u2028': sb.Append("\\u2028"); break;
+                    case '\u2029': sb.Append("\\u2029"); break;
+                    default: sb.Append(c); break;
+                }
+            }
+            return sb.ToString();
         }
 
         private sealed class IkhokhaConfig
