@@ -65,14 +65,17 @@ namespace POLK_DOTNET.Services
             }
 
             var targetCount = course.Count > 0 ? course.Count : (ev.CourseTargetCount ?? 40);
-            var eventDate = ev.StartDate.ToString("dddd, d MMMM yyyy");
-            var shootLabel = ev.IsDoubleHeader ? $"SHOOT {(shoot == 2 ? 2 : 1)} OF 2" : null;
+            // A provincial event runs one round per day, so card 2 carries day 2's date.
+            var eventDate = ev.RoundDate(shoot).ToString("dddd, d MMMM yyyy");
+            var shootLabel = ev.HasTwoRounds
+                ? $"{ev.RoundLabel.ToUpperInvariant()} {(shoot == 2 ? 2 : 1)} OF 2"
+                : null;
 
             card.Column(col =>
             {
                 col.Spacing(3);
 
-                // Header bar: event date (left) + shoot badge for double-headers (right)
+                // Header bar: event date (left) + round badge for two-round events (right)
                 col.Item().BorderBottom(1).BorderColor(Colors.Grey.Darken1).PaddingBottom(3).Row(r =>
                 {
                     r.RelativeItem().AlignMiddle().Text(txt =>

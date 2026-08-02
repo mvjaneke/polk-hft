@@ -14,7 +14,71 @@
         <p class="text-lg text-gray-700 mt-1">You have successfully registered for the event: <span class="font-semibold">@Model.Event.Title</span>.</p>
         <p class="text-md text-gray-600 mt-4">A confirmation email will be sent to <span class="font-medium">@Model.EventRegistration.EmailAddress</span> shortly.</p>
 
-        @if (Model.EventRegistration.PaymentMethod == "EFT")
+        @{
+            var people = Model.EventRegistration.Participants.OrderBy(p => p.Position).ToList();
+        }
+        @if (people.Count > 0)
+        {
+            <div class="mt-6 text-left border rounded-md overflow-hidden">
+                <div class="px-4 py-2 bg-gray-50 border-b text-sm font-semibold text-gray-700">
+                    Booking #@Model.EventRegistration.Id &middot; @people.Count @(people.Count == 1 ? "person" : "people")
+                </div>
+                <ul class="divide-y text-sm">
+                    @foreach (var p in people)
+                    {
+                        <li class="px-4 py-2 flex justify-between gap-4">
+                            <span>
+                                <span class="font-medium">@p.FullName</span>
+                                @if (p.IsSpectator)
+                                {
+                                    <span class="text-gray-500">&middot; Spectator</span>
+                                }
+                                else
+                                {
+                                    @if (!string.IsNullOrWhiteSpace(p.GunType))
+                                    {
+                                        <span class="text-gray-500">&middot; @p.GunType</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(p.Division))
+                                    {
+                                        <span class="text-gray-500">&middot; @p.Division</span>
+                                    }
+                                }
+                            </span>
+                            <span class="text-gray-700 whitespace-nowrap">@($"R{POLK_DOTNET.Services.EventFeeCalculator.ForParticipant(Model.Event, p):F2}")</span>
+                        </li>
+                    }
+                    @if (Model.EventRegistration.ExtraMeals > 0)
+                    {
+                        <li class="px-4 py-2 flex justify-between gap-4">
+                            <span>
+                                <span class="font-medium">@(string.IsNullOrWhiteSpace(Model.Event.MealDescription) ? "Meals" : Model.Event.MealDescription)</span>
+                                <span class="text-gray-500">&middot; @Model.EventRegistration.ExtraMeals booked</span>
+                            </span>
+                            <span class="text-gray-700 whitespace-nowrap">@($"R{Model.MealsTotal:F2}")</span>
+                        </li>
+                    }
+                </ul>
+                <div class="px-4 py-2 bg-gray-50 border-t flex justify-between text-sm font-bold">
+                    <span>Total due</span>
+                    <span>@(Model.Total > 0 ? $"R{Model.Total:F2}" : "No fee")</span>
+                </div>
+            </div>
+        }
+
+        @if (Model.PaymentStartFailed)
+        {
+            <div class="mt-6 p-4 bg-red-50 border border-red-300 rounded-md text-left text-sm">
+                <strong class="text-red-800">We couldn't open the online payment page.</strong>
+                <p class="mt-1 text-red-900">
+                    Your booking is saved, but <strong>nothing has been paid yet</strong> &mdash;
+                    @(Model.Total > 0 ? $"R{Model.Total:F2}" : "the fee") is still outstanding.
+                    Please pay at the venue on the day, or contact the club to arrange payment.
+                    Quote booking <strong>#@Model.EventRegistration.Id</strong>.
+                </p>
+            </div>
+        }
+        else if (Model.EventRegistration.PaymentMethod == "EFT")
         {
             <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md text-left text-sm">
                 <strong>Next step:</strong> please make payment via EFT using the banking details in your email and reply with proof of payment.

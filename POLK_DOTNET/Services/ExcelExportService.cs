@@ -17,7 +17,7 @@ namespace POLK_DOTNET.Services
         public byte[] GenerateScoresheet(Event ev, IList<ScorecardPdfService.ParticipantInfo> participants, int shoot)
         {
             using var wb = new XLWorkbook();
-            var sheetName = ev.IsDoubleHeader ? $"Shoot {shoot}" : "Scores";
+            var sheetName = ev.HasTwoRounds ? $"{ev.RoundLabel} {shoot}" : "Scores";
             var ws = wb.Worksheets.Add(sheetName);
 
             // Title row
@@ -26,8 +26,8 @@ namespace POLK_DOTNET.Services
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 14;
 
-            ws.Cell(2, 1).Value = $"{ev.StartDate:dd MMMM yyyy} • {ev.Location}" +
-                                  (ev.IsDoubleHeader ? $" • Shoot {shoot}" : "");
+            ws.Cell(2, 1).Value = $"{ev.RoundDate(shoot):dd MMMM yyyy} • {ev.Location}" +
+                                  (ev.HasTwoRounds ? $" • {ev.RoundLabel} {shoot}" : "");
             ws.Range(2, 1, 2, 9).Merge();
             ws.Cell(2, 1).Style.Font.FontSize = 10;
             ws.Cell(2, 1).Style.Font.Italic = true;
@@ -108,15 +108,19 @@ namespace POLK_DOTNET.Services
             return ms.ToArray();
         }
 
-        // One unpaid registrant for the day-of payment collection sheet.
+        // One unpaid booking for the day-of payment collection sheet. A booking may cover
+        // several people, so Party lists who it's for and Gun/Division/Shoot are only filled
+        // in for single-person bookings, where they still help identify the payer.
         public class UnpaidRow
         {
             public string Surname { get; set; } = "";
             public string Name { get; set; } = "";
             public string Cell { get; set; } = "";
+            public string Party { get; set; } = "";
             public string Gun { get; set; } = "";
             public string Division { get; set; } = "";
             public string Shoot { get; set; } = "";
+            public int Meals { get; set; }
             public decimal AmountOwing { get; set; }
             public string Method { get; set; } = "";
         }
@@ -129,12 +133,32 @@ namespace POLK_DOTNET.Services
             using var wb = new XLWorkbook();
             var ws = wb.Worksheets.Add("To Collect");
 
-            bool dh = ev.IsDoubleHeader;
-            // Column layout shifts by one when the Shoot column is present.
-            var headers = dh
-                ? new[] { "#", "Surname", "First Name", "Cell", "Gun", "Division", "Shoot", "Owing (R)", "Paid", "Received (R)", "Method", "Signature" }
-                : new[] { "#", "Surname", "First Name", "Cell", "Gun", "Division", "Owing (R)", "Paid", "Received (R)", "Method", "Signature" };
-            int cols = headers.Length;
+            // The layout varies by event, so columns are declared once and everything
+            // (headers, cell writes, widths) is driven off this list.
+            var showParty = rows.Any(r => !string.IsNullOrWhiteSpace(r.Party));
+            var columns = new List<(string Header, double Width, Func<UnpaidRow, int, XLCellValue> Value)>
+            {
+                ("#", 5, (r, n) => n),
+                ("Surname", 22, (r, n) => r.Surname),
+                ("First Name", 18, (r, n) => r.Name),
+                ("Cell", 16, (r, n) => r.Cell)
+            };
+
+            if (showParty) columns.Add(("Covers", 34, (r, n) => r.Party));
+            columns.Add(("Gun", 14, (r, n) => r.Gun));
+            columns.Add(("Division", 14, (r, n) => r.Division));
+            if (ev.HasTwoRounds) columns.Add((ev.RoundLabel, 10, (r, n) => r.Shoot));
+            if (ev.OffersMeals) columns.Add(("Meals", 8, (r, n) => r.Meals == 0 ? "" : r.Meals.ToString()));
+
+            int owingCol = columns.Count + 1;
+            columns.Add(("Owing (R)", 11, (r, n) => r.AmountOwing));
+            columns.Add(("Paid", 7, (r, n) => ""));
+            columns.Add(("Received (R)", 13, (r, n) => ""));
+            columns.Add(("Method", 14, (r, n) => ""));
+            columns.Add(("Signature", 22, (r, n) => ""));
+
+            int cols = columns.Count;
+            var headers = columns.Select(c => c.Header).ToArray();
 
             // Title
             ws.Cell(1, 1).Value = $"{ev.Title} — Outstanding Payments";
@@ -164,17 +188,12 @@ namespace POLK_DOTNET.Services
             int num = 1;
             foreach (var r in rows)
             {
-                int c = 1;
-                ws.Cell(row, c++).Value = num;
-                ws.Cell(row, c++).Value = r.Surname;
-                ws.Cell(row, c++).Value = r.Name;
-                ws.Cell(row, c++).Value = r.Cell;
-                ws.Cell(row, c++).Value = r.Gun;
-                ws.Cell(row, c++).Value = r.Division;
-                if (dh) ws.Cell(row, c++).Value = r.Shoot;
-                ws.Cell(row, c++).Value = r.AmountOwing;
-                ws.Cell(row, c - 1).Style.NumberFormat.Format = "0.00";
-                // Remaining columns (Paid, Received, Method, Signature) left blank for the admin
+                // Paid / Received / Method / Signature come back empty by design — the admin
+                // fills those in by hand on the day.
+                for (int i = 0; i < cols; i++)
+                    ws.Cell(row, i + 1).Value = columns[i].Value(r, num);
+
+                ws.Cell(row, owingCol).Style.NumberFormat.Format = "0.00";
                 row++;
                 num++;
             }
@@ -197,19 +216,8 @@ namespace POLK_DOTNET.Services
                 ws.Row(rr).Height = 22;
 
             // Column widths — final write-in columns are roomy
-            int col = 1;
-            ws.Column(col++).Width = 5;    // #
-            ws.Column(col++).Width = 22;   // Surname
-            ws.Column(col++).Width = 18;   // First Name
-            ws.Column(col++).Width = 16;   // Cell
-            ws.Column(col++).Width = 14;   // Gun
-            ws.Column(col++).Width = 14;   // Division
-            if (dh) ws.Column(col++).Width = 10; // Shoot
-            ws.Column(col++).Width = 11;   // Owing
-            ws.Column(col++).Width = 7;    // Paid (tick)
-            ws.Column(col++).Width = 13;   // Received
-            ws.Column(col++).Width = 14;   // Method
-            ws.Column(col++).Width = 22;   // Signature
+            for (int i = 0; i < cols; i++)
+                ws.Column(i + 1).Width = columns[i].Width;
 
             ws.SheetView.FreezeRows(headerRow);
 
@@ -232,7 +240,7 @@ namespace POLK_DOTNET.Services
         public byte[] GenerateCourseSheet(Event ev, IList<CourseTarget> targets, int shoot)
         {
             using var wb = new XLWorkbook();
-            var sheetName = (ev.IsDoubleHeader && !ev.UseSameCourseForBothShoots) ? $"Course — Shoot {shoot}" : "Course";
+            var sheetName = (ev.HasTwoRounds && !ev.UseSameCourseForBothShoots) ? $"Course — {ev.RoundLabel} {shoot}" : "Course";
             var ws = wb.Worksheets.Add(sheetName);
 
             // Title
@@ -241,8 +249,8 @@ namespace POLK_DOTNET.Services
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 14;
 
-            ws.Cell(2, 1).Value = $"{ev.StartDate:dd MMMM yyyy} • {ev.Location}" +
-                                  (ev.IsDoubleHeader && !ev.UseSameCourseForBothShoots ? $" • Shoot {shoot}" : "");
+            ws.Cell(2, 1).Value = $"{ev.RoundDate(shoot):dd MMMM yyyy} • {ev.Location}" +
+                                  (ev.HasTwoRounds && !ev.UseSameCourseForBothShoots ? $" • {ev.RoundLabel} {shoot}" : "");
             ws.Range(2, 1, 2, 10).Merge();
             ws.Cell(2, 1).Style.Font.Italic = true;
 

@@ -53,6 +53,7 @@ namespace POLK_DOTNET.Pages
             {
                 var reg = await _context.EventRegistrations
                     .Include(r => r.Event)
+                    .Include(r => r.Participants)
                     .FirstOrDefaultAsync(r => r.Id == RegistrationId.Value);
 
                 if (reg != null)
@@ -63,7 +64,7 @@ namespace POLK_DOTNET.Pages
                     {
                         reg.Status = "Paid";
                         if (reg.Event != null)
-                            reg.AmountPaid = RegisterEventModel.ComputeEffectiveFee(reg.Event, reg.ShootSelection, reg.RifleOwnership);
+                            reg.AmountPaid = EventFeeCalculator.ForBooking(reg.Event, reg);
                         await _context.SaveChangesAsync();
                         await SendEventPaymentEmailsAsync(reg);
                     }

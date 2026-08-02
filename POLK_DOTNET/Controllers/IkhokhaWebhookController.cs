@@ -144,6 +144,7 @@ namespace POLK_DOTNET.Controllers
         {
             var reg = await _context.EventRegistrations
                 .Include(r => r.Event)
+                .Include(r => r.Participants)
                 .FirstOrDefaultAsync(r => r.Id == registrationId);
 
             if (reg == null)
@@ -160,7 +161,7 @@ namespace POLK_DOTNET.Controllers
 
             reg.Status = "Paid";
             if (reg.Event != null)
-                reg.AmountPaid = RegisterEventModel.ComputeEffectiveFee(reg.Event, reg.ShootSelection, reg.RifleOwnership);
+                reg.AmountPaid = EventFeeCalculator.ForBooking(reg.Event, reg);
             await _context.SaveChangesAsync();
             _logger.LogInformation("iKhokha callback — registration {Id} marked Paid (PaylinkID {Plid})", registrationId, payload.PaylinkID);
 

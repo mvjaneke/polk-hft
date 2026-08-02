@@ -13,13 +13,37 @@
         <div class="flex items-start justify-between gap-4 flex-wrap">
             <div>
                 <h1 class="text-3xl font-bold">@Model.Event.Title</h1>
-                <p class="text-gray-600">@Model.Event.StartDate.ToString("dd MMMM yyyy") &middot; @Model.Event.Time &middot; @Model.Event.Location</p>
+                <p class="text-gray-600">
+                    @if (Model.Event.IsProvincialTwoDay && Model.Event.EndDate.HasValue)
+                    {
+                        <span>@Model.Event.StartDate.ToString("dd MMM yyyy") &ndash; @Model.Event.EndDate.Value.ToString("dd MMM yyyy")</span>
+                    }
+                    else
+                    {
+                        <span>@Model.Event.StartDate.ToString("dd MMMM yyyy")</span>
+                    }
+                    &middot; @Model.Event.Time &middot; @Model.Event.Location
+                </p>
                 <p class="text-sm text-gray-500 mt-1">Type: <strong>@Model.Event.EventType</strong>
                     @if (Model.Event.EntryFee.HasValue)
                     {
                         <span>&middot; Entry: <strong>@($"R{Model.Event.EntryFee.Value:F2}")</strong></span>
                     }
+                    @if (Model.Event.MealsChargeable)
+                    {
+                        <span>&middot; Meals: <strong>@($"R{Model.Event.MealFee!.Value:F2}")</strong> each</span>
+                    }
                 </p>
+                <div class="flex flex-wrap gap-2 mt-2">
+                    @if (Model.Event.IsProvincialTwoDay)
+                    {
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-100 text-indigo-800">Provincial &middot; two days</span>
+                    }
+                    @if (Model.Event.IsDoubleHeader)
+                    {
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800">Double Header</span>
+                    }
+                </div>
             </div>
             <div class="flex flex-col gap-2 items-end">
                 @if (Model.Event.IsRegistrationOpen)
@@ -35,8 +59,9 @@
                         <button type="submit" class="text-xs px-3 py-1 border rounded hover:bg-gray-100">@(Model.Event.IsRegistrationOpen ? "Close" : "Open") Registration</button>
                     </form>
                     <a asp-page="/EditEvent" asp-route-id="@Model.Event.Id" class="text-xs px-3 py-1 border rounded hover:bg-gray-100">Edit Event</a>
-                    @if (Model.Event.EventType == "HFT" && Model.Event.IsLeagueShoot)
+                    @if (Model.Event.UsesCourseSetup)
                     {
+                        var round = Model.Event.RoundLabel;
                         <a asp-page="Course" asp-route-id="@Model.Event.Id" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">
                             Course Setup
                             @if (Model.Event.CourseTargetCount.HasValue)
@@ -48,19 +73,19 @@
                         {
                             <a asp-page-handler="SampleScorecardUneven" asp-route-id="@Model.Event.Id" class="text-xs px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">Sample (Uneven Lanes)</a>
 
-                            @if (Model.Event.IsDoubleHeader)
+                            @if (Model.Event.HasTwoRounds)
                             {
                                 @if (Model.Shoot1Ready)
                                 {
-                                    <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample (Shoot 1)</a>
-                                    <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate Shoot 1 Cards</a>
-                                    <a asp-page-handler="Scoresheet" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">Score Sheet (Shoot 1)</a>
+                                    <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample (@round 1)</a>
+                                    <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate @round 1 Cards</a>
+                                    <a asp-page-handler="Scoresheet" asp-route-id="@Model.Event.Id" asp-route-shoot="1" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">Score Sheet (@round 1)</a>
                                 }
                                 @if (Model.Shoot2Ready)
                                 {
-                                    <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample (Shoot 2)</a>
-                                    <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate Shoot 2 Cards</a>
-                                    <a asp-page-handler="Scoresheet" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">Score Sheet (Shoot 2)</a>
+                                    <a asp-page-handler="SampleScorecard" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800">Sample (@round 2)</a>
+                                    <a asp-page-handler="GenerateScorecards" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-green-700 text-white rounded hover:bg-green-800 font-semibold">Generate @round 2 Cards</a>
+                                    <a asp-page-handler="Scoresheet" asp-route-id="@Model.Event.Id" asp-route-shoot="2" class="text-xs px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800">Score Sheet (@round 2)</a>
                                 }
                             }
                             else
@@ -87,24 +112,33 @@
         }
 
         <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-6">
-            <div class="p-3 bg-gray-50 rounded text-center"><div class="text-2xl font-bold">@Model.TotalCount</div><div class="text-xs text-gray-600">Total</div></div>
+            <div class="p-3 bg-gray-50 rounded text-center"><div class="text-2xl font-bold">@Model.TotalCount</div><div class="text-xs text-gray-600">Bookings</div></div>
             <div class="p-3 bg-green-50 rounded text-center"><div class="text-2xl font-bold text-green-700">@Model.PaidCount</div><div class="text-xs text-gray-600">Paid</div></div>
             <div class="p-3 bg-yellow-50 rounded text-center"><div class="text-2xl font-bold text-yellow-700">@Model.PendingCount</div><div class="text-xs text-gray-600">Pending</div></div>
             <div class="p-3 bg-blue-50 rounded text-center"><div class="text-2xl font-bold text-blue-700">@Model.ConfirmedCount</div><div class="text-xs text-gray-600">Confirmed</div></div>
             <div class="p-3 bg-red-50 rounded text-center"><div class="text-2xl font-bold text-red-700">@Model.CancelledCount</div><div class="text-xs text-gray-600">Cancelled</div></div>
         </div>
+
+        <!-- Head counts across live bookings — what the range and the kitchen actually need -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+            <div class="p-3 bg-gray-50 rounded text-center"><div class="text-2xl font-bold">@Model.PeopleCount</div><div class="text-xs text-gray-600">People</div></div>
+            <div class="p-3 bg-gray-50 rounded text-center"><div class="text-2xl font-bold">@Model.CompetitorCount</div><div class="text-xs text-gray-600">Competitors</div></div>
+            <div class="p-3 bg-gray-50 rounded text-center"><div class="text-2xl font-bold">@Model.SpectatorCount</div><div class="text-xs text-gray-600">Spectators</div></div>
+            <div class="p-3 bg-gray-50 rounded text-center"><div class="text-2xl font-bold">@Model.MealsCount</div><div class="text-xs text-gray-600">Meals booked</div></div>
+        </div>
     </div>
 
-    @if (Model.Event.EventType == "HFT" && Model.Event.IsLeagueShoot)
+    @if (Model.Event.UsesCourseSetup)
     {
+        var roundLabel = Model.Event.RoundLabel;
         <!-- Starting Lanes -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
                 <h2 class="text-2xl font-bold">Starting Lanes</h2>
                 <div class="text-sm text-gray-600">
-                    @if (Model.Event.IsDoubleHeader)
+                    @if (Model.Event.HasTwoRounds)
                     {
-                        <span>Assigned — Shoot 1: <strong>@Model.LanesAssignedShoot1</strong> &middot; Shoot 2: <strong>@Model.LanesAssignedShoot2</strong></span>
+                        <span>Assigned — @roundLabel 1: <strong>@Model.LanesAssignedShoot1</strong> &middot; @roundLabel 2: <strong>@Model.LanesAssignedShoot2</strong></span>
                     }
                     else
                     {
@@ -124,12 +158,12 @@
 
             <p class="text-sm text-gray-600 mb-3">
                 Upload the squadding spreadsheet to pre-fill the starting lane on each scorecard.
-                @if (Model.Event.IsDoubleHeader)
+                @if (Model.Event.HasTwoRounds)
                 {
-                    <span>Use sheet tabs named <strong>Shoot1</strong> and <strong>Shoot2</strong>.</span>
+                    <span>Use sheet tabs named <strong>@(roundLabel)1</strong> and <strong>@(roundLabel)2</strong>.</span>
                 }
                 Columns required: <strong>Name</strong>, <strong>Surname</strong>, <strong>Starting Lane</strong>.
-                Rows that match exactly one registration are assigned automatically; the rest appear below for manual matching.
+                Rows that match exactly one person are assigned automatically; the rest appear below for manual matching.
             </p>
 
             <form method="post" asp-page-handler="ImportLanes" asp-route-id="@Model.Event.Id" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
@@ -142,19 +176,19 @@
             {
                 <div class="mt-6 border-t pt-4">
                     <h3 class="text-lg font-semibold mb-1">Manual match needed (@Model.PendingLanes.Count)</h3>
-                    <p class="text-sm text-gray-600 mb-3">These sheet rows didn't match exactly one registration. Pick the right person for each, then save.</p>
+                    <p class="text-sm text-gray-600 mb-3">These sheet rows didn't match exactly one person. Pick the right person for each, then save.</p>
                     <form method="post" asp-page-handler="AssignLanes" asp-route-id="@Model.Event.Id">
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm">
                                 <thead class="bg-gray-50 border-b">
                                     <tr>
-                                        @if (Model.Event.IsDoubleHeader)
+                                        @if (Model.Event.HasTwoRounds)
                                         {
-                                            <th class="text-left p-2">Shoot</th>
+                                            <th class="text-left p-2">@roundLabel</th>
                                         }
                                         <th class="text-left p-2">From sheet</th>
                                         <th class="text-left p-2">Lane</th>
-                                        <th class="text-left p-2">Assign to registration</th>
+                                        <th class="text-left p-2">Assign to person</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -164,9 +198,9 @@
                                         <tr class="border-b last:border-none">
                                             <input type="hidden" name="shoots" value="@p.Shoot" />
                                             <input type="hidden" name="lanes" value="@p.Lane" />
-                                            @if (Model.Event.IsDoubleHeader)
+                                            @if (Model.Event.HasTwoRounds)
                                             {
-                                                <td class="p-2 whitespace-nowrap">Shoot @p.Shoot</td>
+                                                <td class="p-2 whitespace-nowrap">@roundLabel @p.Shoot</td>
                                             }
                                             <td class="p-2 whitespace-nowrap font-medium">@($"{p.Name} {p.Surname}".Trim())</td>
                                             <td class="p-2 whitespace-nowrap">@p.Lane</td>
@@ -208,7 +242,7 @@
 
         <form method="get" class="flex flex-wrap gap-2 mb-4">
             <input type="hidden" name="id" value="@Model.Event.Id" />
-            <input type="text" name="Search" value="@Model.Search" placeholder="Search name, email, cell..." class="flex-1 min-w-[200px] px-3 py-2 border rounded-md" />
+            <input type="text" name="Search" value="@Model.Search" placeholder="Search contact or any person, email, cell..." class="flex-1 min-w-[200px] px-3 py-2 border rounded-md" />
             <select name="StatusFilter" class="px-3 py-2 border rounded-md">
                 @{
                     var opts = new[] { "All", "Pending", "Paid", "Confirmed", "Cancelled" };
@@ -233,42 +267,66 @@
             <table class="w-full text-sm">
                 <thead class="bg-gray-50 border-b">
                     <tr>
-                        <th class="text-left p-3">Name</th>
+                        <th class="text-left p-3">Booking contact</th>
+                        <th class="text-left p-3">People</th>
                         <th class="text-left p-3">Email</th>
                         <th class="text-left p-3">Cell</th>
-                        <th class="text-left p-3">Gun</th>
-                        <th class="text-left p-3">Division</th>
-                        @if (Model.Event.IsDoubleHeader)
+                        @if (Model.Event.OffersMeals)
                         {
-                            <th class="text-left p-3">Shoot</th>
+                            <th class="text-left p-3">Meals</th>
                         }
                         <th class="text-left p-3">Payment</th>
                         <th class="text-left p-3">Status</th>
-                        <th class="text-left p-3">Amount</th>
+                        <th class="text-left p-3">Owing</th>
+                        <th class="text-left p-3">Paid</th>
                         <th class="text-left p-3">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var r in Model.Registrations)
                     {
-                        <tr class="border-b last:border-none hover:bg-gray-50">
+                        var people = r.Participants.OrderBy(p => p.Position).ToList();
+                        <tr class="border-b last:border-none hover:bg-gray-50 align-top">
                             <td class="p-3 whitespace-nowrap">
                                 <a asp-page="Registration" asp-route-id="@Model.Event.Id" asp-route-regId="@r.Id" class="font-medium text-red-700 hover:underline">@r.Name @r.Surname</a>
                             </td>
+                            <td class="p-3">
+                                @if (people.Count == 0)
+                                {
+                                    <span class="text-gray-400">—</span>
+                                }
+                                else
+                                {
+                                    <div class="text-xs space-y-0.5">
+                                        @foreach (var p in people)
+                                        {
+                                            <div>
+                                                <span class="font-medium">@p.FullName</span>
+                                                @if (p.IsSpectator)
+                                                {
+                                                    <span class="text-gray-500">· spectator</span>
+                                                }
+                                                else
+                                                {
+                                                    @if (!string.IsNullOrWhiteSpace(p.Division))
+                                                    {
+                                                        <span class="text-gray-500">· @p.Division</span>
+                                                    }
+                                                    @if (Model.Event.IsDoubleHeader && !string.IsNullOrWhiteSpace(p.ShootSelection))
+                                                    {
+                                                        <span class="text-gray-500">· @(p.ShootSelection == "Both" ? "Both" : p.ShootSelection == "Second" ? "Shoot 2" : "Shoot 1")</span>
+                                                    }
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </td>
                             <td class="p-3">@r.EmailAddress</td>
                             <td class="p-3 whitespace-nowrap">@r.CellNumber</td>
-                            <td class="p-3 whitespace-nowrap">@r.GunType</td>
-                            <td class="p-3 whitespace-nowrap">@(r.Division ?? "-")</td>
-                            @if (Model.Event.IsDoubleHeader)
+                            @if (Model.Event.OffersMeals)
                             {
-                                var shootLabel = r.ShootSelection switch
-                                {
-                                    "First" => "Shoot 1",
-                                    "Second" => "Shoot 2",
-                                    "Both" => "Both",
-                                    _ => "-"
-                                };
-                                <td class="p-3 whitespace-nowrap">@shootLabel</td>
+                                <td class="p-3 whitespace-nowrap">@(r.ExtraMeals > 0 ? r.ExtraMeals.ToString() : "-")</td>
                             }
                             <td class="p-3 whitespace-nowrap">@(r.PaymentMethod ?? "-")</td>
                             <td class="p-3">
@@ -284,6 +342,7 @@
                                 }
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold @badge">@r.Status</span>
                             </td>
+                            <td class="p-3 whitespace-nowrap">@($"R{Model.BookingTotal(r):F2}")</td>
                             <td class="p-3 whitespace-nowrap">@($"R{r.AmountPaid:F2}")</td>
                             <td class="p-3">
                                 <div class="flex flex-wrap gap-1">
@@ -308,7 +367,7 @@
                     }
                     @if (!Model.Registrations.Any())
                     {
-                        var emptyColspan = Model.Event.IsDoubleHeader ? 10 : 9;
+                        var emptyColspan = Model.Event.OffersMeals ? 10 : 9;
                         <tr><td colspan="@emptyColspan" class="p-8 text-center text-gray-500">No registrations match the current filters.</td></tr>
                     }
                 </tbody>

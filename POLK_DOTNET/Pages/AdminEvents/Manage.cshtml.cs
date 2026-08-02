@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -25,15 +26,17 @@ namespace POLK_DOTNET.Pages.AdminEvents
         }
 
         public Event Event { get; private set; } = null!;
+
+        // Bookings, each with its people loaded. One booking can cover several shooters.
         public List<EventRegistration> Registrations { get; private set; } = new();
 
-        // Whether a Troyer course actually has target rows for each shoot. Drives the
+        // Whether a Troyer course actually has target rows for each round. Drives the
         // scorecard/score-sheet buttons. Based on real CourseTargets rows rather than
-        // Event.CourseTargetCount, which is a Shoot-1-only flag that an event edit can wipe.
+        // Event.CourseTargetCount, which is a round-1-only flag that an event edit can wipe.
         public bool Shoot1Configured { get; private set; }
         public bool Shoot2Configured { get; private set; }
 
-        // Shoot 2 reuses the Shoot-1 course when "use same course for both shoots" is on.
+        // Round 2 reuses the round-1 course when "use same course for both" is on.
         public bool Shoot1Ready => Shoot1Configured;
         public bool Shoot2Ready => Event.UseSameCourseForBothShoots ? Shoot1Configured : Shoot2Configured;
         public bool CourseConfigured => Shoot1Ready || Shoot2Ready;
@@ -44,16 +47,22 @@ namespace POLK_DOTNET.Pages.AdminEvents
         public int ConfirmedCount { get; private set; }
         public int CancelledCount { get; private set; }
 
+        // Head counts across every non-cancelled booking.
+        public int PeopleCount { get; private set; }
+        public int CompetitorCount { get; private set; }
+        public int SpectatorCount { get; private set; }
+        public int MealsCount { get; private set; }
+
         // Starting-lane import state.
         public int LanesAssignedShoot1 { get; private set; }
         public int LanesAssignedShoot2 { get; private set; }
         public string? LaneImportMessage { get; private set; }
         public string? LaneImportError { get; private set; }
-        // Rows from the imported sheet that couldn't be matched to exactly one registration.
+        // Rows from the imported sheet that couldn't be matched to exactly one person.
         public List<PendingLaneRow> PendingLanes { get; private set; } = new();
-        // Registrations eligible for each shoot, used to populate the manual-match dropdowns.
-        public List<EventRegistration> Shoot1Candidates { get; private set; } = new();
-        public List<EventRegistration> Shoot2Candidates { get; private set; } = new();
+        // People eligible for each round, used to populate the manual-match dropdowns.
+        public List<EventParticipant> Shoot1Candidates { get; private set; } = new();
+        public List<EventParticipant> Shoot2Candidates { get; private set; } = new();
 
         public class PendingLaneRow
         {
@@ -95,13 +104,22 @@ namespace POLK_DOTNET.Pages.AdminEvents
             return Page();
         }
 
+        // Everyone who shoots: participants on live bookings, spectators excluded. The
+        // booking is included because the paid stamp on a scorecard comes from it.
+        private IQueryable<EventParticipant> CompetitorsQuery() =>
+            _context.EventParticipants
+                .Include(p => p.EventRegistration)
+                .Where(p => p.EventRegistration.EventId == Id
+                         && p.EventRegistration.Status != "Cancelled"
+                         && p.AttendanceType != "Spectator");
+
         // Loads lane assignment counts and, if an import just ran, the unmatched rows
-        // (stashed in TempData) plus the candidate registrations for the manual match UI.
+        // (stashed in TempData) plus the candidate people for the manual match UI.
         private async Task LoadLaneStateAsync()
         {
-            var all = await _context.EventRegistrations.Where(r => r.EventId == Id).ToListAsync();
-            LanesAssignedShoot1 = all.Count(r => r.StartingLaneShoot1.HasValue);
-            LanesAssignedShoot2 = all.Count(r => r.StartingLaneShoot2.HasValue);
+            var competitors = await CompetitorsQuery().ToListAsync();
+            LanesAssignedShoot1 = competitors.Count(p => p.StartingLaneShoot1.HasValue);
+            LanesAssignedShoot2 = competitors.Count(p => p.StartingLaneShoot2.HasValue);
 
             LaneImportMessage = TempData["LaneImportMessage"] as string;
             LaneImportError = TempData["LaneImportError"] as string;
@@ -113,20 +131,20 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
             if (PendingLanes.Count > 0)
             {
-                var active = all.Where(r => r.Status != "Cancelled" && r.AttendanceType != "Spectator").ToList();
-                Shoot1Candidates = FilterForShoot(active, Event, 1).OrderBy(r => r.Surname).ThenBy(r => r.Name).ToList();
-                Shoot2Candidates = FilterForShoot(active, Event, 2).OrderBy(r => r.Surname).ThenBy(r => r.Name).ToList();
+                Shoot1Candidates = FilterForShoot(competitors, Event, 1).OrderBy(p => p.Surname).ThenBy(p => p.Name).ToList();
+                Shoot2Candidates = FilterForShoot(competitors, Event, 2).OrderBy(p => p.Surname).ThenBy(p => p.Name).ToList();
             }
         }
 
-        // Registrations that take part in a given shoot. Single-shoot events ignore the
-        // shoot number; double-headers split on ShootSelection (First/Second/Both).
-        private static IEnumerable<EventRegistration> FilterForShoot(IEnumerable<EventRegistration> regs, Event ev, int shoot)
+        // People who take part in a given round. Single-round events ignore the round
+        // number; double-headers split on ShootSelection (First/Second/Both). A provincial
+        // two-day event enters every competitor for both days, so nothing is filtered out.
+        private static IEnumerable<EventParticipant> FilterForShoot(IEnumerable<EventParticipant> people, Event ev, int shoot)
         {
-            if (!ev.IsDoubleHeader) return regs;
+            if (!ev.IsDoubleHeader) return people;
             return shoot == 2
-                ? regs.Where(r => r.ShootSelection == "Second" || r.ShootSelection == "Both")
-                : regs.Where(r => r.ShootSelection == "First" || r.ShootSelection == "Both");
+                ? people.Where(p => p.ShootSelection == "Second" || p.ShootSelection == "Both")
+                : people.Where(p => p.ShootSelection == "First" || p.ShootSelection == "Both");
         }
 
         public async Task<IActionResult> OnGetSampleScorecardAsync(int shoot = 1)
@@ -149,7 +167,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
                 GunType = "PCP"
             };
 
-            var suffix = ev.IsDoubleHeader ? $"_shoot{shoot}" : "";
+            var suffix = RoundSuffix(ev, shoot);
             var pdf = _scorecardService.GenerateBatch(ev, course, new[] { sample }, shoot);
             return File(pdf, "application/pdf", $"scorecard_sample{suffix}_{ev.Id}.pdf");
         }
@@ -165,26 +183,13 @@ namespace POLK_DOTNET.Pages.AdminEvents
             var course = await LoadCourseForShootAsync(ev, shoot);
 
             // Spectators don't shoot, so they're never printed on scorecards.
-            var regsQuery = _context.EventRegistrations
-                .Where(r => r.EventId == Id && r.Status != "Cancelled" && r.AttendanceType != "Spectator");
-
-            if (ev.IsDoubleHeader)
-            {
-                // Shoot 1: First + Both. Shoot 2: Second + Both.
-                regsQuery = shoot == 2
-                    ? regsQuery.Where(r => r.ShootSelection == "Second" || r.ShootSelection == "Both")
-                    : regsQuery.Where(r => r.ShootSelection == "First" || r.ShootSelection == "Both");
-            }
-
-            var regs = await regsQuery
-                .OrderBy(r => r.Surname).ThenBy(r => r.Name)
+            var competitors = await CompetitorsQuery()
+                .OrderBy(p => p.Surname).ThenBy(p => p.Name)
                 .ToListAsync();
 
             var participants = new List<ScorecardPdfService.ParticipantInfo>();
-            foreach (var reg in regs)
-            {
-                participants.Add(await EnrichAsync(reg, shoot));
-            }
+            foreach (var person in FilterForShoot(competitors, ev, shoot))
+                participants.Add(await EnrichAsync(person, shoot));
 
             // 6 blank cards for walk-ins
             for (int i = 0; i < 6; i++)
@@ -192,62 +197,64 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
             var pdf = _scorecardService.GenerateBatch(ev, course, participants, shoot);
             var safeTitle = string.Concat((ev.Title ?? "event").Split(Path.GetInvalidFileNameChars()));
-            var suffix = ev.IsDoubleHeader ? $"_shoot{shoot}" : "";
-            return File(pdf, "application/pdf", $"scorecards_{safeTitle}{suffix}_{ev.Id}.pdf");
+            return File(pdf, "application/pdf", $"scorecards_{safeTitle}{RoundSuffix(ev, shoot)}_{ev.Id}.pdf");
         }
+
+        private static string RoundSuffix(Event ev, int shoot) =>
+            ev.HasTwoRounds ? $"_{ev.RoundLabel.ToLowerInvariant()}{shoot}" : "";
 
         private async Task<List<CourseTarget>> LoadCourseForShootAsync(Event ev, int shoot)
         {
-            // Same-course double headers always read Shoot=1. Non-double-header events also use Shoot=1.
-            var effectiveShoot = (ev.IsDoubleHeader && !ev.UseSameCourseForBothShoots && shoot == 2) ? 2 : 1;
+            // Same-course events always read Shoot=1, as do single-round events.
+            var effectiveShoot = (ev.HasTwoRounds && !ev.UseSameCourseForBothShoots && shoot == 2) ? 2 : 1;
             return await _context.CourseTargets
                 .Where(c => c.EventId == ev.Id && c.Shoot == effectiveShoot)
                 .OrderBy(c => c.TargetNumber)
                 .ToListAsync();
         }
 
-        private async Task<ScorecardPdfService.ParticipantInfo> EnrichAsync(EventRegistration reg, int shoot = 1)
+        private async Task<ScorecardPdfService.ParticipantInfo> EnrichAsync(EventParticipant person, int shoot = 1)
         {
-            var isPaid = reg.Status == "Paid";
-            var lane = shoot == 2 ? reg.StartingLaneShoot2 : reg.StartingLaneShoot1;
+            var isPaid = person.EventRegistration?.Status == "Paid";
+            var lane = shoot == 2 ? person.StartingLaneShoot2 : person.StartingLaneShoot1;
 
             // 1. Try name lookup first (only returns when exactly one match)
-            var api = await _sahftaClient.LookupByNameAsync(reg.Name, reg.Surname);
+            var api = await _sahftaClient.LookupByNameAsync(person.Name, person.Surname);
 
             // 2. Fall back to SAHFTA membership number if supplied
             if (api == null &&
-                !string.IsNullOrWhiteSpace(reg.SAHFTANumber) &&
-                !reg.SAHFTANumber.Equals("none", StringComparison.OrdinalIgnoreCase) &&
-                !reg.SAHFTANumber.Equals("n/a", StringComparison.OrdinalIgnoreCase) &&
-                reg.SAHFTANumber != "0")
+                !string.IsNullOrWhiteSpace(person.SAHFTANumber) &&
+                !person.SAHFTANumber.Equals("none", StringComparison.OrdinalIgnoreCase) &&
+                !person.SAHFTANumber.Equals("n/a", StringComparison.OrdinalIgnoreCase) &&
+                person.SAHFTANumber != "0")
             {
-                api = await _sahftaClient.LookupByMembershipNumberAsync(reg.SAHFTANumber);
+                api = await _sahftaClient.LookupByMembershipNumberAsync(person.SAHFTANumber);
             }
 
             if (api != null)
             {
                 return new ScorecardPdfService.ParticipantInfo
                 {
-                    Name = api.firstName ?? reg.Name,
-                    Surname = api.surname ?? reg.Surname,
-                    Club = api.club ?? (reg.ClubName ?? ""),
-                    MembershipNumber = api.membershipNumber ?? (reg.SAHFTANumber ?? ""),
-                    Division = api.leaderboardDivision ?? reg.Division,
-                    GunType = reg.GunType,
+                    Name = api.firstName ?? person.Name,
+                    Surname = api.surname ?? person.Surname,
+                    Club = api.club ?? (person.ClubName ?? ""),
+                    MembershipNumber = api.membershipNumber ?? (person.SAHFTANumber ?? ""),
+                    Division = api.leaderboardDivision ?? person.Division,
+                    GunType = person.GunType,
                     IsPaid = isPaid,
                     StartingLane = lane
                 };
             }
 
-            // No API match → use registration, mark club/membership N/A per your rule
+            // No API match → use the registration, mark club/membership N/A per your rule
             return new ScorecardPdfService.ParticipantInfo
             {
-                Name = reg.Name,
-                Surname = reg.Surname,
+                Name = person.Name,
+                Surname = person.Surname,
                 Club = "N/A",
                 MembershipNumber = "N/A",
-                Division = reg.Division,
-                GunType = reg.GunType,
+                Division = person.Division,
+                GunType = person.GunType,
                 IsPaid = isPaid,
                 StartingLane = lane
             };
@@ -262,31 +269,20 @@ namespace POLK_DOTNET.Pages.AdminEvents
             if (ev == null) return NotFound();
 
             // Spectators don't shoot, so they're never included on the scoresheet.
-            var regsQuery = _context.EventRegistrations
-                .Where(r => r.EventId == Id && r.Status != "Cancelled" && r.AttendanceType != "Spectator");
-
-            if (ev.IsDoubleHeader)
-            {
-                regsQuery = shoot == 2
-                    ? regsQuery.Where(r => r.ShootSelection == "Second" || r.ShootSelection == "Both")
-                    : regsQuery.Where(r => r.ShootSelection == "First" || r.ShootSelection == "Both");
-            }
-
-            var regs = await regsQuery
-                .OrderBy(r => r.Surname).ThenBy(r => r.Name)
+            var competitors = await CompetitorsQuery()
+                .OrderBy(p => p.Surname).ThenBy(p => p.Name)
                 .ToListAsync();
 
             var participants = new List<ScorecardPdfService.ParticipantInfo>();
-            foreach (var reg in regs)
-                participants.Add(await EnrichAsync(reg, shoot));
+            foreach (var person in FilterForShoot(competitors, ev, shoot))
+                participants.Add(await EnrichAsync(person, shoot));
 
             var xlsx = _excelService.GenerateScoresheet(ev, participants, shoot);
             var safeTitle = string.Concat((ev.Title ?? "event").Split(Path.GetInvalidFileNameChars()));
-            var suffix = ev.IsDoubleHeader ? $"_shoot{shoot}" : "";
             return File(
                 xlsx,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"scoresheet_{safeTitle}{suffix}_{ev.Id}.xlsx");
+                $"scoresheet_{safeTitle}{RoundSuffix(ev, shoot)}_{ev.Id}.xlsx");
         }
 
         public async Task<IActionResult> OnGetSampleScorecardUnevenAsync()
@@ -348,34 +344,44 @@ namespace POLK_DOTNET.Pages.AdminEvents
             var ev = await _context.Events.FindAsync(Id);
             if (ev == null) return NotFound();
 
-            // Everyone who still owes: not yet Paid, not Cancelled. "Confirmed" is used
-            // for free registrations (nothing to collect), so they're excluded too.
-            // Spectators never pay an entry fee, so they don't belong on the collection sheet.
-            var regs = await _context.EventRegistrations
-                .Where(r => r.EventId == Id && r.Status != "Paid" && r.Status != "Cancelled" && r.AttendanceType != "Spectator")
+            // Every booking that still owes: not yet Paid, not Cancelled. "Confirmed" is used
+            // for free registrations (nothing to collect), so they're excluded too. Spectators
+            // pay no entry fee but can still owe for meals, so the amount decides — not the
+            // attendance type.
+            var bookings = await _context.EventRegistrations
+                .Include(r => r.Participants)
+                .Where(r => r.EventId == Id && r.Status != "Paid" && r.Status != "Cancelled")
                 .OrderBy(r => r.Surname).ThenBy(r => r.Name)
                 .ToListAsync();
 
             var rows = new List<ExcelExportService.UnpaidRow>();
-            foreach (var r in regs)
+            foreach (var r in bookings)
             {
-                var owing = Pages.RegisterEventModel.ComputeEffectiveFee(ev, r.ShootSelection, r.RifleOwnership);
+                var owing = EventFeeCalculator.ForBooking(ev, r);
                 if (owing <= 0) continue; // nothing outstanding to collect
+
+                var people = r.Participants.OrderBy(p => p.Position).ToList();
+                var solo = people.Count == 1 ? people[0] : null;
 
                 rows.Add(new ExcelExportService.UnpaidRow
                 {
                     Surname = r.Surname,
                     Name = r.Name,
                     Cell = r.CellNumber,
-                    Gun = r.GunType,
-                    Division = r.Division ?? "",
-                    Shoot = r.ShootSelection switch
+                    // Only worth listing when the booking covers more than the contact alone.
+                    Party = people.Count > 1
+                        ? string.Join(", ", people.Select(p => p.FullName + (p.IsSpectator ? " (spec)" : "")))
+                        : "",
+                    Gun = solo?.GunType ?? "",
+                    Division = solo?.Division ?? "",
+                    Shoot = solo?.ShootSelection switch
                     {
-                        "First" => "Shoot 1",
-                        "Second" => "Shoot 2",
+                        "First" => $"{ev.RoundLabel} 1",
+                        "Second" => $"{ev.RoundLabel} 2",
                         "Both" => "Both",
                         _ => ""
                     },
+                    Meals = r.ExtraMeals,
                     AmountOwing = owing,
                     Method = r.PaymentMethod ?? ""
                 });
@@ -397,39 +403,56 @@ namespace POLK_DOTNET.Pages.AdminEvents
             var ev = await _context.Events.FindAsync(Id);
             if (ev == null) return NotFound();
 
-            var regs = await _context.EventRegistrations
+            var bookings = await _context.EventRegistrations
+                .Include(r => r.Participants)
                 .Where(r => r.EventId == Id)
                 .OrderBy(r => r.RegistrationDate)
                 .ToListAsync();
 
+            // One row per person, with the booking's contact and payment repeated. Bookings
+            // are grouped by BookingId so a multi-person entry reads as a block.
             var sb = new StringBuilder();
-            sb.AppendLine("Id,Date,Name,Surname,Email,Cell,ID Number,Attendance,GunType,Rifle,Division,OtherDivision,SAHFTA,Club,GuardianName,GuardianSurname,PaymentMethod,Status,AmountPaid,Reference,IndemnityAgreed,GuardianIndemnity,SocialMediaConsent");
-            foreach (var r in regs)
+            sb.AppendLine("BookingId,Date,Contact,ContactSurname,Email,Cell,ContactId,Position,Name,Surname,IdNumber,Attendance,GunType,Rifle,Division,OtherDivision,SAHFTA,Club,Shoot,Lane1,Lane2,GuardianName,GuardianSurname,IndemnityAgreed,GuardianIndemnity,SocialMediaConsent,ExtraMeals,PaymentMethod,Status,BookingTotal,AmountPaid,Reference");
+            foreach (var r in bookings)
             {
-                sb.Append(r.Id).Append(',')
-                  .Append(r.RegistrationDate.ToString("yyyy-MM-dd HH:mm")).Append(',')
-                  .Append(Csv(r.Name)).Append(',')
-                  .Append(Csv(r.Surname)).Append(',')
-                  .Append(Csv(r.EmailAddress)).Append(',')
-                  .Append(Csv(r.CellNumber)).Append(',')
-                  .Append(Csv(r.IdNumber)).Append(',')
-                  .Append(Csv(r.AttendanceType)).Append(',')
-                  .Append(Csv(r.GunType)).Append(',')
-                  .Append(Csv(r.RifleOwnership)).Append(',')
-                  .Append(Csv(r.Division)).Append(',')
-                  .Append(Csv(r.OtherDivision)).Append(',')
-                  .Append(Csv(r.SAHFTANumber)).Append(',')
-                  .Append(Csv(r.ClubName)).Append(',')
-                  .Append(Csv(r.GuardianName)).Append(',')
-                  .Append(Csv(r.GuardianSurname)).Append(',')
-                  .Append(Csv(r.PaymentMethod)).Append(',')
-                  .Append(Csv(r.Status)).Append(',')
-                  .Append(r.AmountPaid.ToString("F2")).Append(',')
-                  .Append(Csv(r.PaymentReference)).Append(',')
-                  .Append(r.IndemnityAgreed).Append(',')
-                  .Append(r.GuardianIndemnityAgreed).Append(',')
-                  .Append(Csv(r.SocialMediaConsent))
-                  .AppendLine();
+                var total = EventFeeCalculator.ForBooking(ev, r);
+                foreach (var p in r.Participants.OrderBy(p => p.Position))
+                {
+                    sb.Append(r.Id).Append(',')
+                      .Append(r.RegistrationDate.ToString("yyyy-MM-dd HH:mm")).Append(',')
+                      .Append(Csv(r.Name)).Append(',')
+                      .Append(Csv(r.Surname)).Append(',')
+                      .Append(Csv(r.EmailAddress)).Append(',')
+                      .Append(Csv(r.CellNumber)).Append(',')
+                      .Append(Csv(r.IdNumber)).Append(',')
+                      .Append(p.Position).Append(',')
+                      .Append(Csv(p.Name)).Append(',')
+                      .Append(Csv(p.Surname)).Append(',')
+                      .Append(Csv(p.IdNumber)).Append(',')
+                      .Append(Csv(p.AttendanceType)).Append(',')
+                      .Append(Csv(p.GunType)).Append(',')
+                      .Append(Csv(p.RifleOwnership)).Append(',')
+                      .Append(Csv(p.Division)).Append(',')
+                      .Append(Csv(p.OtherDivision)).Append(',')
+                      .Append(Csv(p.SAHFTANumber)).Append(',')
+                      .Append(Csv(p.ClubName)).Append(',')
+                      .Append(Csv(p.ShootSelection)).Append(',')
+                      .Append(p.StartingLaneShoot1?.ToString() ?? "").Append(',')
+                      .Append(p.StartingLaneShoot2?.ToString() ?? "").Append(',')
+                      .Append(Csv(p.GuardianName)).Append(',')
+                      .Append(Csv(p.GuardianSurname)).Append(',')
+                      .Append(p.IndemnityAgreed).Append(',')
+                      .Append(p.GuardianIndemnityAgreed).Append(',')
+                      .Append(Csv(p.SocialMediaConsent)).Append(',')
+                      .Append(r.ExtraMeals).Append(',')
+                      .Append(Csv(r.PaymentMethod)).Append(',')
+                      .Append(Csv(r.Status)).Append(',')
+                      // Invariant, or the ZA locale writes "390,00" and splits the column.
+                      .Append(total.ToString("F2", CultureInfo.InvariantCulture)).Append(',')
+                      .Append(r.AmountPaid.ToString("F2", CultureInfo.InvariantCulture)).Append(',')
+                      .Append(Csv(r.PaymentReference))
+                      .AppendLine();
+                }
             }
 
             var safeTitle = string.Concat(ev.Title.Split(Path.GetInvalidFileNameChars()));
@@ -441,12 +464,16 @@ namespace POLK_DOTNET.Pages.AdminEvents
             if (HttpContext.Session.GetString("IsAuthenticated") != "true")
                 return RedirectToPage("/Admin");
 
-            var reg = await _context.EventRegistrations.Include(r => r.Event).FirstOrDefaultAsync(r => r.Id == registrationId);
+            var reg = await _context.EventRegistrations
+                .Include(r => r.Event)
+                .Include(r => r.Participants)
+                .FirstOrDefaultAsync(r => r.Id == registrationId);
+
             if (reg != null && reg.Status != "Paid")
             {
                 reg.Status = "Paid";
                 if (reg.Event != null && reg.AmountPaid == 0)
-                    reg.AmountPaid = Pages.RegisterEventModel.ComputeEffectiveFee(reg.Event, reg.ShootSelection, reg.RifleOwnership);
+                    reg.AmountPaid = EventFeeCalculator.ForBooking(reg.Event, reg);
                 await _context.SaveChangesAsync();
 
                 if (reg.Event != null)
@@ -484,7 +511,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
         }
 
         // Imports the squadding spreadsheet and auto-assigns starting lanes wherever a
-        // row matches exactly one registration (by Name+Surname, or unique surname when
+        // row matches exactly one person (by Name+Surname, or unique surname when
         // no first name is given). Ambiguous/unmatched rows go to the manual-match list.
         public async Task<IActionResult> OnPostImportLanesAsync(IFormFile? laneFile)
         {
@@ -500,15 +527,13 @@ namespace POLK_DOTNET.Pages.AdminEvents
                 return RedirectToPage(new { id = Id });
             }
 
-            var regs = await _context.EventRegistrations
-                .Where(r => r.EventId == Id && r.Status != "Cancelled" && r.AttendanceType != "Spectator")
-                .ToListAsync();
+            var competitors = await CompetitorsQuery().ToListAsync();
 
-            // Per-shoot candidate pools; a registration can only be claimed by one row per shoot.
-            var pools = new Dictionary<int, List<EventRegistration>>
+            // Per-round candidate pools; a person can only be claimed by one row per round.
+            var pools = new Dictionary<int, List<EventParticipant>>
             {
-                [1] = FilterForShoot(regs, ev, 1).ToList(),
-                [2] = FilterForShoot(regs, ev, 2).ToList()
+                [1] = FilterForShoot(competitors, ev, 1).ToList(),
+                [2] = FilterForShoot(competitors, ev, 2).ToList()
             };
             var used = new Dictionary<int, HashSet<int>> { [1] = new(), [2] = new() };
 
@@ -520,15 +545,15 @@ namespace POLK_DOTNET.Pages.AdminEvents
                 using var stream = laneFile.OpenReadStream();
                 using var wb = new ClosedXML.Excel.XLWorkbook(stream);
 
-                // Single-shoot events: only the first sheet, mapped to shoot 1.
-                var sheets = ev.IsDoubleHeader
+                // Single-round events: only the first sheet, mapped to round 1.
+                var sheets = ev.HasTwoRounds
                     ? wb.Worksheets.ToList()
                     : new List<ClosedXML.Excel.IXLWorksheet> { wb.Worksheets.First() };
 
                 foreach (var ws in sheets)
                 {
-                    int shoot = ShootOfSheet(ws.Name, ev.IsDoubleHeader);
-                    if (shoot == 0) continue; // can't tell which shoot — skip
+                    int shoot = ShootOfSheet(ws.Name, ev.HasTwoRounds);
+                    if (shoot == 0) continue; // can't tell which round — skip
 
                     if (!FindHeader(ws, out int headerRow, out int nameCol, out int surCol, out int laneCol))
                         continue;
@@ -545,16 +570,16 @@ namespace POLK_DOTNET.Pages.AdminEvents
                         if (string.IsNullOrWhiteSpace(surname) && string.IsNullOrWhiteSpace(name)) continue;
                         if (!TryParseLane(laneStr, out int lane)) continue;
 
-                        var matches = pool.Where(r =>
-                            !usedSet.Contains(r.Id) &&
-                            Norm(r.Surname) == Norm(surname) &&
-                            (name.Length == 0 || Norm(r.Name) == Norm(name))).ToList();
+                        var matches = pool.Where(p =>
+                            !usedSet.Contains(p.Id) &&
+                            Norm(p.Surname) == Norm(surname) &&
+                            (name.Length == 0 || Norm(p.Name) == Norm(name))).ToList();
 
                         if (matches.Count == 1)
                         {
-                            var reg = matches[0];
-                            if (shoot == 2) reg.StartingLaneShoot2 = lane; else reg.StartingLaneShoot1 = lane;
-                            usedSet.Add(reg.Id);
+                            var person = matches[0];
+                            if (shoot == 2) person.StartingLaneShoot2 = lane; else person.StartingLaneShoot1 = lane;
+                            usedSet.Add(person.Id);
                             assigned++;
                         }
                         else
@@ -581,8 +606,8 @@ namespace POLK_DOTNET.Pages.AdminEvents
             return RedirectToPage(new { id = Id });
         }
 
-        // Saves the manual matches: each posted row carries its shoot, lane, and the chosen
-        // registration id (0 = skip). Arrays are aligned positionally by form order.
+        // Saves the manual matches: each posted row carries its round, lane, and the chosen
+        // participant id (0 = skip). Arrays are aligned positionally by form order.
         public async Task<IActionResult> OnPostAssignLanesAsync(int[] shoots, int[] lanes, int[] regIds)
         {
             if (HttpContext.Session.GetString("IsAuthenticated") != "true")
@@ -593,10 +618,10 @@ namespace POLK_DOTNET.Pages.AdminEvents
             for (int i = 0; i < count; i++)
             {
                 if (regIds[i] <= 0) continue;
-                var reg = await _context.EventRegistrations
-                    .FirstOrDefaultAsync(r => r.Id == regIds[i] && r.EventId == Id);
-                if (reg == null) continue;
-                if (shoots[i] == 2) reg.StartingLaneShoot2 = lanes[i]; else reg.StartingLaneShoot1 = lanes[i];
+                var person = await _context.EventParticipants
+                    .FirstOrDefaultAsync(p => p.Id == regIds[i] && p.EventRegistration.EventId == Id);
+                if (person == null) continue;
+                if (shoots[i] == 2) person.StartingLaneShoot2 = lanes[i]; else person.StartingLaneShoot1 = lanes[i];
                 assigned++;
             }
             await _context.SaveChangesAsync();
@@ -605,11 +630,12 @@ namespace POLK_DOTNET.Pages.AdminEvents
             return RedirectToPage(new { id = Id });
         }
 
-        // Decides which shoot a worksheet belongs to from its name. Single-shoot events
-        // always map to shoot 1. Returns 0 when a double-header sheet name is ambiguous.
-        private static int ShootOfSheet(string sheetName, bool isDouble)
+        // Decides which round a worksheet belongs to from its name — "Shoot 2", "Day 2" and
+        // "Dag 2" all land on round 2. Single-round events always map to round 1. Returns 0
+        // when a two-round sheet name is ambiguous.
+        private static int ShootOfSheet(string sheetName, bool hasTwoRounds)
         {
-            if (!isDouble) return 1;
+            if (!hasTwoRounds) return 1;
             var n = (sheetName ?? "").ToLowerInvariant().Replace(" ", "");
             if (n.Contains("2")) return 2;
             if (n.Contains("1")) return 1;
@@ -617,7 +643,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
         }
 
         // Finds the header row and the Name/Surname/Lane column numbers. Name is optional
-        // (the Shoot 1 sheet lists surnames only); Surname and Lane are required.
+        // (some sheets list surnames only); Surname and Lane are required.
         private static bool FindHeader(ClosedXML.Excel.IXLWorksheet ws, out int headerRow, out int nameCol, out int surCol, out int laneCol)
         {
             headerRow = 0; nameCol = 0; surCol = 0; laneCol = 0;
@@ -654,18 +680,33 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
         private async Task LoadStatsAsync()
         {
-            var all = await _context.EventRegistrations.Where(r => r.EventId == Id).ToListAsync();
+            var all = await _context.EventRegistrations
+                .Include(r => r.Participants)
+                .Where(r => r.EventId == Id)
+                .ToListAsync();
+
             TotalCount = all.Count;
             PaidCount = all.Count(r => r.Status == "Paid");
             PendingCount = all.Count(r => r.Status == "Pending");
             ConfirmedCount = all.Count(r => r.Status == "Confirmed");
             CancelledCount = all.Count(r => r.Status == "Cancelled");
+
+            var live = all.Where(r => r.Status != "Cancelled").ToList();
+            var people = live.SelectMany(r => r.Participants).ToList();
+            PeopleCount = people.Count;
+            CompetitorCount = people.Count(p => !p.IsSpectator);
+            SpectatorCount = people.Count(p => p.IsSpectator);
+            MealsCount = live.Sum(r => r.ExtraMeals);
         }
 
         private async Task LoadRegistrationsAsync()
         {
-            var q = _context.EventRegistrations.Where(r => r.EventId == Id);
+            var q = _context.EventRegistrations
+                .Include(r => r.Participants)
+                .Where(r => r.EventId == Id);
 
+            // Search covers the booking contact and anyone on the booking, so looking up a
+            // child by name finds the parent's booking.
             if (!string.IsNullOrWhiteSpace(Search))
             {
                 var s = Search.Trim();
@@ -673,7 +714,8 @@ namespace POLK_DOTNET.Pages.AdminEvents
                     r.Name.Contains(s) ||
                     r.Surname.Contains(s) ||
                     r.EmailAddress.Contains(s) ||
-                    r.CellNumber.Contains(s));
+                    r.CellNumber.Contains(s) ||
+                    r.Participants.Any(p => p.Name.Contains(s) || p.Surname.Contains(s)));
             }
 
             if (!string.IsNullOrWhiteSpace(StatusFilter) && StatusFilter != "All")
@@ -681,6 +723,9 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
             Registrations = await q.OrderByDescending(r => r.RegistrationDate).ToListAsync();
         }
+
+        // The amount a booking owes in total, for display on the list.
+        public decimal BookingTotal(EventRegistration reg) => EventFeeCalculator.ForBooking(Event, reg);
 
         private static string Csv(string? v)
         {

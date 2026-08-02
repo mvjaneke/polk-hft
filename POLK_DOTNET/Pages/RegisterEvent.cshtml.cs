@@ -5,6 +5,8 @@ using POLK_DOTNET.Services;
 using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 
 namespace POLK_DOTNET.Pages
@@ -13,23 +15,30 @@ namespace POLK_DOTNET.Pages
     {
         private const string AccountsEmail = "accounts@polk-hft.co.za";
 
+        // Guard rails on a single booking — big enough for a club or a family, small
+        // enough that a bot can't post a thousand participants in one go.
+        public const int MaxParticipants = 12;
+        public const int MaxExtraMeals = 50;
+
         private readonly ApplicationDbContext _context;
         private readonly YocoCheckoutService _yocoService;
         private readonly IkhokhaPaymentService _ikhokhaService;
         private readonly EmailService _emailService;
         private readonly SahftaMembersClient _sahftaClient;
+        private readonly ILogger<RegisterEventModel> _logger;
 
-        public RegisterEventModel(ApplicationDbContext context, YocoCheckoutService yocoService, IkhokhaPaymentService ikhokhaService, EmailService emailService, SahftaMembersClient sahftaClient)
+        public RegisterEventModel(ApplicationDbContext context, YocoCheckoutService yocoService, IkhokhaPaymentService ikhokhaService, EmailService emailService, SahftaMembersClient sahftaClient, ILogger<RegisterEventModel> logger)
         {
             _context = context;
             _yocoService = yocoService;
             _ikhokhaService = ikhokhaService;
             _emailService = emailService;
             _sahftaClient = sahftaClient;
+            _logger = logger;
         }
 
         [BindProperty]
-        public EventRegistration EventRegistration { get; set; } = new EventRegistration();
+        public BookingInput Booking { get; set; } = new();
 
         [BindProperty(SupportsGet = true)]
         public int EventId { get; set; }
@@ -37,6 +46,85 @@ namespace POLK_DOTNET.Pages
         public Event Event { get; set; } = null!;
 
         public bool RegistrationClosed { get; private set; }
+
+        // The contact person on a booking. Everyone attending — the contact included —
+        // is captured as a ParticipantInput below.
+        public class BookingInput
+        {
+            [Required(ErrorMessage = "First name is required.")]
+            [StringLength(100)]
+            public string Name { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Surname is required.")]
+            [StringLength(100)]
+            public string Surname { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Email address is required.")]
+            [EmailAddress(ErrorMessage = "Enter a valid email address.")]
+            [StringLength(150)]
+            public string EmailAddress { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Contact number is required.")]
+            [Phone(ErrorMessage = "Enter a valid contact number.")]
+            [StringLength(20)]
+            public string CellNumber { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "ID number is required.")]
+            [StringLength(20)]
+            public string IdNumber { get; set; } = string.Empty;
+
+            public int ExtraMeals { get; set; }
+
+            public string? PaymentMethod { get; set; }
+
+            [StringLength(100)]
+            public string? PaymentReference { get; set; }
+
+            public List<ParticipantInput> Participants { get; set; } = new();
+        }
+
+        public class ParticipantInput
+        {
+            [StringLength(100)]
+            public string Name { get; set; } = string.Empty;
+
+            [StringLength(100)]
+            public string Surname { get; set; } = string.Empty;
+
+            [StringLength(20)]
+            public string? IdNumber { get; set; }
+
+            public string? AttendanceType { get; set; }
+            public string GunType { get; set; } = string.Empty;
+            public string? RifleOwnership { get; set; }
+            public string? Division { get; set; }
+
+            [StringLength(100)]
+            public string? OtherDivision { get; set; }
+
+            [StringLength(50)]
+            public string? SAHFTANumber { get; set; }
+
+            [StringLength(100)]
+            public string? ClubName { get; set; }
+
+            public string? ShootSelection { get; set; }
+
+            [StringLength(100)]
+            public string? GuardianName { get; set; }
+
+            [StringLength(100)]
+            public string? GuardianSurname { get; set; }
+
+            public bool InfoAccurateConfirmed { get; set; }
+            public bool IndemnityAgreed { get; set; }
+            public bool GuardianIndemnityAgreed { get; set; }
+            public string? SocialMediaConsent { get; set; }
+
+            public bool IsSpectator(Event ev) =>
+                ev.RequiresAttendanceType &&
+                string.Equals(AttendanceType, "Spectator", StringComparison.OrdinalIgnoreCase);
+        }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -48,19 +136,44 @@ namespace POLK_DOTNET.Pages
 
             Event = ev;
             RegistrationClosed = !IsOpenForRegistration(ev);
-            EventRegistration.EventId = EventId;
+            Booking.Participants.Add(new ParticipantInput());
 
+            return Page();
+        }
+
+        // "Add another person" / "Remove". Both re-render the form rather than saving, so
+        // they deliberately skip validation — the registrant is still filling it in. State
+        // is carried by the posted model (no Alpine.js, per the project conventions), and
+        // ModelState is cleared so the re-rendered inputs come from the model and not from
+        // now-misaligned posted values after a removal.
+        public async Task<IActionResult> OnPostAddParticipantAsync()
+        {
+            var ev = await LoadEventAsync();
+            if (ev == null) return NotFound();
+
+            if (Booking.Participants.Count < MaxParticipants)
+                Booking.Participants.Add(new ParticipantInput());
+
+            ModelState.Clear();
+            return Page();
+        }
+
+        public async Task<IActionResult> OnPostRemoveParticipantAsync(int index)
+        {
+            var ev = await LoadEventAsync();
+            if (ev == null) return NotFound();
+
+            if (Booking.Participants.Count > 1 && index >= 0 && index < Booking.Participants.Count)
+                Booking.Participants.RemoveAt(index);
+
+            ModelState.Clear();
             return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            var ev = await _context.Events.FindAsync(EventId);
+            var ev = await LoadEventAsync();
             if (ev == null) return NotFound();
-            if (!ev.IsClubEvent) return NotFound();
-
-            Event = ev;
-            RegistrationClosed = !IsOpenForRegistration(ev);
 
             if (RegistrationClosed)
             {
@@ -68,199 +181,278 @@ namespace POLK_DOTNET.Pages
                 return Page();
             }
 
-            EventRegistration.RegistrationDate = DateTime.UtcNow;
-            EventRegistration.EventId = EventId;
+            if (Booking.Participants.Count == 0)
+                Booking.Participants.Add(new ParticipantInput());
 
-            ModelState.Remove("EventRegistration.Event");
-            ModelState.Remove("EventRegistration.Participants");
-
-            if (!ev.RequiresAttendanceType) ModelState.Remove("EventRegistration.AttendanceType");
-            if (!ev.RequiresSahfta) ModelState.Remove("EventRegistration.SAHFTANumber");
-            if (!ev.RequiresClubName) ModelState.Remove("EventRegistration.ClubName");
-            if (!ev.RequiresDivision) ModelState.Remove("EventRegistration.Division");
-            if (!ev.AllowsClubRifle) ModelState.Remove("EventRegistration.RifleOwnership");
-            if (!ev.IsDoubleHeader) ModelState.Remove("EventRegistration.ShootSelection");
-
-            if (ev.RequiresAttendanceType && string.IsNullOrWhiteSpace(EventRegistration.AttendanceType))
-                ModelState.AddModelError("EventRegistration.AttendanceType", "Please select Competitor or Spectator.");
-
-            // Spectators attend but don't shoot — clear competition-only fields and skip their validation.
-            // They still complete contact details and sign the indemnity & media consent below.
-            bool isSpectator = ev.RequiresAttendanceType &&
-                string.Equals(EventRegistration.AttendanceType, "Spectator", StringComparison.OrdinalIgnoreCase);
-            if (isSpectator)
+            if (Booking.Participants.Count > MaxParticipants)
             {
-                EventRegistration.GunType = "N/A";
-                EventRegistration.RifleOwnership = null;
-                EventRegistration.Division = null;
-                EventRegistration.OtherDivision = null;
-                EventRegistration.ShootSelection = null;
-                ModelState.Remove("EventRegistration.GunType");
+                ModelState.AddModelError(string.Empty, $"A single booking can cover at most {MaxParticipants} people.");
+                return Page();
             }
 
-            if (ev.RequiresDivision && !isSpectator && string.IsNullOrWhiteSpace(EventRegistration.Division))
-                ModelState.AddModelError("EventRegistration.Division", "Division is required.");
+            ValidateMeals(ev);
+            for (int i = 0; i < Booking.Participants.Count; i++)
+                ValidateParticipant(ev, Booking.Participants[i], i);
 
-            if (ev.AllowsClubRifle && !isSpectator && string.IsNullOrWhiteSpace(EventRegistration.RifleOwnership))
-                ModelState.AddModelError("EventRegistration.RifleOwnership", "Please select own or club rifle.");
+            var participants = Booking.Participants
+                .Select((p, i) => ToEntity(ev, p, i + 1))
+                .ToList();
 
-            if (ev.IsDoubleHeader && !isSpectator)
-            {
-                var sel = EventRegistration.ShootSelection;
-                if (sel != "First" && sel != "Second" && sel != "Both")
-                    ModelState.AddModelError("EventRegistration.ShootSelection", "Please choose which shoot(s) you will enter.");
-            }
-            else
-            {
-                EventRegistration.ShootSelection = null;
-            }
-
-            if (!EventRegistration.InfoAccurateConfirmed)
-                ModelState.AddModelError("EventRegistration.InfoAccurateConfirmed", "You must confirm your information is accurate.");
-
-            if (!EventRegistration.IndemnityAgreed)
-                ModelState.AddModelError("EventRegistration.IndemnityAgreed", "You must agree to the indemnity.");
-
-            if (string.IsNullOrWhiteSpace(EventRegistration.SocialMediaConsent))
-                ModelState.AddModelError("EventRegistration.SocialMediaConsent", "Please select a social media consent option.");
-
-            // Compute the effective fee server-side (single, both, or single-shoot of a double header).
-            // Spectators never pay an entry fee.
-            var effectiveFee = isSpectator
-                ? 0m
-                : ComputeEffectiveFee(ev, EventRegistration.ShootSelection, EventRegistration.RifleOwnership);
-            var hasFee = effectiveFee > 0;
+            var total = EventFeeCalculator.ForBooking(ev, participants, Booking.ExtraMeals);
+            var hasFee = total > 0;
 
             if (hasFee)
             {
-                if (string.IsNullOrWhiteSpace(EventRegistration.PaymentMethod))
-                    ModelState.AddModelError("EventRegistration.PaymentMethod", "Please select a payment method.");
-                else if (EventRegistration.PaymentMethod == "Yoco" && !ev.EnableYocoPayment)
-                    ModelState.AddModelError("EventRegistration.PaymentMethod", "Online payment is not available for this event.");
-            }
-            else
-            {
-                ModelState.Remove("EventRegistration.PaymentMethod");
+                if (string.IsNullOrWhiteSpace(Booking.PaymentMethod))
+                    ModelState.AddModelError("Booking.PaymentMethod", "Please select a payment method.");
+                else if (Booking.PaymentMethod == "Yoco" && !ev.EnableYocoPayment)
+                    ModelState.AddModelError("Booking.PaymentMethod", "Online payment is not available for this event.");
             }
 
             if (!ModelState.IsValid) return Page();
 
+            var registration = new EventRegistration
+            {
+                EventId = ev.Id,
+                RegistrationDate = DateTime.UtcNow,
+                Name = Booking.Name.Trim(),
+                Surname = Booking.Surname.Trim(),
+                EmailAddress = Booking.EmailAddress.Trim(),
+                CellNumber = Booking.CellNumber.Trim(),
+                IdNumber = Booking.IdNumber.Trim(),
+                ExtraMeals = Booking.ExtraMeals,
+                PaymentReference = string.IsNullOrWhiteSpace(Booking.PaymentReference) ? null : Booking.PaymentReference.Trim(),
+                Participants = participants
+            };
+
             if (hasFee)
             {
-                EventRegistration.AmountPaid = 0; // set on payment confirmation
-                EventRegistration.Status = "Pending";
+                registration.PaymentMethod = Booking.PaymentMethod;
+                registration.AmountPaid = 0; // set on payment confirmation
+                registration.Status = "Pending";
             }
             else
             {
-                EventRegistration.PaymentMethod = "None";
-                EventRegistration.Status = "Confirmed";
+                registration.PaymentMethod = "None";
+                registration.Status = "Confirmed";
             }
 
-            await EnrichFromSahftaAsync(EventRegistration);
+            foreach (var p in participants)
+                await EnrichFromSahftaAsync(p);
 
-            _context.EventRegistrations.Add(EventRegistration);
+            _context.EventRegistrations.Add(registration);
             await _context.SaveChangesAsync();
 
-            await SendInitialEmailsAsync(EventRegistration, ev, effectiveFee);
+            await SendInitialEmailsAsync(registration, ev, total);
 
-            if (hasFee && EventRegistration.PaymentMethod == "Yoco" && ev.EnableYocoPayment)
+            if (hasFee && registration.PaymentMethod == "Yoco" && ev.EnableYocoPayment)
             {
-                var baseUrl = $"{Request.Scheme}://{Request.Host}";
-                var regId = EventRegistration.Id;
-                var successUrl = $"{baseUrl}/payment-result?status=success&registrationId={regId}";
-                var cancelUrl = $"{baseUrl}/payment-result?status=cancelled&registrationId={regId}";
-                var failureUrl = $"{baseUrl}/payment-result?status=failed&registrationId={regId}";
+                var redirect = await StartOnlinePaymentAsync(registration, ev, total);
+                if (redirect != null) return redirect;
 
-                var gateway = (await _context.SiteSettings.FirstOrDefaultAsync(s => s.Key == "PaymentGateway"))?.Value ?? "Ikhokha";
+                // No redirect means the gateway never gave us a payment link — unconfigured
+                // credentials, an unreachable callback URL (it rejects localhost), or a
+                // rejected request. The booking is saved and still owed, so say so on the
+                // confirmation page instead of quietly showing a page that reads as settled.
+                _logger.LogError(
+                    "Online payment could not be started for registration {RegistrationId} on event {EventId} ({Amount:F2}). Registrant was asked to pay another way.",
+                    registration.Id, ev.Id, total);
+                TempData["PaymentStartFailed"] = "true";
+            }
 
-                if (string.Equals(gateway, "Ikhokha", StringComparison.OrdinalIgnoreCase))
+            return RedirectToPage("/RegistrationConfirmation", new { id = registration.Id });
+        }
+
+        private async Task<Event?> LoadEventAsync()
+        {
+            var ev = await _context.Events.FindAsync(EventId);
+            if (ev == null || !ev.IsClubEvent) return null;
+
+            Event = ev;
+            RegistrationClosed = !IsOpenForRegistration(ev);
+            return ev;
+        }
+
+        private void ValidateMeals(Event ev)
+        {
+            if (!ev.OffersMeals)
+            {
+                Booking.ExtraMeals = 0;
+                return;
+            }
+
+            if (Booking.ExtraMeals < 0)
+                ModelState.AddModelError("Booking.ExtraMeals", "Number of meals cannot be negative.");
+            else if (Booking.ExtraMeals > MaxExtraMeals)
+                ModelState.AddModelError("Booking.ExtraMeals", $"Please book at most {MaxExtraMeals} meals, or contact the club directly.");
+        }
+
+        // Validates one person and normalises their fields in place. Spectators don't shoot,
+        // so their competition-only answers are cleared and skipped — but they still sign
+        // their own indemnity and media consent.
+        private void ValidateParticipant(Event ev, ParticipantInput p, int index)
+        {
+            var key = $"Booking.Participants[{index}]";
+            var who = string.IsNullOrWhiteSpace(p.Name) && string.IsNullOrWhiteSpace(p.Surname)
+                ? $"Person {index + 1}"
+                : $"{p.Name} {p.Surname}".Trim();
+
+            if (string.IsNullOrWhiteSpace(p.Name))
+                ModelState.AddModelError($"{key}.Name", "First name is required.");
+            if (string.IsNullOrWhiteSpace(p.Surname))
+                ModelState.AddModelError($"{key}.Surname", "Surname is required.");
+            if (string.IsNullOrWhiteSpace(p.IdNumber))
+                ModelState.AddModelError($"{key}.IdNumber", "ID number is required.");
+
+            if (ev.RequiresAttendanceType && string.IsNullOrWhiteSpace(p.AttendanceType))
+                ModelState.AddModelError($"{key}.AttendanceType", $"Select whether {who} is a competitor or a spectator.");
+
+            if (p.IsSpectator(ev))
+            {
+                p.GunType = "N/A";
+                p.RifleOwnership = null;
+                p.Division = null;
+                p.OtherDivision = null;
+                p.ShootSelection = null;
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(p.GunType))
+                    ModelState.AddModelError($"{key}.GunType", "Rifle type is required.");
+
+                if (ev.RequiresDivision && string.IsNullOrWhiteSpace(p.Division))
+                    ModelState.AddModelError($"{key}.Division", "Division is required.");
+
+                if (ev.AllowsClubRifle && string.IsNullOrWhiteSpace(p.RifleOwnership))
+                    ModelState.AddModelError($"{key}.RifleOwnership", "Please select own or club rifle.");
+
+                if (ev.IsDoubleHeader)
                 {
-                    var paylink = await _ikhokhaService.CreatePaymentLinkAsync(
-                        effectiveFee,
-                        $"{ev.Title} - Registration #{regId}",
-                        externalTransactionId: $"EVT-{regId}",
-                        requesterUrl: baseUrl,
-                        callbackUrl: $"{baseUrl}/api/ikhokha/callback",
-                        successPageUrl: successUrl,
-                        failurePageUrl: failureUrl,
-                        cancelUrl: cancelUrl);
-
-                    if (paylink != null && !string.IsNullOrEmpty(paylink.PaylinkUrl))
-                    {
-                        EventRegistration.YocoCheckoutId = paylink.PaylinkID;
-                        await _context.SaveChangesAsync();
-                        return Redirect(paylink.PaylinkUrl);
-                    }
+                    var sel = p.ShootSelection;
+                    if (sel != "First" && sel != "Second" && sel != "Both")
+                        ModelState.AddModelError($"{key}.ShootSelection", $"Choose which shoot(s) {who} will enter.");
                 }
                 else
                 {
-                    var metadata = new Dictionary<string, string>
-                    {
-                        { "eventRegistrationId", regId.ToString() },
-                        { "eventId", ev.Id.ToString() }
-                    };
-
-                    var checkout = await _yocoService.CreateCheckoutAsync(
-                        effectiveFee,
-                        $"{ev.Title} - Registration #{regId}",
-                        successUrl,
-                        cancelUrl,
-                        failureUrl,
-                        metadata
-                    );
-
-                    if (checkout != null && !string.IsNullOrEmpty(checkout.RedirectUrl))
-                    {
-                        EventRegistration.YocoCheckoutId = checkout.Id;
-                        await _context.SaveChangesAsync();
-                        return Redirect(checkout.RedirectUrl);
-                    }
+                    // Provincial two-day events enter every competitor for both days.
+                    p.ShootSelection = null;
                 }
             }
 
-            return RedirectToPage("/RegistrationConfirmation", new { id = EventRegistration.Id });
+            if (!ev.RequiresSahfta) p.SAHFTANumber = null;
+            if (!ev.RequiresClubName) p.ClubName = null;
+
+            if (!p.InfoAccurateConfirmed)
+                ModelState.AddModelError($"{key}.InfoAccurateConfirmed", $"Confirm that {who}'s information is accurate.");
+
+            if (!p.IndemnityAgreed && !p.GuardianIndemnityAgreed)
+                ModelState.AddModelError($"{key}.IndemnityAgreed", $"The indemnity must be signed for {who}.");
+
+            if (string.IsNullOrWhiteSpace(p.SocialMediaConsent))
+                ModelState.AddModelError($"{key}.SocialMediaConsent", $"Select a social media consent option for {who}.");
         }
 
-        private async Task EnrichFromSahftaAsync(EventRegistration reg)
+        private static EventParticipant ToEntity(Event ev, ParticipantInput p, int position) => new()
+        {
+            Position = position,
+            Name = (p.Name ?? "").Trim(),
+            Surname = (p.Surname ?? "").Trim(),
+            IdNumber = Clean(p.IdNumber),
+            AttendanceType = ev.RequiresAttendanceType ? Clean(p.AttendanceType) : null,
+            GunType = (p.GunType ?? "").Trim(),
+            RifleOwnership = Clean(p.RifleOwnership),
+            Division = Clean(p.Division),
+            OtherDivision = Clean(p.OtherDivision),
+            SAHFTANumber = Clean(p.SAHFTANumber),
+            ClubName = Clean(p.ClubName),
+            ShootSelection = Clean(p.ShootSelection),
+            GuardianName = Clean(p.GuardianName),
+            GuardianSurname = Clean(p.GuardianSurname),
+            InfoAccurateConfirmed = p.InfoAccurateConfirmed,
+            IndemnityAgreed = p.IndemnityAgreed,
+            GuardianIndemnityAgreed = p.GuardianIndemnityAgreed,
+            SocialMediaConsent = Clean(p.SocialMediaConsent)
+        };
+
+        private static string? Clean(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+
+        private async Task<IActionResult?> StartOnlinePaymentAsync(EventRegistration reg, Event ev, decimal total)
+        {
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var successUrl = $"{baseUrl}/payment-result?status=success&registrationId={reg.Id}";
+            var cancelUrl = $"{baseUrl}/payment-result?status=cancelled&registrationId={reg.Id}";
+            var failureUrl = $"{baseUrl}/payment-result?status=failed&registrationId={reg.Id}";
+
+            var gateway = (await _context.SiteSettings.FirstOrDefaultAsync(s => s.Key == "PaymentGateway"))?.Value ?? "Ikhokha";
+
+            if (string.Equals(gateway, "Ikhokha", StringComparison.OrdinalIgnoreCase))
+            {
+                var paylink = await _ikhokhaService.CreatePaymentLinkAsync(
+                    total,
+                    $"{ev.Title} - Registration #{reg.Id}",
+                    externalTransactionId: $"EVT-{reg.Id}",
+                    requesterUrl: baseUrl,
+                    callbackUrl: $"{baseUrl}/api/ikhokha/callback",
+                    successPageUrl: successUrl,
+                    failurePageUrl: failureUrl,
+                    cancelUrl: cancelUrl);
+
+                if (paylink != null && !string.IsNullOrEmpty(paylink.PaylinkUrl))
+                {
+                    reg.YocoCheckoutId = paylink.PaylinkID;
+                    await _context.SaveChangesAsync();
+                    return Redirect(paylink.PaylinkUrl);
+                }
+            }
+            else
+            {
+                var metadata = new Dictionary<string, string>
+                {
+                    { "eventRegistrationId", reg.Id.ToString() },
+                    { "eventId", ev.Id.ToString() }
+                };
+
+                var checkout = await _yocoService.CreateCheckoutAsync(
+                    total,
+                    $"{ev.Title} - Registration #{reg.Id}",
+                    successUrl,
+                    cancelUrl,
+                    failureUrl,
+                    metadata);
+
+                if (checkout != null && !string.IsNullOrEmpty(checkout.RedirectUrl))
+                {
+                    reg.YocoCheckoutId = checkout.Id;
+                    await _context.SaveChangesAsync();
+                    return Redirect(checkout.RedirectUrl);
+                }
+            }
+
+            return null;
+        }
+
+        private async Task EnrichFromSahftaAsync(EventParticipant p)
         {
             // 1. Try name + surname first (only returns when there's an exact or unambiguous match)
-            var api = await _sahftaClient.LookupByNameAsync(reg.Name, reg.Surname);
+            var api = await _sahftaClient.LookupByNameAsync(p.Name, p.Surname);
 
             // 2. Fall back to SAHFTA membership number if supplied
             if (api == null &&
-                !string.IsNullOrWhiteSpace(reg.SAHFTANumber) &&
-                !reg.SAHFTANumber.Equals("none", StringComparison.OrdinalIgnoreCase) &&
-                !reg.SAHFTANumber.Equals("n/a", StringComparison.OrdinalIgnoreCase) &&
-                reg.SAHFTANumber != "0")
+                !string.IsNullOrWhiteSpace(p.SAHFTANumber) &&
+                !p.SAHFTANumber.Equals("none", StringComparison.OrdinalIgnoreCase) &&
+                !p.SAHFTANumber.Equals("n/a", StringComparison.OrdinalIgnoreCase) &&
+                p.SAHFTANumber != "0")
             {
-                api = await _sahftaClient.LookupByMembershipNumberAsync(reg.SAHFTANumber);
+                api = await _sahftaClient.LookupByMembershipNumberAsync(p.SAHFTANumber);
             }
 
             if (api == null) return;
 
             // Overwrite club and membership # with the canonical values from the API.
             if (!string.IsNullOrWhiteSpace(api.club))
-                reg.ClubName = api.club;
+                p.ClubName = api.club;
             if (!string.IsNullOrWhiteSpace(api.membershipNumber))
-                reg.SAHFTANumber = api.membershipNumber;
-        }
-
-        public static decimal ComputeEffectiveFee(Event ev, string? shootSelection, string? rifleOwnership = null)
-        {
-            var single = ev.EntryFee ?? 0;
-            decimal shootFee;
-            if (!ev.IsDoubleHeader)
-                shootFee = single;
-            else if (string.Equals(shootSelection, "Both", StringComparison.OrdinalIgnoreCase))
-                shootFee = ev.DoubleHeaderFee ?? (single * 2);
-            else
-                shootFee = single;
-
-            var rifleFee = (ev.AllowsClubRifle && string.Equals(rifleOwnership, "Club", StringComparison.OrdinalIgnoreCase))
-                ? (ev.ClubRifleFee ?? 0m)
-                : 0m;
-
-            return shootFee + rifleFee;
+                p.SAHFTANumber = api.membershipNumber;
         }
 
         private static bool IsOpenForRegistration(Event ev)
@@ -271,29 +463,21 @@ namespace POLK_DOTNET.Pages
             return true;
         }
 
-        private async Task SendInitialEmailsAsync(EventRegistration reg, Event ev, decimal effectiveFee)
+        private async Task SendInitialEmailsAsync(EventRegistration reg, Event ev, decimal total)
         {
-            var usesClubRifle = ev.AllowsClubRifle && string.Equals(reg.RifleOwnership, "Club", StringComparison.OrdinalIgnoreCase) && ev.ClubRifleFee.HasValue && ev.ClubRifleFee.Value > 0;
-            var feeText = effectiveFee > 0
-                ? $"R{effectiveFee:F2}" + (!string.IsNullOrWhiteSpace(ev.EntryFeeDescription) ? $" ({ev.EntryFeeDescription})" : "")
-                  + (usesClubRifle ? $" — includes R{ev.ClubRifleFee!.Value:F2} club rifle &amp; pellets" : "")
-                : "No fee";
-
-            var shootLine = ev.IsDoubleHeader && !string.IsNullOrWhiteSpace(reg.ShootSelection)
-                ? $"<p><strong>Shoot(s):</strong> {FormatShoot(reg.ShootSelection)}</p>"
-                : "";
-
-            var paymentInstructions = BuildPaymentInstructions(reg, ev);
+            var breakdown = BuildBreakdownHtml(ev, reg);
+            var roster = BuildRosterHtml(ev, reg);
+            var paymentInstructions = BuildPaymentInstructions(reg, ev, total);
 
             var registrantBody = $@"
                 <h2>Registration Received</h2>
                 <p>Dear {reg.Name},</p>
                 <p>Thank you for registering for <strong>{ev.Title}</strong>.</p>
-                <p><strong>Event date:</strong> {ev.StartDate:dd MMMM yyyy}</p>
+                <p><strong>Event date:</strong> {FormatEventDates(ev)}</p>
                 <p><strong>Time:</strong> {ev.Time}</p>
                 <p><strong>Location:</strong> {ev.Location}</p>
-                {shootLine}
-                <p><strong>Entry fee:</strong> {feeText}</p>
+                {roster}
+                {breakdown}
                 <p><strong>Status:</strong> {reg.Status}</p>
                 {paymentInstructions}
                 <br/>
@@ -306,19 +490,13 @@ namespace POLK_DOTNET.Pages
 
             var accountsBody = $@"
                 <h2>New Event Registration #{reg.Id}</h2>
-                <p><strong>Event:</strong> {ev.Title} ({ev.StartDate:dd MMM yyyy})</p>
-                <p><strong>Registrant:</strong> {reg.Name} {reg.Surname}</p>
+                <p><strong>Event:</strong> {ev.Title} ({FormatEventDates(ev)})</p>
+                <p><strong>Contact:</strong> {reg.Name} {reg.Surname}</p>
                 <p><strong>Email:</strong> {reg.EmailAddress}</p>
                 <p><strong>Cell:</strong> {reg.CellNumber}</p>
                 <p><strong>ID:</strong> {reg.IdNumber}</p>
-                <p><strong>Gun Type:</strong> {reg.GunType}</p>
-                {(string.IsNullOrWhiteSpace(reg.AttendanceType) ? "" : $"<p><strong>Attendance:</strong> {reg.AttendanceType}</p>")}
-                {(string.IsNullOrWhiteSpace(reg.Division) ? "" : $"<p><strong>Division:</strong> {reg.Division}{(string.IsNullOrWhiteSpace(reg.OtherDivision) ? "" : $" ({reg.OtherDivision})")}</p>")}
-                {(string.IsNullOrWhiteSpace(reg.SAHFTANumber) ? "" : $"<p><strong>SAHFTA:</strong> {reg.SAHFTANumber}</p>")}
-                {(string.IsNullOrWhiteSpace(reg.ClubName) ? "" : $"<p><strong>Club:</strong> {reg.ClubName}</p>")}
-                {(string.IsNullOrWhiteSpace(reg.RifleOwnership) ? "" : $"<p><strong>Rifle:</strong> {reg.RifleOwnership}</p>")}
-                {shootLine}
-                <p><strong>Fee:</strong> {feeText}</p>
+                {roster}
+                {breakdown}
                 <p><strong>Payment method:</strong> {reg.PaymentMethod ?? "N/A"}</p>
                 <p><strong>Status:</strong> {reg.Status}</p>";
 
@@ -329,6 +507,57 @@ namespace POLK_DOTNET.Pages
                 accountsBody);
         }
 
+        public static string FormatEventDates(Event ev) =>
+            ev.IsProvincialTwoDay && ev.EndDate.HasValue
+                ? $"{ev.StartDate:dd MMMM yyyy} &ndash; {ev.EndDate.Value:dd MMMM yyyy} (two days)"
+                : ev.StartDate.ToString("dd MMMM yyyy");
+
+        private static string BuildRosterHtml(Event ev, EventRegistration reg)
+        {
+            if (reg.Participants.Count == 0) return "";
+
+            var rows = reg.Participants.OrderBy(p => p.Position).Select(p =>
+            {
+                var bits = new List<string>();
+                if (!string.IsNullOrWhiteSpace(p.AttendanceType)) bits.Add(p.AttendanceType!);
+                if (!p.IsSpectator && !string.IsNullOrWhiteSpace(p.GunType)) bits.Add(p.GunType);
+                if (!string.IsNullOrWhiteSpace(p.Division)) bits.Add(p.Division!);
+                if (!string.IsNullOrWhiteSpace(p.SAHFTANumber)) bits.Add($"SAHFTA {p.SAHFTANumber}");
+                if (!string.IsNullOrWhiteSpace(p.ClubName)) bits.Add(p.ClubName!);
+                if (ev.IsDoubleHeader && !string.IsNullOrWhiteSpace(p.ShootSelection)) bits.Add(FormatShoot(p.ShootSelection));
+                if (string.Equals(p.RifleOwnership, "Club", StringComparison.OrdinalIgnoreCase)) bits.Add("club rifle");
+
+                var detail = bits.Count > 0 ? $" &mdash; {string.Join(" &middot; ", bits)}" : "";
+                return $"<li>{p.FullName}{detail}</li>";
+            });
+
+            var heading = reg.Participants.Count == 1 ? "Entry" : $"Entries ({reg.Participants.Count} people)";
+            return $"<p><strong>{heading}:</strong></p><ul>{string.Join("", rows)}</ul>";
+        }
+
+        private static string BuildBreakdownHtml(Event ev, EventRegistration reg)
+        {
+            var entries = EventFeeCalculator.EntriesTotal(ev, reg.Participants);
+            var meals = EventFeeCalculator.MealsTotal(ev, reg.ExtraMeals);
+            var total = entries + meals;
+
+            if (total <= 0) return "<p><strong>Total due:</strong> No fee</p>";
+
+            var lines = new List<string>();
+            if (entries > 0)
+            {
+                var suffix = !string.IsNullOrWhiteSpace(ev.EntryFeeDescription) ? $" ({ev.EntryFeeDescription})" : "";
+                lines.Add($"<li>Entries: R{entries:F2}{suffix}</li>");
+            }
+            if (meals > 0)
+            {
+                var what = string.IsNullOrWhiteSpace(ev.MealDescription) ? "Meals" : ev.MealDescription;
+                lines.Add($"<li>{what}: {reg.ExtraMeals} &times; R{ev.MealFee!.Value:F2} = R{meals:F2}</li>");
+            }
+
+            return $"<ul>{string.Join("", lines)}</ul><p><strong>Total due:</strong> R{total:F2}</p>";
+        }
+
         private static string FormatShoot(string? sel) => sel switch
         {
             "First" => "Shoot 1 only",
@@ -337,9 +566,9 @@ namespace POLK_DOTNET.Pages
             _ => sel ?? ""
         };
 
-        private static string BuildPaymentInstructions(EventRegistration reg, Event ev)
+        private static string BuildPaymentInstructions(EventRegistration reg, Event ev, decimal total)
         {
-            if (ev.EntryFee is null or <= 0) return "<p>No payment required for this event.</p>";
+            if (total <= 0) return "<p>No payment required for this booking.</p>";
 
             return reg.PaymentMethod switch
             {

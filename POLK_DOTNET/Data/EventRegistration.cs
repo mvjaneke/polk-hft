@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 
 namespace POLK_DOTNET.Data
 {
+    // A booking for an event. One person (the contact) completes the form and pays, and
+    // everyone attending under the booking — including the contact — is an EventParticipant.
     public class EventRegistration
     {
         public int Id { get; set; }
@@ -19,7 +22,8 @@ namespace POLK_DOTNET.Data
         [StringLength(50)]
         public string Status { get; set; } = "Pending"; // Pending, Paid, Cancelled
 
-        // Core Registration Fields
+        // --- Contact / payer ---
+
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
@@ -42,65 +46,18 @@ namespace POLK_DOTNET.Data
         [StringLength(20)]
         public string IdNumber { get; set; } = string.Empty;
 
-        // Per-event optional fields
-        [StringLength(50)]
-        public string? AttendanceType { get; set; } // Competitor | Spectator
+        // Meals booked for the whole party on top of the entries themselves (spectators,
+        // family). Charged at Event.MealFee each — including to spectator-only bookings,
+        // which pay no entry fee.
+        public int ExtraMeals { get; set; }
 
-        [StringLength(50)]
-        public string? SAHFTANumber { get; set; }
+        // --- Payment (per booking, covering every participant) ---
 
-        [StringLength(100)]
-        public string? ClubName { get; set; }
-
-        [StringLength(50)]
-        public string? Division { get; set; }
-
-        // For double-header events: "First" | "Second" | "Both". Null for single-shoot events.
-        [StringLength(20)]
-        public string? ShootSelection { get; set; }
-
-        [StringLength(100)]
-        public string? OtherDivision { get; set; }
-
-        [Required]
-        [StringLength(50)]
-        public string GunType { get; set; } = string.Empty;
-
-        // "Own" | "Club" (only when event.AllowsClubRifle)
-        [StringLength(20)]
-        public string? RifleOwnership { get; set; }
-
-        // Guardian/Minor Fields
-        [StringLength(100)]
-        public string? GuardianName { get; set; }
-
-        [StringLength(100)]
-        public string? GuardianSurname { get; set; }
-
-        // Acknowledgements/Indemnities
-        [Required]
-        public bool InfoAccurateConfirmed { get; set; }
-
-        [Required]
-        public bool IndemnityAgreed { get; set; }
-
-        public bool GuardianIndemnityAgreed { get; set; }
-
-        // "Agreed" | "GuardianAgreed" | "Declined"
-        [StringLength(30)]
-        public string? SocialMediaConsent { get; set; }
-
-        // Payment Details
         [Column(TypeName = "decimal(18, 2)")]
         public decimal AmountPaid { get; set; }
 
         [StringLength(100)]
         public string? PaymentReference { get; set; }
-
-        // Starting lane on the squadding sheet, imported from the "Indeling" spreadsheet.
-        // Shoot2 is only used for double-header events; single-shoot events use Shoot1.
-        public int? StartingLaneShoot1 { get; set; }
-        public int? StartingLaneShoot2 { get; set; }
 
         // "Yoco" | "EFT" | "AtVenue"
         [StringLength(30)]
@@ -113,5 +70,56 @@ namespace POLK_DOTNET.Data
         public string? YocoPaymentId { get; set; }
 
         public ICollection<EventParticipant> Participants { get; set; } = new List<EventParticipant>();
+
+        [NotMapped]
+        public IEnumerable<EventParticipant> Competitors =>
+            Participants.Where(p => !p.IsSpectator).OrderBy(p => p.Position);
+
+        // --- Legacy single-person columns ---
+        // Kept for registrations captured before bookings supported multiple people. The
+        // migration copies these into a first EventParticipant, and all live logic reads
+        // Participants — nothing writes these any more.
+
+        [StringLength(50)]
+        public string? AttendanceType { get; set; }
+
+        [StringLength(50)]
+        public string? SAHFTANumber { get; set; }
+
+        [StringLength(100)]
+        public string? ClubName { get; set; }
+
+        [StringLength(50)]
+        public string? Division { get; set; }
+
+        [StringLength(20)]
+        public string? ShootSelection { get; set; }
+
+        [StringLength(100)]
+        public string? OtherDivision { get; set; }
+
+        [StringLength(50)]
+        public string GunType { get; set; } = string.Empty;
+
+        [StringLength(20)]
+        public string? RifleOwnership { get; set; }
+
+        [StringLength(100)]
+        public string? GuardianName { get; set; }
+
+        [StringLength(100)]
+        public string? GuardianSurname { get; set; }
+
+        public bool InfoAccurateConfirmed { get; set; }
+
+        public bool IndemnityAgreed { get; set; }
+
+        public bool GuardianIndemnityAgreed { get; set; }
+
+        [StringLength(30)]
+        public string? SocialMediaConsent { get; set; }
+
+        public int? StartingLaneShoot1 { get; set; }
+        public int? StartingLaneShoot2 { get; set; }
     }
 }

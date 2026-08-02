@@ -31,7 +31,10 @@ namespace POLK_DOTNET.Pages.AdminEvents
         public Dictionary<int, TroyerCalculator.RowResult> RowResults { get; private set; } = new();
         public TroyerCalculator.SummaryResult? Summary { get; private set; }
 
-        public bool ShowShootTabs => Event.IsDoubleHeader && !Event.UseSameCourseForBothShoots;
+        // Two rounds with distinct courses — a league double-header or a provincial event
+        // where each day is shot on its own course.
+        public bool ShowShootTabs => Event.HasTwoRounds && !Event.UseSameCourseForBothShoots;
+        public string RoundLabel => Event.RoundLabel;
         public int CurrentTargetCount => Targets.Count;
         public bool CurrentShootConfigured => Targets.Count > 0;
 
@@ -123,7 +126,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
             var xlsx = _excelService.GenerateCourseSheet(ev, targets, Shoot);
             var safeTitle = string.Concat((ev.Title ?? "course").Split(Path.GetInvalidFileNameChars()));
-            var suffix = (ev.IsDoubleHeader && !ev.UseSameCourseForBothShoots) ? $"_shoot{Shoot}" : "";
+            var suffix = (ev.HasTwoRounds && !ev.UseSameCourseForBothShoots) ? $"_{ev.RoundLabel.ToLowerInvariant()}{Shoot}" : "";
             return File(
                 xlsx,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -165,8 +168,8 @@ namespace POLK_DOTNET.Pages.AdminEvents
 
         private void NormalizeShoot(Event ev)
         {
-            // Force Shoot=1 when there's no second shoot to configure
-            if (!ev.IsDoubleHeader || ev.UseSameCourseForBothShoots) Shoot = 1;
+            // Force Shoot=1 when there's no second round to configure
+            if (!ev.HasTwoRounds || ev.UseSameCourseForBothShoots) Shoot = 1;
             if (Shoot != 1 && Shoot != 2) Shoot = 1;
         }
 
