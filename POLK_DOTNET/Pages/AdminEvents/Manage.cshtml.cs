@@ -826,8 +826,33 @@ namespace POLK_DOTNET.Pages.AdminEvents
             Registrations = await q.OrderByDescending(r => r.RegistrationDate).ToListAsync();
         }
 
-        // The amount a booking owes in total, for display on the list.
+        // What a booking costs in total, before anything is paid.
         public decimal BookingTotal(EventRegistration reg) => EventFeeCalculator.ForBooking(Event, reg);
+
+        // What is still to be collected. Status decides settlement first, exactly as the
+        // "To Collect (Unpaid)" sheet does — a booking marked Paid owes nothing even when no
+        // amount was ever recorded against it, which is true of anything settled outside the
+        // Mark Paid button. Deriving this from the money columns instead would put red figures
+        // on bookings the collection sheet already leaves out, and the two screens would
+        // disagree. A cancelled booking owes nothing whatever its fee would have been.
+        public decimal AmountOwing(EventRegistration reg) =>
+            IsCancelled(reg) || IsSettled(reg) ? 0m : Math.Max(0m, BookingTotal(reg) - reg.AmountPaid);
+
+        public static bool IsSettled(EventRegistration reg) =>
+            string.Equals(reg.Status, "Paid", StringComparison.OrdinalIgnoreCase);
+
+        // Marked as settled but carrying no figure — the money is accounted for, the amount just
+        // was not captured. Worth saying so rather than printing R0.00 beside "Owing R0.00".
+        public static bool PaidAmountMissing(EventRegistration reg) =>
+            IsSettled(reg) && reg.AmountPaid == 0;
+
+        // Money already taken on a booking that was cancelled afterwards has to go back, and that
+        // is the one number about a cancelled booking somebody still has to act on.
+        public decimal RefundDue(EventRegistration reg) =>
+            IsCancelled(reg) ? reg.AmountPaid : 0m;
+
+        public static bool IsCancelled(EventRegistration reg) =>
+            string.Equals(reg.Status, "Cancelled", StringComparison.OrdinalIgnoreCase);
 
         private static string Csv(string? v)
         {
