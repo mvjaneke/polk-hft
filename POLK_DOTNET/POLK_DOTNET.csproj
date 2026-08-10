@@ -17,15 +17,26 @@
     <PackageReference Include="QuestPDF" Version="2026.2.3" />
   </ItemGroup>
 
+  <!--
+    The development database is copied next to the build output so the app can be run from
+    bin, but it is never published. The deployment is an FTP upload of the publish folder,
+    and a publish that drops a local app.db in there puts a stale copy of the club's data
+    one drag-and-drop away from overwriting the live one, taking every registration with it.
+    The server keeps its own app.db; migrations are applied on startup, so nothing here has
+    to ship it.
+  -->
   <ItemGroup>
     <None Update="app.db">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
     <None Update="app.db-shm">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
     <None Update="app.db-wal">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
   </ItemGroup>
 
