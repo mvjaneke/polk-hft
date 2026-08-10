@@ -83,19 +83,25 @@ namespace POLK_DOTNET.Pages
             public List<ParticipantInput> Participants { get; set; } = new();
         }
 
+        // Every field here is nullable on purpose. A non-nullable string picks up an implicit
+        // [Required] under <Nullable>enable</Nullable>, which fires during model binding — before
+        // ValidateParticipant gets to decide whether the field even applies to this person. A
+        // spectator posts no rifle type (the inputs are hidden), so an implicitly-required GunType
+        // would wedge the booking on an error the registrant cannot see or clear. Requiredness for
+        // a participant is contextual, so it lives in ValidateParticipant and nowhere else.
         public class ParticipantInput
         {
             [StringLength(100)]
-            public string Name { get; set; } = string.Empty;
+            public string? Name { get; set; }
 
             [StringLength(100)]
-            public string Surname { get; set; } = string.Empty;
+            public string? Surname { get; set; }
 
             [StringLength(20)]
             public string? IdNumber { get; set; }
 
             public string? AttendanceType { get; set; }
-            public string GunType { get; set; } = string.Empty;
+            public string? GunType { get; set; }
             public string? RifleOwnership { get; set; }
             public string? Division { get; set; }
 
@@ -140,6 +146,13 @@ namespace POLK_DOTNET.Pages
 
             return Page();
         }
+
+        // Adding or removing a person leaves ?handler=… in the address bar, because those posts
+        // re-render the page instead of redirecting. Reloading from the address bar then arrives
+        // here as a GET, which would otherwise be a 400. Send them back to a clean form.
+        public IActionResult OnGetAddParticipant() => RedirectToPage(new { eventId = EventId });
+
+        public IActionResult OnGetRemoveParticipant() => RedirectToPage(new { eventId = EventId });
 
         // "Add another person" / "Remove". Both re-render the form rather than saving, so
         // they deliberately skip validation — the registrant is still filling it in. State
@@ -314,6 +327,11 @@ namespace POLK_DOTNET.Pages
                 p.Division = null;
                 p.OtherDivision = null;
                 p.ShootSelection = null;
+
+                // The competition inputs are hidden for a spectator, so anything the binder
+                // recorded against them is an error the registrant can neither see nor clear.
+                foreach (var field in SpectatorIrrelevantFields)
+                    ModelState.Remove($"{key}.{field}");
             }
             else
             {
@@ -351,6 +369,36 @@ namespace POLK_DOTNET.Pages
             if (string.IsNullOrWhiteSpace(p.SocialMediaConsent))
                 ModelState.AddModelError($"{key}.SocialMediaConsent", $"Select a social media consent option for {who}.");
         }
+
+        private static readonly string[] SpectatorIrrelevantFields =
+            { "GunType", "RifleOwnership", "Division", "OtherDivision", "ShootSelection" };
+
+        // How many problems belong to one person's block, so their card can flag itself and the
+        // summary at the top of the form can link straight to it. A booking can run to twelve
+        // people, and "something is wrong somewhere below" is not a usable instruction.
+        public int ErrorCountFor(int index)
+        {
+            var prefix = $"Booking.Participants[{index}].";
+            return CountErrors(k => k.StartsWith(prefix, StringComparison.Ordinal));
+        }
+
+        // The same idea for the parts of the form that belong to nobody in particular, grouped
+        // the way the page is laid out so each one can be linked to by its section.
+        public int ContactErrorCount => CountErrors(k =>
+            k.StartsWith("Booking.", StringComparison.Ordinal) && !IsParticipantKey(k) && !IsMealsKey(k) && !IsPaymentKey(k));
+
+        public int MealsErrorCount => CountErrors(IsMealsKey);
+
+        public int PaymentErrorCount => CountErrors(IsPaymentKey);
+
+        private static bool IsParticipantKey(string k) => k.StartsWith("Booking.Participants[", StringComparison.Ordinal);
+        private static bool IsMealsKey(string k) => k.StartsWith("Booking.ExtraMeals", StringComparison.Ordinal);
+        private static bool IsPaymentKey(string k) =>
+            k.StartsWith("Booking.PaymentMethod", StringComparison.Ordinal) ||
+            k.StartsWith("Booking.PaymentReference", StringComparison.Ordinal);
+
+        private int CountErrors(Func<string, bool> match) =>
+            ModelState.Where(kv => match(kv.Key)).Sum(kv => kv.Value?.Errors.Count ?? 0);
 
         private static EventParticipant ToEntity(Event ev, ParticipantInput p, int position) => new()
         {
