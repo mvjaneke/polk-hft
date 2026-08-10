@@ -111,21 +111,108 @@
             </div>
         }
 
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-6">
-            <div class="p-3 bg-gray-50 rounded text-center"><div class="text-2xl font-bold">@Model.TotalCount</div><div class="text-xs text-gray-600">Bookings</div></div>
-            <div class="p-3 bg-green-50 rounded text-center"><div class="text-2xl font-bold text-green-700">@Model.PaidCount</div><div class="text-xs text-gray-600">Paid</div></div>
-            <div class="p-3 bg-yellow-50 rounded text-center"><div class="text-2xl font-bold text-yellow-700">@Model.PendingCount</div><div class="text-xs text-gray-600">Pending</div></div>
-            <div class="p-3 bg-blue-50 rounded text-center"><div class="text-2xl font-bold text-blue-700">@Model.ConfirmedCount</div><div class="text-xs text-gray-600">Confirmed</div></div>
-            <div class="p-3 bg-red-50 rounded text-center"><div class="text-2xl font-bold text-red-700">@Model.CancelledCount</div><div class="text-xs text-gray-600">Cancelled</div></div>
+        @* Every figure below counts live bookings — cancelled is reported on its own and is in
+           no other number, so the status tiles add up to Bookings. *@
+        <p class="mt-6 text-xs text-gray-600">
+            Counts cover <strong>every booking except cancelled ones</strong>, paid or not.
+        </p>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-2">
+            <div class="p-3 bg-gray-50 rounded text-center">
+                <div class="text-2xl font-bold">@Model.BookingCount</div>
+                <div class="text-xs text-gray-600">Bookings</div>
+            </div>
+            <div class="p-3 bg-green-50 rounded text-center">
+                <div class="text-2xl font-bold text-green-700">@Model.PaidCount</div>
+                <div class="text-xs text-gray-600">Paid</div>
+            </div>
+            <div class="p-3 bg-yellow-50 rounded text-center">
+                <div class="text-2xl font-bold text-yellow-700">@Model.PendingCount</div>
+                <div class="text-xs text-gray-600">Pending</div>
+            </div>
+            <div class="p-3 bg-blue-50 rounded text-center">
+                <div class="text-2xl font-bold text-blue-700">@Model.ConfirmedCount</div>
+                <div class="text-xs text-gray-600">Confirmed</div>
+            </div>
+            <div class="p-3 bg-white border border-dashed border-gray-300 rounded text-center">
+                <div class="text-2xl font-bold text-gray-400">@Model.CancelledCount</div>
+                <div class="text-xs text-gray-500">Cancelled<br /><span class="text-[10px]">not in any count</span></div>
+            </div>
         </div>
+        @if (Model.OtherStatusCount != 0)
+        {
+            <p class="mt-2 text-xs text-amber-700">
+                @Model.OtherStatusCount booking(s) carry a status other than Paid, Pending or Confirmed, so the three tiles above do not add up to Bookings.
+            </p>
+        }
 
         <!-- Head counts across live bookings — what the range and the kitchen actually need -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-            <div class="p-3 bg-gray-50 rounded text-center"><div class="text-2xl font-bold">@Model.PeopleCount</div><div class="text-xs text-gray-600">People</div></div>
-            <div class="p-3 bg-gray-50 rounded text-center"><div class="text-2xl font-bold">@Model.CompetitorCount</div><div class="text-xs text-gray-600">Competitors</div></div>
-            <div class="p-3 bg-gray-50 rounded text-center"><div class="text-2xl font-bold">@Model.SpectatorCount</div><div class="text-xs text-gray-600">Spectators</div></div>
-            <div class="p-3 bg-gray-50 rounded text-center"><div class="text-2xl font-bold">@Model.MealsCount</div><div class="text-xs text-gray-600">Meals booked</div></div>
+            <div class="p-3 bg-gray-50 rounded text-center">
+                <div class="text-2xl font-bold">@Model.PeopleCount</div>
+                <div class="text-xs text-gray-600">People entered</div>
+                @if (Model.UniquePeopleCount != Model.PeopleCount)
+                {
+                    <div class="text-[11px] text-amber-700 font-semibold mt-0.5">@Model.UniquePeopleCount unique</div>
+                }
+            </div>
+            <div class="p-3 bg-gray-50 rounded text-center">
+                <div class="text-2xl font-bold">@Model.CompetitorCount</div>
+                <div class="text-xs text-gray-600">Competitors</div>
+                @if (Model.UniqueCompetitorCount != Model.CompetitorCount)
+                {
+                    <div class="text-[11px] text-amber-700 font-semibold mt-0.5">@Model.UniqueCompetitorCount unique</div>
+                }
+            </div>
+            <div class="p-3 bg-gray-50 rounded text-center">
+                <div class="text-2xl font-bold">@Model.SpectatorCount</div>
+                <div class="text-xs text-gray-600">Spectators</div>
+            </div>
+            <div class="p-3 bg-gray-50 rounded text-center">
+                <div class="text-2xl font-bold">@Model.MealsCount</div>
+                <div class="text-xs text-gray-600">Meals booked</div>
+            </div>
         </div>
+
+        @if (Model.HasRepeats)
+        {
+            <div class="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-4">
+                <p class="font-bold text-amber-900">
+                    @Model.Repeats.Count @(Model.Repeats.Count == 1 ? "person appears" : "people appear") more than once
+                </p>
+                <p class="text-sm text-amber-800 mt-1">
+                    The counts above show entries as registered. Check each one below and cancel the duplicate booking if it
+                    is a repeat &mdash; two shooters can share a name, so nothing has been merged for you.
+                    <strong>Pack for @Model.CompetitorCount competitors</strong> if you would rather have a spare than come up short.
+                </p>
+                <div class="mt-3 space-y-3">
+                    @foreach (var g in Model.Repeats)
+                    {
+                        <div class="bg-white border border-amber-200 rounded p-3">
+                            <p class="text-sm font-semibold text-gray-900">
+                                @g.Who
+                                <span class="ml-2 text-xs font-normal text-amber-800">
+                                    @g.Entries.Count entries &middot; same @g.MatchedOn
+                                </span>
+                            </p>
+                            <ul class="mt-1 text-xs text-gray-700 space-y-0.5">
+                                @foreach (var e in g.Entries)
+                                {
+                                    <li>
+                                        Booking <strong>#@e.BookingId</strong> &mdash; contact @e.Contact
+                                        <span class="text-gray-500">(@e.Status)</span>
+                                        @if (!string.IsNullOrWhiteSpace(e.Detail))
+                                        {
+                                            <span class="text-gray-500">&middot; @e.Detail</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
     </div>
 
     @if (Model.Event.UsesCourseSetup)

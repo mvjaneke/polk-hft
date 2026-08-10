@@ -17,6 +17,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
         {
             public Event Event { get; set; } = null!;
             public int Total { get; set; }
+            public int People { get; set; }
             public int Paid { get; set; }
             public int Pending { get; set; }
         }
@@ -27,16 +28,28 @@ namespace POLK_DOTNET.Pages.AdminEvents
                 return RedirectToPage("/Admin");
 
             var events = await _context.Events.OrderByDescending(e => e.StartDate).ToListAsync();
-            var regs = await _context.EventRegistrations
-                .GroupBy(r => r.EventId)
+            // Cancelled bookings are left out, and people are counted as well as bookings —
+            // one booking can now cover a whole party, so a booking count alone says nothing
+            // about how many bodies turn up.
+            //
+            // The head count is projected per booking and grouped in memory rather than summed
+            // inside a GroupBy: a per-row Participants.Count is an ordinary correlated subquery
+            // that always translates, whereas aggregating a collection navigation across a group
+            // is not guaranteed to, and this page only runs behind the admin login.
+            var regs = (await _context.EventRegistrations
+                    .Where(r => r.Status != "Cancelled")
+                    .Select(r => new { r.EventId, r.Status, People = r.Participants.Count })
+                    .ToListAsync())
+                .GroupBy(x => x.EventId)
                 .Select(g => new
                 {
                     EventId = g.Key,
                     Total = g.Count(),
-                    Paid = g.Count(r => r.Status == "Paid"),
-                    Pending = g.Count(r => r.Status == "Pending")
+                    People = g.Sum(x => x.People),
+                    Paid = g.Count(x => x.Status == "Paid"),
+                    Pending = g.Count(x => x.Status == "Pending")
                 })
-                .ToListAsync();
+                .ToList();
 
             Rows = events.Select(e =>
             {
@@ -45,6 +58,7 @@ namespace POLK_DOTNET.Pages.AdminEvents
                 {
                     Event = e,
                     Total = s?.Total ?? 0,
+                    People = s?.People ?? 0,
                     Paid = s?.Paid ?? 0,
                     Pending = s?.Pending ?? 0
                 };

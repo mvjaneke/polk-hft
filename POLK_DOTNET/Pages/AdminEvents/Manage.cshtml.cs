@@ -41,17 +41,48 @@ namespace POLK_DOTNET.Pages.AdminEvents
         public bool Shoot2Ready => Event.UseSameCourseForBothShoots ? Shoot1Configured : Shoot2Configured;
         public bool CourseConfigured => Shoot1Ready || Shoot2Ready;
 
-        public int TotalCount { get; private set; }
+        // Everything on this dashboard counts live bookings — every booking that has not been
+        // cancelled, paid or not. Cancelled is reported on its own and is in no other figure,
+        // so Paid + Pending + Confirmed adds up to BookingCount instead of the tiles quietly
+        // counting different populations.
+        public int BookingCount { get; private set; }
         public int PaidCount { get; private set; }
         public int PendingCount { get; private set; }
         public int ConfirmedCount { get; private set; }
         public int CancelledCount { get; private set; }
+        public int OtherStatusCount { get; private set; }
 
-        // Head counts across every non-cancelled booking.
+        // Head counts across live bookings. "Entries" is how many were registered; "unique" is
+        // how many people that looks like once repeats are taken out. They differ when somebody
+        // registers twice, which is the number that matters when buying or packing per head.
         public int PeopleCount { get; private set; }
         public int CompetitorCount { get; private set; }
         public int SpectatorCount { get; private set; }
         public int MealsCount { get; private set; }
+        public int UniquePeopleCount { get; private set; }
+        public int UniqueCompetitorCount { get; private set; }
+        public List<RepeatGroup> Repeats { get; private set; } = new();
+
+        public bool HasRepeats => Repeats.Count > 0;
+
+        // One human who appears on more than one entry.
+        public class RepeatGroup
+        {
+            public string Who { get; init; } = "";
+            // "ID number" or "name" — an ID match is all but certain, a name match is a question
+            // for the organiser, because two shooters really can share a name.
+            public string MatchedOn { get; init; } = "";
+            public bool IsCompetitor { get; init; }
+            public List<RepeatEntry> Entries { get; init; } = new();
+        }
+
+        public class RepeatEntry
+        {
+            public int BookingId { get; init; }
+            public string Contact { get; init; } = "";
+            public string Status { get; init; } = "";
+            public string Detail { get; init; } = "";
+        }
 
         // Starting-lane import state.
         public int LanesAssignedShoot1 { get; private set; }
@@ -685,19 +716,90 @@ namespace POLK_DOTNET.Pages.AdminEvents
                 .Where(r => r.EventId == Id)
                 .ToListAsync();
 
-            TotalCount = all.Count;
-            PaidCount = all.Count(r => r.Status == "Paid");
-            PendingCount = all.Count(r => r.Status == "Pending");
-            ConfirmedCount = all.Count(r => r.Status == "Confirmed");
             CancelledCount = all.Count(r => r.Status == "Cancelled");
 
             var live = all.Where(r => r.Status != "Cancelled").ToList();
+            BookingCount = live.Count;
+            PaidCount = live.Count(r => r.Status == "Paid");
+            PendingCount = live.Count(r => r.Status == "Pending");
+            ConfirmedCount = live.Count(r => r.Status == "Confirmed");
+            OtherStatusCount = BookingCount - PaidCount - PendingCount - ConfirmedCount;
+
             var people = live.SelectMany(r => r.Participants).ToList();
             PeopleCount = people.Count;
             CompetitorCount = people.Count(p => !p.IsSpectator);
             SpectatorCount = people.Count(p => p.IsSpectator);
             MealsCount = live.Sum(r => r.ExtraMeals);
+
+            Repeats = FindRepeats(live);
+            UniquePeopleCount = PeopleCount - Repeats.Sum(g => g.Entries.Count - 1);
+            UniqueCompetitorCount = CompetitorCount
+                - Repeats.Where(g => g.IsCompetitor).Sum(g => g.Entries.Count - 1);
         }
+
+        // Entries that look like the same person registering more than once — across separate
+        // bookings or twice on one. Matching is by ID number first, because that is decisive;
+        // whoever is left is matched on name, which is a hint rather than a verdict. Nothing is
+        // subtracted silently: the page lists each group so the organiser settles it, since
+        // guessing low here means a competitor arrives to no goodie bag.
+        private static List<RepeatGroup> FindRepeats(IEnumerable<EventRegistration> live)
+        {
+            var rows = live
+                .SelectMany(r => r.Participants.Select(p => (Reg: r, P: p)))
+                .ToList();
+
+            var groups = new List<RepeatGroup>();
+            var grouped = new HashSet<int>();
+
+            void Collect(IEnumerable<IGrouping<string, (EventRegistration Reg, EventParticipant P)>> buckets, string matchedOn)
+            {
+                foreach (var bucket in buckets.Where(b => b.Count() > 1))
+                {
+                    var members = bucket.ToList();
+                    groups.Add(new RepeatGroup
+                    {
+                        Who = members[0].P.FullName,
+                        MatchedOn = matchedOn,
+                        IsCompetitor = members.Any(m => !m.P.IsSpectator),
+                        Entries = members.Select(m => new RepeatEntry
+                        {
+                            BookingId = m.Reg.Id,
+                            Contact = $"{m.Reg.Name} {m.Reg.Surname}".Trim(),
+                            Status = m.Reg.Status ?? "",
+                            Detail = Describe(m.P)
+                        }).ToList()
+                    });
+
+                    foreach (var m in members) grouped.Add(m.P.Id);
+                }
+            }
+
+            Collect(rows.Where(x => !string.IsNullOrWhiteSpace(x.P.IdNumber))
+                        .GroupBy(x => NormId(x.P.IdNumber)),
+                    "ID number");
+
+            Collect(rows.Where(x => !grouped.Contains(x.P.Id))
+                        .Where(x => !string.IsNullOrWhiteSpace(x.P.FullName))
+                        .GroupBy(x => Norm(x.P.FullName)),
+                    "name");
+
+            return groups.OrderBy(g => g.Who).ToList();
+        }
+
+        // Enough detail next to a repeat to tell two same-named shooters apart at a glance.
+        private static string Describe(EventParticipant p)
+        {
+            var bits = new List<string>();
+            if (!string.IsNullOrWhiteSpace(p.IdNumber)) bits.Add($"ID {p.IdNumber}");
+            if (!string.IsNullOrWhiteSpace(p.SAHFTANumber)) bits.Add($"SAHFTA {p.SAHFTANumber}");
+            if (!string.IsNullOrWhiteSpace(p.ClubName)) bits.Add(p.ClubName!);
+            if (!string.IsNullOrWhiteSpace(p.Division)) bits.Add(p.Division!);
+            if (p.IsSpectator) bits.Add("spectator");
+            return string.Join(" · ", bits);
+        }
+
+        private static string NormId(string? s) =>
+            System.Text.RegularExpressions.Regex.Replace((s ?? "").Trim().ToUpperInvariant(), "[^A-Z0-9]", "");
 
         private async Task LoadRegistrationsAsync()
         {
