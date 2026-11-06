@@ -17,6 +17,93 @@ namespace POLK_DOTNET.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0-preview.3.24172.4");
 
+            modelBuilder.Entity("POLK_DOTNET.Data.ClubMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ComplexOrBuilding")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContactNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EmailAddress")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Gender")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IdNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsJunior")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Province")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SahftaNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool?>("SocialMediaConsent")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("StreetAddress")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Suburb")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Surname")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdNumber");
+
+                    b.ToTable("ClubMembers");
+                });
+
             modelBuilder.Entity("POLK_DOTNET.Data.CommitteeMember", b =>
                 {
                     b.Property<int>("Id")
@@ -504,6 +591,9 @@ namespace POLK_DOTNET.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("ClubMemberId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("ContactNumber")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -544,6 +634,10 @@ namespace POLK_DOTNET.Migrations
                     b.Property<decimal>("SahftaFee")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("SahftaNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Surname")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -551,9 +645,53 @@ namespace POLK_DOTNET.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ClubMemberId");
+
                     b.HasIndex("MembershipApplicationId");
 
                     b.ToTable("Members");
+                });
+
+            modelBuilder.Entity("POLK_DOTNET.Data.MemberYear", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ClubMemberId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("MembershipApplicationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("MembershipType")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PaidDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ShootingYearId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MembershipApplicationId");
+
+                    b.HasIndex("ShootingYearId");
+
+                    b.HasIndex("ClubMemberId", "ShootingYearId")
+                        .IsUnique();
+
+                    b.ToTable("MemberYears");
                 });
 
             modelBuilder.Entity("POLK_DOTNET.Data.MembershipApplication", b =>
@@ -561,6 +699,31 @@ namespace POLK_DOTNET.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("AccessToken")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("AdminFee")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AdminNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("AmountPaid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ApplicationType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ApprovalStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("City")
                         .IsRequired()
@@ -571,8 +734,35 @@ namespace POLK_DOTNET.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Flags")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("FlagsReviewed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("GuardianName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("MembershipFee")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("MembershipType")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PaidDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PostalCode")
@@ -584,6 +774,12 @@ namespace POLK_DOTNET.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("ShootingYearId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool?>("SocialMediaConsent")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -606,6 +802,10 @@ namespace POLK_DOTNET.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AccessToken");
+
+                    b.HasIndex("ShootingYearId");
 
                     b.ToTable("MembershipApplications");
                 });
@@ -634,6 +834,89 @@ namespace POLK_DOTNET.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("MembershipOptions");
+                });
+
+            modelBuilder.Entity("POLK_DOTNET.Data.MembershipReminderLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ClubMemberId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("EmailAddress")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ShootingYearId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShootingYearId");
+
+                    b.HasIndex("ClubMemberId", "ShootingYearId");
+
+                    b.ToTable("MembershipReminderLogs");
+                });
+
+            modelBuilder.Entity("POLK_DOTNET.Data.ShootingYear", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("FamilyFee")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("IndividualFee")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("NewMemberAdminFee")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("PensionerFee")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RenewalReminderDaysBefore")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("SahftaAdultFee")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("SahftaJuniorFee")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ShootingYears");
                 });
 
             modelBuilder.Entity("POLK_DOTNET.Data.SiteSettings", b =>
@@ -703,13 +986,80 @@ namespace POLK_DOTNET.Migrations
 
             modelBuilder.Entity("POLK_DOTNET.Data.Member", b =>
                 {
+                    b.HasOne("POLK_DOTNET.Data.ClubMember", "ClubMember")
+                        .WithMany()
+                        .HasForeignKey("ClubMemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("POLK_DOTNET.Data.MembershipApplication", "MembershipApplication")
                         .WithMany("Members")
                         .HasForeignKey("MembershipApplicationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("ClubMember");
+
                     b.Navigation("MembershipApplication");
+                });
+
+            modelBuilder.Entity("POLK_DOTNET.Data.MemberYear", b =>
+                {
+                    b.HasOne("POLK_DOTNET.Data.ClubMember", "ClubMember")
+                        .WithMany("Years")
+                        .HasForeignKey("ClubMemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("POLK_DOTNET.Data.MembershipApplication", "MembershipApplication")
+                        .WithMany()
+                        .HasForeignKey("MembershipApplicationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("POLK_DOTNET.Data.ShootingYear", "ShootingYear")
+                        .WithMany()
+                        .HasForeignKey("ShootingYearId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ClubMember");
+
+                    b.Navigation("MembershipApplication");
+
+                    b.Navigation("ShootingYear");
+                });
+
+            modelBuilder.Entity("POLK_DOTNET.Data.MembershipApplication", b =>
+                {
+                    b.HasOne("POLK_DOTNET.Data.ShootingYear", "ShootingYear")
+                        .WithMany()
+                        .HasForeignKey("ShootingYearId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ShootingYear");
+                });
+
+            modelBuilder.Entity("POLK_DOTNET.Data.MembershipReminderLog", b =>
+                {
+                    b.HasOne("POLK_DOTNET.Data.ClubMember", "ClubMember")
+                        .WithMany()
+                        .HasForeignKey("ClubMemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("POLK_DOTNET.Data.ShootingYear", "ShootingYear")
+                        .WithMany()
+                        .HasForeignKey("ShootingYearId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ClubMember");
+
+                    b.Navigation("ShootingYear");
+                });
+
+            modelBuilder.Entity("POLK_DOTNET.Data.ClubMember", b =>
+                {
+                    b.Navigation("Years");
                 });
 
             modelBuilder.Entity("POLK_DOTNET.Data.EventRegistration", b =>

@@ -1,370 +1,523 @@
 @page "/apply"
 @model POLK_DOTNET.Pages.ApplyModel
-@using System.Globalization
-@inject Microsoft.AspNetCore.Mvc.Rendering.IJsonHelper Json
-
+@using POLK_DOTNET.Data
+@using POLK_DOTNET.Services
 @{
     ViewData["Title"] = "Membership Application";
-    var costs = new
-    {
-        individual = Model.IndividualMembershipCost.ToString(CultureInfo.InvariantCulture),
-        family = Model.FamilyMembershipCost.ToString(CultureInfo.InvariantCulture),
-        pensioner = Model.PensionerMembershipCost.ToString(CultureInfo.InvariantCulture),
-        sahftaAdult = Model.SahftaAdultCost.ToString(CultureInfo.InvariantCulture),
-        sahftaChild = Model.SahftaChildCost.ToString(CultureInfo.InvariantCulture)
-    };
+    var year = Model.Year;
+    var people = Model.Input.People;
+    string R(decimal v) => MembershipService.Money(v);
 }
 
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold text-gray-900 mb-8">Membership Application</h1>
+<style>
+    .form-input {
+        display: block; width: 100%;
+        padding: 0.625rem 0.875rem; font-size: 1rem; line-height: 1.5; color: #111827;
+        background: #fff; border: 1px solid #d1d5db; border-radius: 0.5rem;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .form-input:focus { outline: none; border-color: #b91c1c; box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15); }
+    .input-validation-error.form-input, .form-input.input-error { border-color: #dc2626; background: #fffafa; }
+    .form-label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.375rem; }
+    .form-label .optional { font-weight: 400; color: #6b7280; }
+    .form-hint { font-size: 0.8125rem; color: #6b7280; margin-top: 0.25rem; }
+    .form-error { font-size: 0.8125rem; color: #b91c1c; margin-top: 0.25rem; display: block; }
+    .form-error:empty { display: none; }
 
-    <div asp-validation-summary="All" class="text-red-600 font-bold mb-4"></div>
+    .step { scroll-margin-top: 5rem; }
+    .step-head { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #b91c1c; }
+    .step-num {
+        flex: none; display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem;
+        border-radius: 999px; background: #b91c1c; color: #fff; font-weight: 700; font-size: 0.875rem;
+        transform: translateY(0.15rem);
+    }
+    .step-title { font-size: 1.125rem; font-weight: 700; color: #111827; }
+    .step-error .step-num { background: #7f1d1d; box-shadow: 0 0 0 3px #fecaca; }
 
-    <form method="post" class="space-y-8 bg-white p-8 rounded-lg shadow-md">
-        @Html.AntiForgeryToken()
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label for="membershipType" class="block text-sm font-medium text-gray-700">Membership Type</label>
-                <select id="membershipType" asp-for="MembershipApplication.MembershipType" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" onchange="handleMembershipTypeChange()" required>
-                    <option value="">Select a membership type</option>
-                    <option value="Individual">Individual (R@(Model.IndividualMembershipCost.ToString("F2")))</option>
-                    <option value="Family">Family (R@(Model.FamilyMembershipCost.ToString("F2")))</option>
-                    <option value="Pensioner">Pensioner (R@(Model.PensionerMembershipCost.ToString("F2")))</option>
-                </select>
-                <span asp-validation-for="MembershipApplication.MembershipType" class="text-red-600 text-sm"></span>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Total Amount Due</label>
-                <p id="totalAmountDisplay" class="mt-1 text-lg font-bold text-red-700">R0.00</p>
-                <p id="adminFeeDisplay" class="mt-1 text-sm text-gray-500 hidden"></p>
-                <input type="hidden" asp-for="MembershipApplication.TotalAmount" id="hiddenTotalAmount" />
-                <input type="hidden" id="hiddenAdminFee" value="0.00" />
-            </div>
-        </div>
+    .choice {
+        position: relative; display: flex; gap: 0.75rem; align-items: flex-start;
+        padding: 0.875rem 1rem; border: 1px solid #d1d5db; border-radius: 0.625rem;
+        background: #fff; cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .choice:hover { border-color: #b91c1c; }
+    .choice input { margin-top: 0.2rem; width: 1.05rem; height: 1.05rem; accent-color: #b91c1c; flex: none; }
+    .choice:has(input:checked) { border-color: #b91c1c; background: #fef2f2; box-shadow: inset 0 0 0 1px #b91c1c; }
+    .choice:has(input:focus-visible) { outline: 2px solid #b91c1c; outline-offset: 2px; }
+    .choice-title { font-weight: 700; color: #111827; }
+    .choice-text { font-size: 0.875rem; color: #4b5563; margin-top: 0.125rem; }
+    .choice-price { font-size: 1.375rem; font-weight: 800; color: #991b1b; letter-spacing: -0.01em; margin-top: 0.25rem; font-variant-numeric: tabular-nums; }
 
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Residential Address</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="md:col-span-2">
-                <label asp-for="MembershipApplication.StreetAddress" class="block text-sm font-medium text-gray-700">Street Address</label>
-                <input asp-for="MembershipApplication.StreetAddress" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" required placeholder="e.g. 123 Main Road" />
-                <span asp-validation-for="MembershipApplication.StreetAddress" class="text-red-600 text-sm"></span>
-            </div>
-            <div class="md:col-span-2">
-                <label asp-for="MembershipApplication.ComplexOrBuilding" class="block text-sm font-medium text-gray-700">Complex / Building Name (optional)</label>
-                <input asp-for="MembershipApplication.ComplexOrBuilding" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" placeholder="e.g. Unit 5, Sunrise Estate" />
-            </div>
-            <div>
-                <label asp-for="MembershipApplication.Suburb" class="block text-sm font-medium text-gray-700">Suburb</label>
-                <input asp-for="MembershipApplication.Suburb" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" required placeholder="e.g. Moreleta Park" />
-                <span asp-validation-for="MembershipApplication.Suburb" class="text-red-600 text-sm"></span>
-            </div>
-            <div>
-                <label asp-for="MembershipApplication.City" class="block text-sm font-medium text-gray-700">City / Town</label>
-                <input asp-for="MembershipApplication.City" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" required placeholder="e.g. Pretoria" />
-                <span asp-validation-for="MembershipApplication.City" class="text-red-600 text-sm"></span>
-            </div>
-            <div>
-                <label asp-for="MembershipApplication.Province" class="block text-sm font-medium text-gray-700">Province</label>
-                <select asp-for="MembershipApplication.Province" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" required>
-                    <option value="">Select a province</option>
-                    <option value="Eastern Cape">Eastern Cape</option>
-                    <option value="Free State">Free State</option>
-                    <option value="Gauteng">Gauteng</option>
-                    <option value="KwaZulu-Natal">KwaZulu-Natal</option>
-                    <option value="Limpopo">Limpopo</option>
-                    <option value="Mpumalanga">Mpumalanga</option>
-                    <option value="North West">North West</option>
-                    <option value="Northern Cape">Northern Cape</option>
-                    <option value="Western Cape">Western Cape</option>
-                </select>
-                <span asp-validation-for="MembershipApplication.Province" class="text-red-600 text-sm"></span>
-            </div>
-            <div>
-                <label asp-for="MembershipApplication.PostalCode" class="block text-sm font-medium text-gray-700">Postal Code</label>
-                <input asp-for="MembershipApplication.PostalCode" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" required placeholder="e.g. 0044" maxlength="10" />
-                <span asp-validation-for="MembershipApplication.PostalCode" class="text-red-600 text-sm"></span>
-            </div>
-        </div>
+    .person-card { border: 1px solid #e5e7eb; border-left: 4px solid #b91c1c; border-radius: 0.75rem; background: #fff; padding: 1.25rem; }
+    .person-card-error { border-color: #fca5a5; border-left-width: 6px; background: #fffbfb; }
+    .person-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; padding-bottom: 0.625rem; border-bottom: 1px solid #f3f4f6; }
+    .person-title { font-weight: 700; color: #111827; }
+    .person-role { font-weight: 400; color: #6b7280; font-size: 0.875rem; }
+    .fix-chip { display: inline-block; margin-left: 0.5rem; padding: 0.125rem 0.5rem; border-radius: 999px; background: #b91c1c; color: #fff; font-size: 0.6875rem; font-weight: 700; vertical-align: 0.1em; }
+    .link-btn { background: none; border: none; padding: 0; font-size: 0.875rem; color: #b91c1c; text-decoration: underline; cursor: pointer; }
+    .ghost-btn {
+        display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1.125rem;
+        font-size: 0.9375rem; font-weight: 600; color: #b91c1c; background: #fff;
+        border: 1px dashed #b91c1c; border-radius: 0.5rem; cursor: pointer;
+    }
+    .ghost-btn:hover { background: #fef2f2; }
+    .check { display: flex; gap: 0.625rem; align-items: flex-start; cursor: pointer; }
+    .check input { margin-top: 0.2rem; width: 1.05rem; height: 1.05rem; accent-color: #b91c1c; flex: none; }
 
-        <hr class="my-8 border-gray-200" />
+    .legal-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem 1.25rem; font-size: 0.875rem; color: #374151; line-height: 1.6; }
+    .legal-box li { margin-bottom: 0.375rem; padding-left: 0.25rem; }
+    .info-box { border: 1px solid #fde68a; background: #fffbeb; border-radius: 0.625rem; padding: 1rem 1.25rem; color: #78350f; font-size: 0.9375rem; }
+    .info-box table td { padding: 0.125rem 1.5rem 0.125rem 0; font-variant-numeric: tabular-nums; }
+    .bank-box { border: 1px solid #e5e7eb; background: #f9fafb; border-radius: 0.625rem; padding: 1rem 1.25rem; font-size: 0.9375rem; }
+    .bank-box dt { color: #6b7280; }
+    .bank-box dd { font-weight: 600; color: #111827; font-variant-numeric: tabular-nums; }
 
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Member Details</h2>
-        <div id="membersContainer" class="space-y-6">
-             @for (int i = 0; i < Model.MemberInputs.Count; i++)
+    /* The ticket: what you're paying for, kept in view while you fill the form in. It reacts to
+       the radio buttons with :has() alone, so it works without any script. The server works the
+       amount out again from the year's fees when the form is submitted. */
+    .ticket { background: #fff; border-radius: 0.875rem; box-shadow: 0 1px 2px rgba(17,24,39,.06), 0 8px 24px rgba(127,29,29,.10); overflow: hidden; }
+    .ticket-head { background: #991b1b; color: #fff; padding: 1.125rem 1.25rem 1rem; }
+    .ticket-club { font-size: 0.8125rem; color: #fecaca; }
+    .ticket-year { font-size: 2rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .ticket-dates { font-size: 0.8125rem; color: #fee2e2; margin-top: 0.25rem; }
+    .ticket-body { padding: 1rem 1.25rem 0.5rem; }
+    .ticket-row { display: none; justify-content: space-between; gap: 1rem; padding: 0.375rem 0; font-size: 0.9375rem; color: #1f2937; }
+    .ticket-row span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .ticket-row.muted { color: #6b7280; font-size: 0.875rem; }
+    .ticket-row.always { display: flex; }
+    .ticket-tear { position: relative; height: 1.5rem; margin: 0.25rem -1.25rem 0; }
+    .ticket-tear::before { content: ""; position: absolute; left: 1rem; right: 1rem; top: 50%; border-top: 2px dashed #e5e7eb; }
+    .ticket-tear::after, .ticket-tear > i {
+        content: ""; position: absolute; top: 50%; width: 1.25rem; height: 1.25rem; margin-top: -0.625rem;
+        border-radius: 999px; background: #f3f4f6;
+    }
+    .ticket-tear::after { right: -0.625rem; }
+    .ticket-tear > i { left: -0.625rem; }
+    .ticket-total { padding: 0.25rem 1.25rem 1.25rem; }
+    .ticket-total-label { font-size: 0.875rem; color: #6b7280; }
+    .total-figure { display: none; font-size: 2.25rem; font-weight: 800; color: #111827; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .total-prompt { font-size: 0.9375rem; color: #6b7280; padding-top: 0.25rem; }
+
+    .submit-btn {
+        display: flex; justify-content: center; width: 100%; padding: 0.9rem 1.5rem;
+        font-size: 1rem; font-weight: 700; color: #fff; background: #b91c1c;
+        border: none; border-radius: 0.625rem; cursor: pointer; transition: background .15s;
+    }
+    .submit-btn:hover { background: #991b1b; }
+    .submit-btn:focus-visible { outline: 3px solid #fca5a5; outline-offset: 2px; }
+
+    #problems:focus { outline: 2px solid #b91c1c; outline-offset: 3px; }
+    .jump-link { display: inline-block; margin: 0.25rem 0.375rem 0 0; padding: 0.125rem 0.5rem; border: 1px solid #b91c1c; border-radius: 0.375rem; font-weight: 600; text-decoration: none; color: #991b1b; }
+    .jump-link:hover { background: #b91c1c; color: #fff; }
+    .validation-list ul { list-style: disc; padding-left: 1.15rem; margin: 0; }
+
+    /* ---- What the radio buttons switch on and off ---- */
+    .when-family, .when-eft, .when-card, .guardian-block, .extra-person-note { display: none; }
+    form:has(#mt-Family:checked) .when-family { display: block; }
+    form:has(#mt-Individual:checked) .extra-person-note,
+    form:has(#mt-Pensioner:checked) .extra-person-note { display: block; }
+    form:has(#pm-EFT:checked) .when-eft { display: block; }
+    form:has(#pm-Card:checked) .when-card { display: block; }
+    form:has(.junior-box:checked) .guardian-block { display: block; }
+
+    form:has(#mt-Individual:checked) .fee-Individual,
+    form:has(#mt-Family:checked) .fee-Family,
+    form:has(#mt-Pensioner:checked) .fee-Pensioner,
+    form:has(#at-New:checked) .fee-admin,
+    form:has(#at-Renewal:checked) .fee-renewal { display: flex; }
+    form:has(input[name="Input.MembershipType"]:checked) .prompt-type { display: none; }
+
+    form:has(#mt-Individual:checked):has(#at-New:checked) .total-Individual-New,
+    form:has(#mt-Individual:checked):has(#at-Renewal:checked) .total-Individual-Renewal,
+    form:has(#mt-Family:checked):has(#at-New:checked) .total-Family-New,
+    form:has(#mt-Family:checked):has(#at-Renewal:checked) .total-Family-Renewal,
+    form:has(#mt-Pensioner:checked):has(#at-New:checked) .total-Pensioner-New,
+    form:has(#mt-Pensioner:checked):has(#at-Renewal:checked) .total-Pensioner-Renewal { display: block; }
+    form:has(input[name="Input.MembershipType"]:checked):has(input[name="Input.ApplicationType"]:checked) .total-prompt { display: none; }
+
+    @@media (prefers-reduced-motion: no-preference) {
+        .choice, .form-input { transition-duration: .15s; }
+    }
+</style>
+
+<div class="bg-gray-100 min-h-screen py-8">
+    <div class="max-w-6xl mx-auto px-4">
+
+        <header class="mb-6 max-w-3xl">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Join or renew your POLK membership</h1>
+            @if (year != null)
             {
-                <div class="member-form p-6 border border-gray-200 rounded-md relative" data-index="@i">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Member @(i + 1) @(Model.MemberInputs[i].IsPrimary ? "(Primary)" : "")</h3>
-                    @if (!Model.MemberInputs[i].IsPrimary)
+                <p class="text-gray-600 mt-2 text-lg">
+                    Membership for the @year.Name shooting year, @year.StartDate.ToString("d MMMM yyyy") to @year.EndDate.ToString("d MMMM yyyy").
+                </p>
+            }
+        </header>
+
+        @if (year == null)
+        {
+            <div class="bg-white rounded-xl shadow p-8 max-w-3xl">
+                <h2 class="text-xl font-bold text-gray-900 mb-2">Applications aren't open right now</h2>
+                <p class="text-gray-600">The membership fees for the coming year haven't been published yet. Please contact the club at <a class="text-red-700 underline" href="mailto:@MembershipService.AccountsEmail">@MembershipService.AccountsEmail</a>.</p>
+            </div>
+        }
+        else
+        {
+            @* Pinned to the handler-less URL: "Add family member" and "Remove" post to ?handler=…
+               and re-render, so a form without an action would keep posting to them. *@
+            <form method="post" asp-page="/Apply" novalidate class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] items-start">
+
+                <div class="bg-white rounded-xl shadow p-6 md:p-8 space-y-10">
+
+                    @if (!ViewData.ModelState.IsValid)
                     {
-                        <button type="button" onclick="removeMember(this)" class="absolute top-4 right-4 text-red-600 hover:text-red-800">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
+                        <div id="problems" class="rounded-lg border border-red-300 bg-red-50 p-4" role="alert" tabindex="-1">
+                            <p class="font-bold text-red-900">Your application hasn't been submitted yet</p>
+                            <p class="text-sm text-red-800 mt-1">Everything you entered has been kept. Fix what's marked below, then submit again.</p>
+                            <div asp-validation-summary="ModelOnly" class="validation-list text-sm text-red-800 mt-2"></div>
+                            <p class="text-sm text-red-900 mt-2">
+                                @if (Model.ErrorCount("Input.ApplicationType") + Model.ErrorCount("Input.MembershipType") > 0) { <a href="#step-membership" class="jump-link">Membership</a> }
+                                @for (var n = 0; n < people.Count; n++)
+                                {
+                                    if (Model.ErrorCount($"Input.People[{n}]") > 0)
+                                    {
+                                        var who = $"{people[n].FirstName} {people[n].Surname}".Trim();
+                                        <a href="#person-@n" class="jump-link">@(string.IsNullOrEmpty(who) ? $"Person {n + 1}" : who)</a>
+                                    }
+                                }
+                                @if (Model.ErrorCount("Input.StreetAddress") + Model.ErrorCount("Input.Suburb") + Model.ErrorCount("Input.City") + Model.ErrorCount("Input.Province") + Model.ErrorCount("Input.PostalCode") > 0) { <a href="#step-address" class="jump-link">Address</a> }
+                                @if (Model.ErrorCount("Input.SocialMediaConsent") + Model.ErrorCount("Input.DeclarationAgreed") + Model.ErrorCount("Input.Guardian") > 0) { <a href="#step-declaration" class="jump-link">Declaration</a> }
+                                @if (Model.ErrorCount("Input.PaymentMethod") > 0) { <a href="#step-payment" class="jump-link">Payment</a> }
+                            </p>
+                        </div>
                     }
-                    <input type="hidden" asp-for="MemberInputs[i].IsPrimary" />
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label asp-for="MemberInputs[i].FirstName" class="block text-sm font-medium text-gray-700">First Name</label>
-                            <input asp-for="MemberInputs[i].FirstName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                            <span asp-validation-for="MemberInputs[i].FirstName" class="text-red-600 text-sm"></span>
-                        </div>
-                        <div>
-                            <label asp-for="MemberInputs[i].Surname" class="block text-sm font-medium text-gray-700">Surname</label>
-                            <input asp-for="MemberInputs[i].Surname" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                            <span asp-validation-for="MemberInputs[i].Surname" class="text-red-600 text-sm"></span>
-                        </div>
-                        <div>
-                            <label asp-for="MemberInputs[i].IdNumber" class="block text-sm font-medium text-gray-700">ID Number</label>
-                            <input asp-for="MemberInputs[i].IdNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                            <span asp-validation-for="MemberInputs[i].IdNumber" class="text-red-600 text-sm"></span>
-                        </div>
-                        <div>
-                            <label asp-for="MemberInputs[i].Gender" class="block text-sm font-medium text-gray-700">Gender</label>
-                            <select asp-for="MemberInputs[i].Gender" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
-                                <option value="">Select Gender</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
-                            </select>
-                            <span asp-validation-for="MemberInputs[i].Gender" class="text-red-600 text-sm"></span>
-                        </div>
-                        <div>
-                            <label asp-for="MemberInputs[i].ContactNumber" class="block text-sm font-medium text-gray-700">Contact Number</label>
-                            <input asp-for="MemberInputs[i].ContactNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                            <span asp-validation-for="MemberInputs[i].ContactNumber" class="text-red-600 text-sm"></span>
-                        </div>
-                        <div>
-                            <label asp-for="MemberInputs[i].EmailAddress" class="block text-sm font-medium text-gray-700">Email Address</label>
-                            <input asp-for="MemberInputs[i].EmailAddress" type="email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-                            <span asp-validation-for="MemberInputs[i].EmailAddress" class="text-red-600 text-sm"></span>
-                        </div>
-                        <div class="col-span-full">
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" asp-for="MemberInputs[i].HasSahftaAffiliation" class="form-checkbox" onchange="toggleSahftaJunior(@i); updateCosts();" />
-                                <span class="ml-2 text-gray-700">SAHFTA Affiliation (R@(Model.SahftaAdultCost.ToString("F2")) Adult / R@(Model.SahftaChildCost.ToString("F2")) Child)</span>
-                            </label>
-                            <div class="ml-6 mt-1 hidden" id="sahftaJunior@(i)">
-                                <label class="inline-flex items-center">
-                                    <input type="checkbox" asp-for="MemberInputs[i].IsJunior" class="form-checkbox" onchange="updateCosts()" />
-                                    <span class="ml-2 text-gray-700">Is a Junior (under 18)</span>
+
+                    <!-- 1. New or renewal + type -->
+                    <section id="step-membership" class="step @(Model.ErrorCount("Input.ApplicationType") + Model.ErrorCount("Input.MembershipType") > 0 ? "step-error" : "")">
+                        <div class="step-head"><span class="step-num">1</span><h2 class="step-title">Your membership</h2></div>
+
+                        <fieldset>
+                            <legend class="form-label">Is this a new membership or a renewal?</legend>
+                            <div class="grid gap-3 sm:grid-cols-2">
+                                <label class="choice">
+                                    <input type="radio" id="at-New" asp-for="Input.ApplicationType" value="@ApplicationTypes.New" />
+                                    <span>
+                                        <span class="choice-title block">New member</span>
+                                        <span class="choice-text block">You're joining POLK for the first time. Includes the once-off registration and admin fee of @R(year.NewMemberAdminFee).</span>
+                                    </span>
+                                </label>
+                                <label class="choice">
+                                    <input type="radio" id="at-Renewal" asp-for="Input.ApplicationType" value="@ApplicationTypes.Renewal" />
+                                    <span>
+                                        <span class="choice-title block">Renewal</span>
+                                        <span class="choice-text block">You were a POLK member before. No admin fee.</span>
+                                    </span>
                                 </label>
                             </div>
+                            <span asp-validation-for="Input.ApplicationType" class="form-error"></span>
+                        </fieldset>
+
+                        <fieldset class="mt-6">
+                            <legend class="form-label">Membership type</legend>
+                            <div class="grid gap-3 sm:grid-cols-3">
+                                <label class="choice">
+                                    <input type="radio" id="mt-Individual" asp-for="Input.MembershipType" value="@MembershipTypes.Individual" />
+                                    <span>
+                                        <span class="choice-title block">Individual</span>
+                                        <span class="choice-price block">@R(year.IndividualFee)</span>
+                                        <span class="choice-text block">One person, for the year</span>
+                                    </span>
+                                </label>
+                                <label class="choice">
+                                    <input type="radio" id="mt-Family" asp-for="Input.MembershipType" value="@MembershipTypes.Family" />
+                                    <span>
+                                        <span class="choice-title block">Family</span>
+                                        <span class="choice-price block">@R(year.FamilyFee)</span>
+                                        <span class="choice-text block">Two or more people at one address</span>
+                                    </span>
+                                </label>
+                                <label class="choice">
+                                    <input type="radio" id="mt-Pensioner" asp-for="Input.MembershipType" value="@MembershipTypes.Pensioner" />
+                                    <span>
+                                        <span class="choice-title block">Pensioner</span>
+                                        <span class="choice-price block">@R(year.PensionerFee)</span>
+                                        <span class="choice-text block">One pensioner, for the year</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <span asp-validation-for="Input.MembershipType" class="form-error"></span>
+                        </fieldset>
+                    </section>
+
+                    <!-- 2. People -->
+                    <section id="step-people" class="step">
+                        <div class="step-head"><span class="step-num">2</span><h2 class="step-title">Who is joining</h2></div>
+
+                        <div class="space-y-5">
+                            @for (var i = 0; i < people.Count; i++)
+                            {
+                                var errs = Model.ErrorCount($"Input.People[{i}]");
+                                <div id="person-@i" class="person-card @(errs > 0 ? "person-card-error" : "") step">
+                                    <div class="person-head">
+                                        <p class="person-title">
+                                            Person @(i + 1)
+                                            <span class="person-role">@(i == 0 ? "(main contact)" : "")</span>
+                                            @if (errs > 0) { <span class="fix-chip">@errs to fix</span> }
+                                        </p>
+                                        @if (i > 0)
+                                        {
+                                            <button type="submit" class="link-btn" formaction="/apply?handler=RemovePerson&amp;index=@i" formnovalidate>Remove this person</button>
+                                        }
+                                    </div>
+
+                                    @if (i > 0)
+                                    {
+                                        <p class="extra-person-note mb-4 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900">
+                                            Only a family membership covers more than one person. Choose Family above, or remove this person.
+                                        </p>
+                                    }
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="form-label" asp-for="Input.People[i].FirstName">First name</label>
+                                            <input class="form-input" asp-for="Input.People[i].FirstName" autocomplete="@(i == 0 ? "given-name" : "off")" />
+                                            <span asp-validation-for="Input.People[i].FirstName" class="form-error"></span>
+                                        </div>
+                                        <div>
+                                            <label class="form-label" asp-for="Input.People[i].Surname">Surname</label>
+                                            <input class="form-input" asp-for="Input.People[i].Surname" autocomplete="@(i == 0 ? "family-name" : "off")" />
+                                            <span asp-validation-for="Input.People[i].Surname" class="form-error"></span>
+                                        </div>
+                                        <div>
+                                            <label class="form-label" asp-for="Input.People[i].IdNumber">ID number</label>
+                                            <input class="form-input" asp-for="Input.People[i].IdNumber" inputmode="numeric" />
+                                            <p class="form-hint">Passport number if you don't have a South African ID.</p>
+                                            <span asp-validation-for="Input.People[i].IdNumber" class="form-error"></span>
+                                        </div>
+                                        <div>
+                                            <label class="form-label" asp-for="Input.People[i].Gender">Gender</label>
+                                            <select class="form-input" asp-for="Input.People[i].Gender">
+                                                <option value="">Choose&hellip;</option>
+                                                <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                            <span asp-validation-for="Input.People[i].Gender" class="form-error"></span>
+                                        </div>
+                                        <div>
+                                            <label class="form-label" asp-for="Input.People[i].ContactNumber">Contact number @if (i > 0) { <span class="optional">(optional)</span> }</label>
+                                            <input class="form-input" asp-for="Input.People[i].ContactNumber" type="tel" autocomplete="@(i == 0 ? "tel" : "off")" />
+                                            <span asp-validation-for="Input.People[i].ContactNumber" class="form-error"></span>
+                                        </div>
+                                        <div>
+                                            <label class="form-label" asp-for="Input.People[i].EmailAddress">Email address @if (i > 0) { <span class="optional">(optional)</span> }</label>
+                                            <input class="form-input" asp-for="Input.People[i].EmailAddress" type="email" autocomplete="@(i == 0 ? "email" : "off")" />
+                                            <span asp-validation-for="Input.People[i].EmailAddress" class="form-error"></span>
+                                        </div>
+                                        <div>
+                                            <label class="form-label" asp-for="Input.People[i].SahftaNumber">SAHFTA membership number <span class="optional">(if you have one)</span></label>
+                                            <input class="form-input" asp-for="Input.People[i].SahftaNumber" />
+                                        </div>
+                                        <div class="flex items-end pb-2">
+                                            <label class="check">
+                                                <input type="checkbox" class="junior-box" asp-for="Input.People[i].IsJunior" />
+                                                <span class="text-gray-800">Under 18</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="when-family mt-5">
+                            @if (people.Count < ApplyModel.MaxPeople)
+                            {
+                                <button type="submit" class="ghost-btn" formaction="/apply?handler=AddPerson" formnovalidate>+ Add a family member</button>
+                            }
+                            <p class="form-hint mt-2">A family membership covers everyone listed here, for one fee.</p>
+                        </div>
+
+                        <div class="info-box mt-6">
+                            <p class="font-bold text-amber-900">SAHFTA affiliation is optional and paid to SAHFTA</p>
+                            <p class="mt-1">Join SAHFTA if you want your scores on the SAHFTA rankings and to shoot national competitions. POLK doesn't collect this fee. Pay SAHFTA directly, then send the proof of payment to both POLK and SAHFTA.</p>
+                            <table class="mt-2">
+                                <tr><td>Adult</td><td>@R(year.SahftaAdultFee)</td></tr>
+                                <tr><td>Junior (under 18)</td><td>@R(year.SahftaJuniorFee)</td></tr>
+                            </table>
+                            <p class="mt-2 text-sm">SAHFTA confirms its own prices. <a class="underline font-semibold" href="https://sahfta.org.za" target="_blank" rel="noopener">Join or renew at sahfta.org.za</a></p>
+                        </div>
+                    </section>
+
+                    <!-- 3. Address -->
+                    <section id="step-address" class="step">
+                        <div class="step-head"><span class="step-num">3</span><h2 class="step-title">Residential address</h2></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="sm:col-span-2">
+                                <label class="form-label" asp-for="Input.StreetAddress">Street address</label>
+                                <input class="form-input" asp-for="Input.StreetAddress" autocomplete="address-line1" />
+                                <span asp-validation-for="Input.StreetAddress" class="form-error"></span>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="form-label" asp-for="Input.ComplexOrBuilding">Complex or building <span class="optional">(optional)</span></label>
+                                <input class="form-input" asp-for="Input.ComplexOrBuilding" autocomplete="address-line2" />
+                            </div>
+                            <div>
+                                <label class="form-label" asp-for="Input.Suburb">Suburb</label>
+                                <input class="form-input" asp-for="Input.Suburb" />
+                                <span asp-validation-for="Input.Suburb" class="form-error"></span>
+                            </div>
+                            <div>
+                                <label class="form-label" asp-for="Input.City">City or town</label>
+                                <input class="form-input" asp-for="Input.City" autocomplete="address-level2" />
+                                <span asp-validation-for="Input.City" class="form-error"></span>
+                            </div>
+                            <div>
+                                <label class="form-label" asp-for="Input.Province">Province</label>
+                                <select class="form-input" asp-for="Input.Province">
+                                    <option value="">Choose&hellip;</option>
+                                    @foreach (var p in ApplyModel.Provinces)
+                                    {
+                                        <option value="@p">@p</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="Input.Province" class="form-error"></span>
+                            </div>
+                            <div>
+                                <label class="form-label" asp-for="Input.PostalCode">Postal code</label>
+                                <input class="form-input" asp-for="Input.PostalCode" inputmode="numeric" autocomplete="postal-code" />
+                                <span asp-validation-for="Input.PostalCode" class="form-error"></span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 4. Declaration -->
+                    <section id="step-declaration" class="step @(Model.ErrorCount("Input.SocialMediaConsent") + Model.ErrorCount("Input.DeclarationAgreed") + Model.ErrorCount("Input.Guardian") > 0 ? "step-error" : "")">
+                        <div class="step-head"><span class="step-num">4</span><h2 class="step-title">Declaration</h2></div>
+
+                        <ul class="legal-box list-disc pl-8">
+                            <li>I acknowledge and understand that Field Target Shooting may potentially be a dangerous sport, and declare that my participation is wholly at my own risk.</li>
+                            <li>I agree to abide by the club's constitution and rules.</li>
+                            <li>I agree to familiarise myself with the SAHFTA Rules and Regulations.</li>
+                            <li>I indemnify the Pretoria East Airgun Field Target Club, its members, office bearers, or any other person representing the club from any blame.</li>
+                            <li>I surrender my rights to any claim whatsoever that may arise out of action or neglect of any of the persons mentioned here.</li>
+                        </ul>
+
+                        <label class="check mt-4">
+                            <input type="checkbox" asp-for="Input.DeclarationAgreed" />
+                            <span class="text-gray-900 font-medium">I accept this declaration for myself@(people.Count > 1 ? " and the people on this application" : "").</span>
+                        </label>
+                        <span asp-validation-for="Input.DeclarationAgreed" class="form-error"></span>
+
+                        <fieldset class="mt-6">
+                            <legend class="form-label">May photos of you@(people.Count > 1 ? " and your family" : "") taken at club events be published on social media or used in marketing material?</legend>
+                            <div class="grid gap-3 sm:grid-cols-2">
+                                <label class="choice">
+                                    <input type="radio" asp-for="Input.SocialMediaConsent" value="yes" />
+                                    <span class="choice-title">Yes, they may be published</span>
+                                </label>
+                                <label class="choice">
+                                    <input type="radio" asp-for="Input.SocialMediaConsent" value="no" />
+                                    <span class="choice-title">No, please don't publish them</span>
+                                </label>
+                            </div>
+                            <span asp-validation-for="Input.SocialMediaConsent" class="form-error"></span>
+                        </fieldset>
+
+                        <div class="guardian-block mt-6 rounded-lg border border-gray-200 p-4">
+                            <p class="font-semibold text-gray-900">Parent or legal guardian</p>
+                            <p class="form-hint mb-3">Someone on this application is under 18, so a parent or legal guardian must accept the declaration for them.</p>
+                            <label class="form-label" asp-for="Input.GuardianName">Parent or guardian's full name</label>
+                            <input class="form-input" asp-for="Input.GuardianName" />
+                            <span asp-validation-for="Input.GuardianName" class="form-error"></span>
+                            <label class="check mt-3">
+                                <input type="checkbox" asp-for="Input.GuardianConsent" />
+                                <span class="text-gray-900">I am the parent or legal guardian and I accept the declaration on behalf of the members under 18.</span>
+                            </label>
+                            <span asp-validation-for="Input.GuardianConsent" class="form-error"></span>
+                        </div>
+                    </section>
+
+                    <!-- 5. Payment -->
+                    <section id="step-payment" class="step @(Model.ErrorCount("Input.PaymentMethod") > 0 ? "step-error" : "")">
+                        <div class="step-head"><span class="step-num">5</span><h2 class="step-title">How you'll pay</h2></div>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <label class="choice">
+                                <input type="radio" id="pm-Card" asp-for="Input.PaymentMethod" value="Card" />
+                                <span>
+                                    <span class="choice-title block">Card, online now</span>
+                                    <span class="choice-text block">You'll go to a secure payment page after submitting.</span>
+                                </span>
+                            </label>
+                            <label class="choice">
+                                <input type="radio" id="pm-EFT" asp-for="Input.PaymentMethod" value="EFT" />
+                                <span>
+                                    <span class="choice-title block">EFT (bank transfer)</span>
+                                    <span class="choice-text block">Pay from your bank and email us the proof of payment.</span>
+                                </span>
+                            </label>
+                        </div>
+                        <span asp-validation-for="Input.PaymentMethod" class="form-error"></span>
+
+                        <div class="when-eft mt-4 bank-box">
+                            <p class="font-semibold text-gray-900 mb-2">Bank details</p>
+                            <dl class="grid grid-cols-[8rem_1fr] gap-y-1">
+                                <dt>Account name</dt><dd>@Model.Bank.AccountName</dd>
+                                <dt>Bank</dt><dd>@Model.Bank.BankName</dd>
+                                <dt>Account number</dt><dd>@Model.Bank.AccountNumber</dd>
+                                <dt>Branch code</dt><dd>@Model.Bank.BranchCode</dd>
+                            </dl>
+                            <p class="form-hint mt-2">You'll get your payment reference after submitting. Send the proof of payment to @Model.Bank.ProofOfPaymentEmail.</p>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- The ticket -->
+                <aside class="lg:sticky lg:top-6 space-y-4" aria-label="Amount due">
+                    <div class="ticket">
+                        <div class="ticket-head">
+                            <p class="ticket-club">POLK membership</p>
+                            <p class="ticket-year">@year.Name</p>
+                            <p class="ticket-dates">@year.StartDate.ToString("d MMM yyyy") to @year.EndDate.ToString("d MMM yyyy")</p>
+                        </div>
+                        <div class="ticket-body">
+                            <div class="ticket-row fee-Individual"><span>Individual membership</span><span>@R(year.IndividualFee)</span></div>
+                            <div class="ticket-row fee-Family"><span>Family membership</span><span>@R(year.FamilyFee)</span></div>
+                            <div class="ticket-row fee-Pensioner"><span>Pensioner membership</span><span>@R(year.PensionerFee)</span></div>
+                            <div class="ticket-row muted always prompt-type"><span>Membership type not chosen yet</span><span></span></div>
+                            <div class="ticket-row fee-admin"><span>Once-off admin fee</span><span>@R(year.NewMemberAdminFee)</span></div>
+                            <div class="ticket-row muted fee-renewal"><span>Admin fee</span><span>Not charged</span></div>
+                        </div>
+                        <div class="ticket-tear" aria-hidden="true"><i></i></div>
+                        <div class="ticket-total">
+                            <p class="ticket-total-label">Total due</p>
+                            @foreach (var t in MembershipTypes.All)
+                            {
+                                foreach (var a in new[] { ApplicationTypes.New, ApplicationTypes.Renewal })
+                                {
+                                    <p class="total-figure total-@t-@a">@R(MembershipService.Price(year, t, a).Total)</p>
+                                }
+                            }
+                            <p class="total-prompt">Choose new or renewal and a membership type to see your total.</p>
                         </div>
                     </div>
-                </div>
-            }
-        </div>
 
-        <button type="button" id="addMemberButton" onclick="addMember()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 hidden">Add Another Member (Family)</button>
-
-        <hr class="my-8 border-gray-200" />
-
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Declaration</h2>
-        <div class="border border-gray-200 p-6 rounded-md space-y-4">
-            <p>I, the undersigned, acknowledge and understand that Field Target Shooting may potentially be a dangerous sport, and hereby declare that my participation is wholly at my own risk.</p>
-            <p>I agree to abide by the club's constitution and rules.</p>
-            <p>I agree to familiarize myself with SAHFTA Rules and Regulations.</p>
-            <p>I furthermore indemnify the Pretoria East Airgun Field Target Club, its members, office bearers, or any other person representing the club from any blame.</p>
-            <p>I also surrender my rights to any claim whatsoever that may arise out of action or neglect of any of the persons mentioned herein.</p>
-            <label class="inline-flex items-center">
-                <input type="checkbox" asp-for="DeclarationAgreed" value="true" class="form-checkbox" />
-                <span class="ml-2 text-gray-700">I agree to the above terms and conditions.</span>
-            </label>
-            <span asp-validation-for="DeclarationAgreed" class="text-red-600 text-sm"></span>
-        </div>
-
-        <button type="submit" class="w-full px-6 py-3 bg-red-700 text-white font-semibold rounded-md hover:bg-red-800">Submit Application</button>
-    </form>
+                    <button type="submit" class="submit-btn">Submit application</button>
+                    <p class="text-xs text-gray-500 when-card">After submitting you'll go to the secure card payment page.</p>
+                    <p class="text-xs text-gray-500 when-eft">After submitting you'll see the payment reference to use. We'll email it to you as well.</p>
+                </aside>
+            </form>
+        }
+    </div>
 </div>
 
 @section Scripts {
     <script>
-        const costs = @Html.Raw(Json.Serialize(costs));
-        let memberCounter = @Model.MemberInputs.Count;
-
-        document.addEventListener('DOMContentLoaded', function () {
-            // Attach event listener to the primary applicant's ID number field
-            const primaryIdInput = document.querySelector('input[name="MemberInputs[0].IdNumber"]');
-            if (primaryIdInput) {
-                primaryIdInput.addEventListener('blur', updateAdminFee);
-            }
-
-            updateCosts();
-            toggleAddMemberButton();
-            document.querySelectorAll('.member-form').forEach((form, index) => {
-                toggleSahftaJunior(index);
-            });
-        });
-
-        async function updateAdminFee() {
-            const primaryIdInput = document.querySelector('input[name="MemberInputs[0].IdNumber"]');
-            const hiddenAdminFeeInput = document.getElementById('hiddenAdminFee');
-            const adminFeeDisplay = document.getElementById('adminFeeDisplay');
-
-            if (primaryIdInput && primaryIdInput.value) {
-                const idNumber = primaryIdInput.value;
-                try {
-                    const response = await fetch(`/api/members/check-existence?idNumber=${idNumber}`);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    const data = await response.json();
-
-                    if (data.memberExists) {
-                        hiddenAdminFeeInput.value = "0.00";
-                        adminFeeDisplay.classList.add('hidden');
-                        adminFeeDisplay.innerText = "";
-                    } else {
-                        hiddenAdminFeeInput.value = data.adminFee.toFixed(2);
-                        adminFeeDisplay.classList.remove('hidden');
-                        adminFeeDisplay.innerText = `Once-off Admin Fee: R${data.adminFee.toFixed(2)}`;
-                    }
-                } catch (error) {
-                    console.error('Error fetching admin fee:', error);
-                }
-            } else {
-                // If ID input is empty, reset admin fee
-                hiddenAdminFeeInput.value = "0.00";
-                adminFeeDisplay.classList.add('hidden');
-                adminFeeDisplay.innerText = "";
-            }
-            updateCosts();
-        }
-
-        function updateCosts() {
-            let totalAmount = 0;
-            const membershipType = document.getElementById('membershipType').value;
-            const adminFeeInput = document.getElementById('hiddenAdminFee');
-            const adminFee = adminFeeInput ? parseFloat(adminFeeInput.value) : 0;
-
-            if (membershipType === "Individual") {
-                totalAmount += parseFloat(costs.individual);
-            } else if (membershipType === "Family") {
-                totalAmount += parseFloat(costs.family);
-            } else if (membershipType === "Pensioner") {
-                totalAmount += parseFloat(costs.pensioner);
-            }
-
-            document.querySelectorAll('.member-form').forEach(memberForm => {
-                const hasSahftaAffiliationCheckbox = memberForm.querySelector(`input[name$=".HasSahftaAffiliation"]`);
-                const isJuniorCheckbox = memberForm.querySelector(`input[name$=".IsJunior"]`);
-
-                if (hasSahftaAffiliationCheckbox && hasSahftaAffiliationCheckbox.checked) {
-                    totalAmount += (isJuniorCheckbox && isJuniorCheckbox.checked) ? parseFloat(costs.sahftaChild) : parseFloat(costs.sahftaAdult);
-                }
-            });
-            
-            totalAmount += adminFee;
-
-            document.getElementById('totalAmountDisplay').innerText = `R${totalAmount.toFixed(2)}`;
-            document.getElementById('hiddenTotalAmount').value = totalAmount.toFixed(2);
-        }
-
-        function toggleSahftaJunior(index) {
-            const hasSahftaAffiliationCheckbox = document.querySelector(`input[name="MemberInputs[${index}].HasSahftaAffiliation"]`);
-            const sahftaJuniorDiv = document.getElementById(`sahftaJunior${index}`);
-            if (sahftaJuniorDiv) {
-                if (hasSahftaAffiliationCheckbox && hasSahftaAffiliationCheckbox.checked) {
-                    sahftaJuniorDiv.classList.remove('hidden');
-                } else {
-                    sahftaJuniorDiv.classList.add('hidden');
-                    const isJuniorCheckbox = sahftaJuniorDiv.querySelector(`input[name="MemberInputs[${index}].IsJunior"]`);
-                    if (isJuniorCheckbox) {
-                        isJuniorCheckbox.checked = false;
-                    }
-                }
-            }
-            updateCosts();
-        }
-        
-        function handleMembershipTypeChange() {
-            updateCosts();
-            toggleAddMemberButton();
-        }
-
-        function addMember() {
-            const membersContainer = document.getElementById('membersContainer');
-            const newIndex = memberCounter++;
-
-            const newMemberHtml = `
-                <div class="member-form p-6 border border-gray-200 rounded-md relative mt-6" data-index="${newIndex}">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Member ${newIndex + 1}</h3>
-                    <button type="button" onclick="removeMember(this)" class="absolute top-4 right-4 text-red-600 hover:text-red-800"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
-                    <input type="hidden" name="MemberInputs[${newIndex}].IsPrimary" value="false" />
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label for="MemberInputs_${newIndex}__FirstName" class="block text-sm font-medium text-gray-700">First Name</label><input id="MemberInputs_${newIndex}__FirstName" name="MemberInputs[${newIndex}].FirstName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
-                        <div><label for="MemberInputs_${newIndex}__Surname" class="block text-sm font-medium text-gray-700">Surname</label><input id="MemberInputs_${newIndex}__Surname" name="MemberInputs[${newIndex}].Surname" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
-                        <div><label for="MemberInputs_${newIndex}__IdNumber" class="block text-sm font-medium text-gray-700">ID Number</label><input id="MemberInputs_${newIndex}__IdNumber" name="MemberInputs[${newIndex}].IdNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
-                        <div><label for="MemberInputs_${newIndex}__Gender" class="block text-sm font-medium text-gray-700">Gender</label><select id="MemberInputs_${newIndex}__Gender" name="MemberInputs[${newIndex}].Gender" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required><option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
-                        <div><label for="MemberInputs_${newIndex}__ContactNumber" class="block text-sm font-medium text-gray-700">Contact Number</label><input id="MemberInputs_${newIndex}__ContactNumber" name="MemberInputs[${newIndex}].ContactNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
-                        <div><label for="MemberInputs_${newIndex}__EmailAddress" class="block text-sm font-medium text-gray-700">Email Address</label><input id="MemberInputs_${newIndex}__EmailAddress" name="MemberInputs[${newIndex}].EmailAddress" type="email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
-                        <div class="col-span-full">
-                            <label class="inline-flex items-center"><input type="checkbox" id="MemberInputs_${newIndex}__HasSahftaAffiliation" name="MemberInputs[${newIndex}].HasSahftaAffiliation" value="true" class="form-checkbox" onchange="toggleSahftaJunior(${newIndex}); updateCosts();" /> <span class="ml-2 text-gray-700">SAHFTA Affiliation (R${costs.sahftaAdult} Adult / R${costs.sahftaChild} Child)</span></label>
-                            <div class="ml-6 mt-1 hidden" id="sahftaJunior${newIndex}"><label class="inline-flex items-center"><input type="checkbox" id="MemberInputs_${newIndex}__IsJunior" name="MemberInputs[${newIndex}].IsJunior" value="true" class="form-checkbox" onchange="updateCosts()" /> <span class="ml-2 text-gray-700">Is a Junior (under 18)</span></label></div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            membersContainer.insertAdjacentHTML('beforeend', newMemberHtml);
-            toggleSahftaJunior(newIndex);
-            updateCosts();
-        }
-
-        function removeMember(button) {
-            button.closest('.member-form').remove();
-            memberCounter = 0;
-            document.querySelectorAll('.member-form').forEach((form) => {
-                const newIndex = memberCounter++;
-                form.dataset.index = newIndex;
-                const isPrimary = form.querySelector('input[name$=".IsPrimary"]').value === 'true';
-                form.querySelector('h3').innerText = `Member ${newIndex + 1} ${isPrimary ? '(Primary)' : ''}`;
-                
-                form.querySelectorAll('[name]').forEach(input => {
-                    const name = input.getAttribute('name');
-                    if (name) {
-                        const newName = name.replace(/\[\d+\]/, `[${newIndex}]`);
-                        input.setAttribute('name', newName);
-                    }
-                });
-
-                form.querySelectorAll('[id]').forEach(input => {
-                    const id = input.getAttribute('id');
-                    if (id) {
-                         const newId = id.replace(/_\d+__/, `_${newIndex}__`).replace(/Junior\d+/, `Junior${newIndex}`);
-                        input.setAttribute('id', newId);
-                    }
-                });
-                
-                form.querySelectorAll('label[for]').forEach(label => {
-                     const htmlFor = label.getAttribute('for');
-                    if (htmlFor) {
-                        const newFor = htmlFor.replace(/_\d+__/, `_${newIndex}__`);
-                        label.setAttribute('for', newFor);
-                    }
-                });
-
-                const sahftaAffiliationCheckbox = form.querySelector(`input[id^="MemberInputs_${newIndex}__HasSahftaAffiliation"]`);
-                if(sahftaAffiliationCheckbox) {
-                    sahftaAffiliationCheckbox.setAttribute('onchange', `toggleSahftaJunior(${newIndex}); updateCosts();`);
-                }
-            });
-            updateCosts();
-        }
-
-        function toggleAddMemberButton() {
-            const membershipType = document.getElementById('membershipType').value;
-            const addMemberButton = document.getElementById('addMemberButton');
-            const memberForms = document.querySelectorAll('.member-form');
-            if (membershipType === "Family") {
-                addMemberButton.classList.remove('hidden');
-            } else {
-                addMemberButton.classList.add('hidden');
-                for (let i = memberForms.length - 1; i > 0; i--) {
-                    memberForms[i].remove();
-                }
-                memberCounter = memberForms.length > 0 ? 1 : 0;
-            }
-        }
+        // A rejected submit re-renders from the top. Bring the list of problems into view and
+        // focus it, so it is announced as well as seen. Nothing else on this page uses script.
+        (function () {
+            var problems = document.getElementById('problems');
+            if (!problems) return;
+            var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            problems.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+            problems.focus({ preventScroll: true });
+        })();
     </script>
 }

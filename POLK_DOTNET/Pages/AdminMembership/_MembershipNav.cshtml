@@ -1,0 +1,30 @@
+@model string
+@{
+    var items = new[]
+    {
+        ("applications", "Applications", "/admin/membership"),
+        ("members", "Members", "/admin/membership/members"),
+        ("years", "Shooting years & fees", "/admin/membership/years"),
+        ("reminders", "Renewal reminders", "/admin/membership/reminders"),
+    };
+}
+<div class="mb-6">
+    <a href="/admin" class="text-sm text-gray-500 hover:underline">&larr; Admin Dashboard</a>
+    <h1 class="text-3xl md:text-4xl font-bold mt-1 text-gray-900">Membership</h1>
+    <nav class="mt-4 border-b border-gray-200 flex flex-wrap gap-x-8" aria-label="Membership sections">
+        @foreach (var (key, label, href) in items)
+        {
+            var active = key == Model;
+            <a href="@href" class="py-3 -mb-px border-b-2 text-sm font-medium @(active ? "border-red-700 text-red-800" : "border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300")" aria-current="@(active ? "page" : null)">@label</a>
+        }
+    </nav>
+</div>
+
+@if (ViewData["Message"] is string msg && !string.IsNullOrEmpty(msg))
+{
+    <div class="mb-5 rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-green-900" role="status">@msg</div>
+}
+@if (ViewData["ErrorMessage"] is string err && !string.IsNullOrEmpty(err))
+{
+    <div class="mb-5 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-900" role="alert">@err</div>
+}

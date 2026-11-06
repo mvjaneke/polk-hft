@@ -25,6 +25,9 @@ else
                 <a href="/admin/events" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
                     Event Management &rarr;
                 </a>
+                <a href="/admin/membership" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    Membership &rarr;
+                </a>
                 <a asp-page="/Admin" asp-route-ActiveTab="gallery" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm @(Model.ActiveTab == "gallery" ? "border-red-700 text-red-800" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")">
                     Gallery Management
                 </a>
@@ -236,6 +239,11 @@ else
             {
                 <div>
                     <h2 class="text-2xl font-bold mb-4">Membership Option Management</h2>
+                    <p class="mb-6 max-w-3xl rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                        These cards only appear on the home page. What the Apply page charges is set per shooting year under
+                        <a href="/admin/membership/years" class="underline font-semibold">Membership &rarr; Shooting years &amp; fees</a>.
+                        If you change a fee there, update the matching card here too.
+                    </p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
                             <h3 class="text-xl font-semibold mb-3">Add New Option</h3>
@@ -282,56 +290,10 @@ else
 
             @if (Model.ActiveTab == "applications")
             {
-                <div>
-                    <h2 class="text-2xl font-bold mb-4">Membership Applications</h2>
-                    <div class="overflow-x-auto bg-white rounded-lg shadow-md">
-                        <table class="w-full mt-2">
-                            <thead>
-                                <tr class="border-b">
-                                    <th class="text-left p-4">ID</th>
-                                    <th class="text-left p-4">Type</th>
-                                    <th class="text-left p-4">Total</th>
-                                    <th class="text-left p-4">Status</th>
-                                    <th class="text-left p-4">Submitted</th>
-                                    <th class="text-left p-4">Members</th>
-                                    <th class="text-left p-4">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var app in Model.MembershipApplications)
-                                {
-                                    <tr class="border-b last:border-none">
-                                        <td class="p-4">@app.Id</td>
-                                        <td class="p-4">@app.MembershipType</td>
-                                        <td class="p-4">@($"R{app.TotalAmount:F2}")</td>
-                                        <td class="p-4">@app.Status</td>
-                                        <td class="p-4">@app.SubmittedDate.ToShortDateString()</td>
-                                        <td class="p-4">
-                                            @foreach (var member in app.Members)
-                                            {
-                                                <div>@member.FirstName @member.Surname (@member.EmailAddress)</div>
-                                            }
-                                        </td>
-                                        <td class="p-4 flex items-center space-x-2">
-                                            @if (app.Status == "Pending")
-                                            {
-                                                <form method="post" asp-page-handler="ApproveApplication" asp-route-id="@app.Id">
-                                                    <button type="submit" class="text-green-500 hover:underline bg-transparent border-none p-0">Approve</button>
-                                                </form>
-                                                <form method="post" asp-page-handler="RejectApplication" asp-route-id="@app.Id">
-                                                    <button type="submit" class="text-red-500 hover:underline bg-transparent border-none p-0">Reject</button>
-                                                </form>
-                                            }
-                                            else
-                                            {
-                                                <span>@app.Status</span>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="max-w-2xl bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold mb-2">Membership Applications</h2>
+                    <p class="text-gray-700 mb-4">Applications, the member list, shooting-year fees and renewal reminders now live in the Membership section.</p>
+                    <a href="/admin/membership" class="inline-block px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-800">Open Membership</a>
                 </div>
             }
 

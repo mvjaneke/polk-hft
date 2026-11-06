@@ -1,0 +1,109 @@
+@page "/admin/membership/members"
+@model POLK_DOTNET.Pages.AdminMembership.MembersModel
+@{
+    ViewData["Title"] = "Members";
+    var y = Model.Year;
+    var filters = new List<(string Key, string Label, int Count, string Note)>
+    {
+        ("all", "Everyone on the list", Model.OnList, "Not archived"),
+        ("paid", $"Paid for {y?.Name}", Model.PaidCount, "Has a paid membership for this year"),
+        ("notrenewed", $"Not yet renewed", Model.NotRenewedCount, Model.PreviousYear != null ? $"Paid {Model.PreviousYear.Name}, not {y?.Name}" : "No earlier year to compare with"),
+        ("unpaid", "No paid year yet", Model.NeverPaidCount, "On the list, but no year recorded"),
+        ("archived", "Archived", Model.ArchivedCount, "Hidden, never reminded"),
+    };
+    string Link(string show) => $"?YearId={Model.YearId}&Show={show}&Q={Uri.EscapeDataString(Model.Q ?? "")}";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <partial name="_MembershipNav" model="@("members")" />
+
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-5">
+        <form method="get" class="flex flex-wrap items-end gap-3">
+            <div>
+                <label for="YearId" class="block text-sm font-semibold text-gray-700 mb-1">Shooting year</label>
+                <select id="YearId" name="YearId" class="border border-gray-300 rounded-md px-3 py-2 bg-white">
+                    @foreach (var yr in Model.Years)
+                    {
+                        <option value="@yr.Id" selected="@(yr.Id == Model.YearId)">@yr.Name</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label for="Q" class="block text-sm font-semibold text-gray-700 mb-1">Search</label>
+                <input id="Q" name="Q" value="@Model.Q" placeholder="Name, ID, email or SAHFTA no." class="border border-gray-300 rounded-md px-3 py-2 w-72 max-w-full" />
+            </div>
+            <input type="hidden" name="Show" value="@Model.Show" />
+            <button class="px-4 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50">Show</button>
+        </form>
+        <div class="flex gap-2">
+            <a href="/admin/membership/members?handler=Csv&YearId=@Model.YearId&Show=@Model.Show&Q=@Uri.EscapeDataString(Model.Q ?? "")" class="px-4 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50">Download CSV</a>
+            <a href="/admin/membership/member/new" class="px-4 py-2 rounded-md bg-red-700 text-white font-semibold hover:bg-red-800">+ Add member</a>
+        </div>
+    </div>
+
+    <div class="grid gap-3 grid-cols-2 md:grid-cols-5 mb-5">
+        @foreach (var f in filters)
+        {
+            var active = Model.Show == f.Key;
+            <a href="@Link(f.Key)" class="block rounded-lg border p-3 bg-white @(active ? "border-red-700 ring-1 ring-red-700" : "border-gray-200 hover:border-gray-400")">
+                <span class="block text-2xl font-bold tabular-nums @(active ? "text-red-800" : "text-gray-900")">@f.Count</span>
+                <span class="block text-sm font-semibold text-gray-800">@f.Label</span>
+                <span class="block text-xs text-gray-500">@f.Note</span>
+            </a>
+        }
+    </div>
+
+    @if (Model.OnList == 0 && Model.ArchivedCount == 0)
+    {
+        <div class="bg-white rounded-lg shadow p-8 text-center">
+            <p class="text-lg font-semibold text-gray-900">The member list is empty</p>
+            <p class="text-gray-600 mt-1 max-w-xl mx-auto">People are added automatically when their application is paid. To add members from the paper forms, use <a class="text-red-700 underline" href="/admin/membership/member/new">Add member</a> and record the years they paid for.</p>
+        </div>
+    }
+    else
+    {
+        <div class="overflow-x-auto bg-white rounded-lg shadow">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b text-left text-gray-600">
+                    <tr>
+                        <th class="p-3">Name</th>
+                        <th class="p-3">ID number</th>
+                        <th class="p-3">Contact</th>
+                        <th class="p-3">SAHFTA no.</th>
+                        <th class="p-3">Years paid</th>
+                        <th class="p-3">@y?.Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Members.Count == 0)
+                    {
+                        <tr><td colspan="6" class="p-8 text-center text-gray-500">Nobody matches. Try another filter or search.</td></tr>
+                    }
+                    @foreach (var m in Model.Members)
+                    {
+                        var paidThis = y != null && m.Years.Any(x => x.ShootingYearId == y.Id);
+                        <tr class="border-b last:border-none hover:bg-gray-50 align-top">
+                            <td class="p-3">
+                                <a href="/admin/membership/member/@m.Id" class="font-semibold text-red-700 hover:underline">@m.Surname, @m.FirstName</a>
+                                @if (m.IsJunior) { <span class="text-xs text-gray-500">under 18</span> }
+                            </td>
+                            <td class="p-3 tabular-nums">@m.IdNumber</td>
+                            <td class="p-3">@m.ContactNumber<div class="text-xs text-gray-500">@(m.EmailAddress ?? "No email address")</div></td>
+                            <td class="p-3">@m.SahftaNumber</td>
+                            <td class="p-3">
+                                @foreach (var my in m.Years.OrderBy(x => x.ShootingYear.StartDate))
+                                {
+                                    <span class="inline-block mr-1 mb-1 px-2 py-0.5 rounded bg-gray-100 text-gray-700 text-xs tabular-nums">@my.ShootingYear.Name</span>
+                                }
+                            </td>
+                            <td class="p-3 whitespace-nowrap">
+                                @if (paidThis) { <span class="text-green-700 font-semibold">Paid</span> }
+                                else { <span class="text-gray-500">Not paid</span> }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

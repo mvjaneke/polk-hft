@@ -1,0 +1,119 @@
+@page "/apply/submitted/{token}"
+@model POLK_DOTNET.Pages.ApplicationSubmittedModel
+@using POLK_DOTNET.Services
+@{
+    ViewData["Title"] = "Membership Application";
+    var a = Model.Application;
+    var paid = a.IsPaid;
+    var primary = a.Members.FirstOrDefault(m => m.IsPrimary) ?? a.Members.FirstOrDefault();
+    string R(decimal v) => MembershipService.Money(v);
+}
+
+<style>
+    .ticket { background: #fff; border-radius: 0.875rem; box-shadow: 0 1px 2px rgba(17,24,39,.06), 0 8px 24px rgba(127,29,29,.10); overflow: hidden; }
+    .ticket-head { background: #991b1b; color: #fff; padding: 1.25rem 1.5rem 1.125rem; }
+    .ticket-head.paid { background: #166534; }
+    .ticket-club { font-size: 0.875rem; color: rgba(255,255,255,.75); }
+    .ticket-year { font-size: 2.25rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; }
+    .ticket-dates { font-size: 0.875rem; color: rgba(255,255,255,.85); margin-top: 0.25rem; }
+    .ticket-body { padding: 1rem 1.5rem 0.5rem; }
+    .ticket-row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.375rem 0; color: #1f2937; }
+    .ticket-row span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .ticket-tear { position: relative; height: 1.5rem; margin: 0.25rem 0 0; }
+    .ticket-tear::before { content: ""; position: absolute; left: 1rem; right: 1rem; top: 50%; border-top: 2px dashed #e5e7eb; }
+    .ticket-tear::after, .ticket-tear > i { content: ""; position: absolute; top: 50%; width: 1.25rem; height: 1.25rem; margin-top: -0.625rem; border-radius: 999px; background: #f3f4f6; }
+    .ticket-tear::after { right: -0.625rem; }
+    .ticket-tear > i { left: -0.625rem; }
+    .ticket-total { padding: 0.25rem 1.5rem 1.5rem; display: flex; justify-content: space-between; align-items: baseline; }
+    .ticket-total strong { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .bank-box dt { color: #6b7280; }
+    .bank-box dd { font-weight: 600; color: #111827; font-variant-numeric: tabular-nums; }
+    .ref { font-size: 1.25rem; font-weight: 800; letter-spacing: 0.02em; color: #991b1b; }
+</style>
+
+<div class="bg-gray-100 min-h-screen py-10">
+    <div class="max-w-3xl mx-auto px-4 space-y-6">
+
+        <header>
+            @if (paid)
+            {
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900">You're a paid-up member</h1>
+                <p class="text-gray-600 mt-2 text-lg">Thank you@(primary != null ? $", {primary.FirstName}" : ""). Your payment has been received and a confirmation has been emailed to you.</p>
+            }
+            else
+            {
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Application received</h1>
+                <p class="text-gray-600 mt-2 text-lg">Thank you@(primary != null ? $", {primary.FirstName}" : ""). We've emailed a copy to @(primary?.EmailAddress ?? "you"). Your membership is confirmed once payment is received.</p>
+            }
+        </header>
+
+        @if (!paid)
+        {
+            var notice = Model.Payment switch
+            {
+                "pending" => ("Confirming your card payment", "The payment page sent you back before your bank confirmed the payment. This usually takes a minute or two; you'll get an email when it's through. You don't need to pay again."),
+                "cancelled" => ("Card payment cancelled", "Your application is saved. You can pay by EFT using the details below."),
+                "failed" => ("Card payment didn't go through", "Your application is saved and nothing was charged. Please pay by EFT using the details below."),
+                "unavailable" => ("Card payment isn't available right now", "Your application is saved. Please pay by EFT using the details below."),
+                _ => ((string, string)?)null
+            };
+            if (notice != null)
+            {
+                <div class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900" role="status">
+                    <p class="font-bold">@notice.Value.Item1</p>
+                    <p class="mt-1">@notice.Value.Item2</p>
+                </div>
+            }
+        }
+
+        <div class="ticket">
+            <div class="ticket-head @(paid ? "paid" : "")">
+                <p class="ticket-club">POLK membership @(paid ? "· paid" : "· awaiting payment")</p>
+                <p class="ticket-year">@(a.ShootingYear?.Name ?? a.MembershipType)</p>
+                @if (a.ShootingYear != null)
+                {
+                    <p class="ticket-dates">@a.ShootingYear.StartDate.ToString("d MMMM yyyy") to @a.ShootingYear.EndDate.ToString("d MMMM yyyy")</p>
+                }
+            </div>
+            <div class="ticket-body">
+                <div class="ticket-row"><span>@a.ApplicationType, @a.MembershipType.ToLowerInvariant() membership</span><span>@R(a.MembershipFee)</span></div>
+                @if (a.AdminFee > 0)
+                {
+                    <div class="ticket-row"><span>Once-off admin fee</span><span>@R(a.AdminFee)</span></div>
+                }
+                <div class="ticket-row text-sm text-gray-600 pt-3">
+                    <span>@string.Join(", ", a.Members.Select(m => $"{m.FirstName} {m.Surname}"))</span><span></span>
+                </div>
+            </div>
+            <div class="ticket-tear" aria-hidden="true"><i></i></div>
+            <div class="ticket-total">
+                <span class="text-gray-600">@(paid ? "Paid" : "Total due")</span>
+                <strong>@R(paid ? (a.AmountPaid ?? a.TotalAmount) : a.TotalAmount)</strong>
+            </div>
+        </div>
+
+        @if (!paid && Model.Payment != "pending")
+        {
+            <section class="bg-white rounded-xl shadow p-6 bank-box">
+                <h2 class="text-lg font-bold text-gray-900 mb-1">Pay by EFT</h2>
+                <p class="text-gray-600 mb-4">Use this reference so we can match your payment to your application.</p>
+                <p class="mb-4">Reference: <span class="ref">@Model.Reference</span></p>
+                <dl class="grid grid-cols-[9rem_1fr] gap-y-1.5">
+                    <dt>Account name</dt><dd>@Model.Bank.AccountName</dd>
+                    <dt>Bank</dt><dd>@Model.Bank.BankName</dd>
+                    <dt>Account number</dt><dd>@Model.Bank.AccountNumber</dd>
+                    <dt>Branch code</dt><dd>@Model.Bank.BranchCode</dd>
+                    <dt>Amount</dt><dd>@R(a.TotalAmount)</dd>
+                </dl>
+                <p class="mt-4 text-gray-700">Then email the proof of payment to <a class="text-red-700 underline" href="mailto:@Model.Bank.ProofOfPaymentEmail?subject=Proof of payment @Model.Reference">@Model.Bank.ProofOfPaymentEmail</a>.</p>
+            </section>
+        }
+
+        <section class="bg-white rounded-xl shadow p-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-1">SAHFTA affiliation</h2>
+            <p class="text-gray-600">If you want your scores on the SAHFTA rankings, join or renew with SAHFTA directly at <a class="text-red-700 underline" href="https://sahfta.org.za" target="_blank" rel="noopener">sahfta.org.za</a>, and send the proof of payment to both POLK and SAHFTA.</p>
+        </section>
+
+        <p class="text-center text-sm text-gray-500">Application #@a.Id &middot; <a href="/" class="hover:underline">Back to the POLK home page</a></p>
+    </div>
+</div>

@@ -1,0 +1,148 @@
+@page "/admin/membership/years"
+@model POLK_DOTNET.Pages.AdminMembership.YearsModel
+@using POLK_DOTNET.Services
+@{
+    ViewData["Title"] = "Shooting years & fees";
+    string R(decimal v) => MembershipService.Money(v);
+    var input = "mt-1 w-full border border-gray-300 rounded-md px-3 py-2";
+    var label = "block text-sm font-semibold text-gray-700";
+    var editing = Model.Edit.HasValue;
+}
+
+<div class="container mx-auto px-4 py-8">
+    <partial name="_MembershipNav" model="@("years")" />
+
+    <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
+        <div class="max-w-2xl text-gray-700">
+            <p>Each shooting year runs 1 November to 31 October and has its own fees. The Apply page sells the current year until renewal reminders start, then the next one, so set up next year's fees before then.</p>
+            @if (Model.ApplicationsYear != null)
+            {
+                <p class="mt-2 font-semibold text-gray-900">The Apply page is selling @Model.ApplicationsYear.Name right now.</p>
+            }
+            else
+            {
+                <p class="mt-2 font-semibold text-red-700">No year covers today, so the Apply page is closed. Add a year below.</p>
+            }
+        </div>
+        @if (!editing)
+        {
+            <a href="?Edit=0" class="px-4 py-2 rounded-md bg-red-700 text-white font-semibold hover:bg-red-800">+ Add next year</a>
+        }
+    </div>
+
+    @if (editing)
+    {
+        <form method="post" asp-page-handler="SaveYear" asp-route-Edit="@Model.Edit" class="bg-white rounded-lg shadow p-5 mb-6 space-y-5" novalidate>
+            <h2 class="text-lg font-bold text-gray-900">@(Model.Edit == 0 ? "Add a shooting year" : $"Edit {Model.Input.Name}")</h2>
+            <div class="grid gap-4 sm:grid-cols-3">
+                <div><label class="@label" asp-for="Input.Name">Name</label><input class="@input" asp-for="Input.Name" placeholder="2027/2028" /><span asp-validation-for="Input.Name" class="text-sm text-red-700"></span></div>
+                <div><label class="@label" asp-for="Input.StartDate">Starts</label><input class="@input" asp-for="Input.StartDate" type="date" /><span asp-validation-for="Input.StartDate" class="text-sm text-red-700"></span></div>
+                <div><label class="@label" asp-for="Input.EndDate">Ends</label><input class="@input" asp-for="Input.EndDate" type="date" /><span asp-validation-for="Input.EndDate" class="text-sm text-red-700"></span></div>
+            </div>
+
+            <fieldset>
+                <legend class="font-semibold text-gray-900 mb-2">POLK fees (R)</legend>
+                <div class="grid gap-4 sm:grid-cols-4">
+                    <div><label class="@label" asp-for="Input.IndividualFee">Individual</label><input class="@input tabular-nums" asp-for="Input.IndividualFee" inputmode="decimal" /><span asp-validation-for="Input.IndividualFee" class="text-sm text-red-700"></span></div>
+                    <div><label class="@label" asp-for="Input.FamilyFee">Family</label><input class="@input tabular-nums" asp-for="Input.FamilyFee" inputmode="decimal" /><span asp-validation-for="Input.FamilyFee" class="text-sm text-red-700"></span></div>
+                    <div><label class="@label" asp-for="Input.PensionerFee">Pensioner</label><input class="@input tabular-nums" asp-for="Input.PensionerFee" inputmode="decimal" /><span asp-validation-for="Input.PensionerFee" class="text-sm text-red-700"></span></div>
+                    <div>
+                        <label class="@label" asp-for="Input.NewMemberAdminFee">Admin fee, new members</label><input class="@input tabular-nums" asp-for="Input.NewMemberAdminFee" inputmode="decimal" />
+                        <span asp-validation-for="Input.NewMemberAdminFee" class="text-sm text-red-700"></span>
+                        <p class="text-xs text-gray-500 mt-1">Once per new application, not per person. Never on renewals.</p>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend class="font-semibold text-gray-900 mb-1">SAHFTA fees (R), shown for information</legend>
+                <p class="text-sm text-gray-500 mb-2">Members pay these directly to SAHFTA. POLK doesn't charge them.</p>
+                <div class="grid gap-4 sm:grid-cols-4">
+                    <div><label class="@label" asp-for="Input.SahftaAdultFee">Adult</label><input class="@input tabular-nums" asp-for="Input.SahftaAdultFee" inputmode="decimal" /><span asp-validation-for="Input.SahftaAdultFee" class="text-sm text-red-700"></span></div>
+                    <div><label class="@label" asp-for="Input.SahftaJuniorFee">Junior (under 18)</label><input class="@input tabular-nums" asp-for="Input.SahftaJuniorFee" inputmode="decimal" /><span asp-validation-for="Input.SahftaJuniorFee" class="text-sm text-red-700"></span></div>
+                </div>
+            </fieldset>
+
+            <div class="max-w-xs">
+                <label class="@label" asp-for="Input.RenewalReminderDaysBefore">Renewal reminders start (days before the year ends)</label>
+                <input class="@input tabular-nums" asp-for="Input.RenewalReminderDaysBefore" type="number" min="1" max="90" />
+                <span asp-validation-for="Input.RenewalReminderDaysBefore" class="text-sm text-red-700"></span>
+                <p class="text-xs text-gray-500 mt-1">From the same day, the Apply page sells the following year.</p>
+            </div>
+
+            <div class="flex gap-3">
+                <button class="px-5 py-2 rounded-md bg-red-700 text-white font-semibold hover:bg-red-800">Save year</button>
+                <a href="/admin/membership/years" class="px-5 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50">Cancel</a>
+            </div>
+        </form>
+    }
+
+    <div class="overflow-x-auto bg-white rounded-lg shadow mb-8">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b text-left text-gray-600">
+                <tr>
+                    <th class="p-3">Year</th>
+                    <th class="p-3 text-right">Individual</th>
+                    <th class="p-3 text-right">Family</th>
+                    <th class="p-3 text-right">Pensioner</th>
+                    <th class="p-3 text-right">Admin fee (new)</th>
+                    <th class="p-3 text-right">SAHFTA adult / junior</th>
+                    <th class="p-3">Reminders from</th>
+                    <th class="p-3 text-right">Applications</th>
+                    <th class="p-3 text-right">Paid members</th>
+                    <th class="p-3"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Rows.Count == 0)
+                {
+                    <tr><td colspan="10" class="p-8 text-center text-gray-500">No shooting years yet. Add one so the Apply page can take applications.</td></tr>
+                }
+                @foreach (var r in Model.Rows)
+                {
+                    var y = r.Year;
+                    <tr class="border-b last:border-none align-top @(Model.Edit == y.Id ? "bg-red-50" : "")">
+                        <td class="p-3">
+                            <span class="font-semibold tabular-nums">@y.Name</span>
+                            @if (Model.CurrentYear?.Id == y.Id) { <span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-800">current</span> }
+                            @if (Model.ApplicationsYear?.Id == y.Id) { <span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-800">on Apply page</span> }
+                            <div class="text-xs text-gray-500">@y.StartDate.ToString("d MMM yyyy") to @y.EndDate.ToString("d MMM yyyy")</div>
+                        </td>
+                        <td class="p-3 text-right tabular-nums">@R(y.IndividualFee)</td>
+                        <td class="p-3 text-right tabular-nums">@R(y.FamilyFee)</td>
+                        <td class="p-3 text-right tabular-nums">@R(y.PensionerFee)</td>
+                        <td class="p-3 text-right tabular-nums">@R(y.NewMemberAdminFee)</td>
+                        <td class="p-3 text-right tabular-nums">@R(y.SahftaAdultFee) / @R(y.SahftaJuniorFee)</td>
+                        <td class="p-3 whitespace-nowrap">@y.RenewalOpensOn.ToString("d MMM yyyy")<div class="text-xs text-gray-500">@y.RenewalReminderDaysBefore days before</div></td>
+                        <td class="p-3 text-right tabular-nums">@r.Applications</td>
+                        <td class="p-3 text-right tabular-nums">@r.PaidMembers</td>
+                        <td class="p-3 whitespace-nowrap">
+                            <a href="?Edit=@y.Id" class="text-red-700 hover:underline">Edit</a>
+                            @if (r.Applications == 0 && r.PaidMembers == 0)
+                            {
+                                <form method="post" asp-page-handler="DeleteYear" asp-route-id="@y.Id" class="inline ml-2">
+                                    <button class="text-gray-500 hover:text-red-700 underline">Delete</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <form method="post" asp-page-handler="SaveBank" class="bg-white rounded-lg shadow p-5 space-y-4 max-w-3xl">
+        <div>
+            <h2 class="text-lg font-bold text-gray-900">EFT payment details</h2>
+            <p class="text-sm text-gray-600">Shown on the Apply page, the confirmation page and the email when someone chooses to pay by EFT.</p>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div><label class="@label" for="Bank_AccountName">Account name</label><input class="@input" id="Bank_AccountName" name="Bank.AccountName" value="@Model.Bank.AccountName" /></div>
+            <div><label class="@label" for="Bank_BankName">Bank</label><input class="@input" id="Bank_BankName" name="Bank.BankName" value="@Model.Bank.BankName" /></div>
+            <div><label class="@label" for="Bank_AccountNumber">Account number</label><input class="@input" id="Bank_AccountNumber" name="Bank.AccountNumber" value="@Model.Bank.AccountNumber" /></div>
+            <div><label class="@label" for="Bank_BranchCode">Branch code</label><input class="@input" id="Bank_BranchCode" name="Bank.BranchCode" value="@Model.Bank.BranchCode" /></div>
+            <div class="sm:col-span-2"><label class="@label" for="Bank_ProofOfPaymentEmail">Send proof of payment to</label><input class="@input" id="Bank_ProofOfPaymentEmail" name="Bank.ProofOfPaymentEmail" value="@Model.Bank.ProofOfPaymentEmail" type="email" /></div>
+        </div>
+        <button class="px-5 py-2 rounded-md bg-red-700 text-white font-semibold hover:bg-red-800">Save payment details</button>
+    </form>
+</div>

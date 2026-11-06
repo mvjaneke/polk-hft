@@ -26,20 +26,20 @@ namespace POLK_DOTNET.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IkhokhaPaymentService _ikhokhaService;
         private readonly EmailService _emailService;
-        private readonly ApplicationPdfService _pdfService;
+        private readonly MembershipService _membership;
         private readonly ILogger<IkhokhaWebhookController> _logger;
 
         public IkhokhaWebhookController(
             ApplicationDbContext context,
             IkhokhaPaymentService ikhokhaService,
             EmailService emailService,
-            ApplicationPdfService pdfService,
+            MembershipService membership,
             ILogger<IkhokhaWebhookController> logger)
         {
             _context = context;
             _ikhokhaService = ikhokhaService;
             _emailService = emailService;
-            _pdfService = pdfService;
+            _membership = membership;
             _logger = logger;
         }
 
@@ -114,30 +114,12 @@ namespace POLK_DOTNET.Controllers
             return Ok();
         }
 
-        private async Task MarkApplicationPaidAsync(int applicationId, IkhokhaWebhookPayload payload)
+        // Marks the application paid and puts its people on the member list for the year.
+        // Idempotent: the payment-result page may already have done it.
+        private Task MarkApplicationPaidAsync(int applicationId, IkhokhaWebhookPayload payload)
         {
-            var application = await _context.MembershipApplications
-                .Include(a => a.Members)
-                .FirstOrDefaultAsync(a => a.Id == applicationId);
-
-            if (application == null)
-            {
-                _logger.LogWarning("iKhokha callback — membership application {Id} not found", applicationId);
-                return;
-            }
-
-            // Idempotency — PaymentResult page may have already processed the redirect.
-            if (application.Status == "Paid")
-            {
-                _logger.LogInformation("iKhokha callback — application {Id} already Paid, skipping", applicationId);
-                return;
-            }
-
-            application.Status = "Paid";
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("iKhokha callback — application {Id} marked Paid (PaylinkID {Plid})", applicationId, payload.PaylinkID);
-
-            await SendApplicationPaymentEmailsAsync(application);
+            _logger.LogInformation("iKhokha callback — application {Id} paid (PaylinkID {Plid})", applicationId, payload.PaylinkID);
+            return _membership.MarkPaidAsync(applicationId, "Online");
         }
 
         private async Task MarkRegistrationPaidAsync(int registrationId, IkhokhaWebhookPayload payload)
@@ -167,56 +149,6 @@ namespace POLK_DOTNET.Controllers
 
             if (reg.Event != null)
                 await EventEmailTemplates.SendEventPaymentConfirmedAsync(_emailService, reg, reg.Event);
-        }
-
-        private async Task SendApplicationPaymentEmailsAsync(MembershipApplication application)
-        {
-            var primaryMember = application.Members.FirstOrDefault(m => m.IsPrimary);
-            var applicantName = primaryMember != null ? $"{primaryMember.FirstName} {primaryMember.Surname}" : "Applicant";
-
-            var accountsBody = $@"
-                <h2>Payment Received - Application #{application.Id}</h2>
-                <p><strong>Applicant:</strong> {applicantName}</p>
-                <p><strong>Membership Type:</strong> {application.MembershipType}</p>
-                <p><strong>Amount Paid:</strong> R{application.TotalAmount:F2}</p>
-                <p><strong>Status:</strong> {application.Status}</p>
-                <p>Payment has been confirmed via iKhokha.</p>";
-
-            await _emailService.SendEmailAsync(
-                "accounts@polk-hft.co.za",
-                $"Payment Received - Application #{application.Id}",
-                accountsBody);
-
-            if (primaryMember != null)
-            {
-                var pdfBytes = _pdfService.GenerateApplicationPdf(application);
-                var attachments = new List<EmailAttachment>
-                {
-                    new EmailAttachment
-                    {
-                        FileName = $"MembershipApplication_{application.Id}.pdf",
-                        Content = pdfBytes,
-                        ContentType = "application/pdf"
-                    }
-                };
-
-                var applicantBody = $@"
-                    <h2>Payment Confirmed</h2>
-                    <p>Dear {primaryMember.FirstName},</p>
-                    <p>We have received your payment of <strong>R{application.TotalAmount:F2}</strong> for your membership application.</p>
-                    <p><strong>Application #:</strong> {application.Id}</p>
-                    <p><strong>Status:</strong> Paid</p>
-                    <p>Please find your updated application attached as a PDF for your records.</p>
-                    <p>Thank you for joining POLK!</p>
-                    <br/>
-                    <p>Kind regards,<br/>Pretoria Oos Lug Geweer Klub</p>";
-
-                await _emailService.SendEmailAsync(
-                    primaryMember.EmailAddress,
-                    $"Payment Confirmed - Membership Application #{application.Id}",
-                    applicantBody,
-                    attachments);
-            }
         }
     }
 }

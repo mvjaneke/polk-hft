@@ -28,6 +28,9 @@ builder.Services.AddScoped<ApplicationPdfService>();
 builder.Services.AddScoped<ScorecardPdfService>();
 builder.Services.AddScoped<ExcelExportService>();
 builder.Services.AddScoped<SahftaMembersClient>();
+builder.Services.AddScoped<MembershipService>();
+builder.Services.AddScoped<MembershipReminderService>();
+builder.Services.AddHostedService<MembershipReminderBackgroundService>();
 
 var app = builder.Build();
 
@@ -53,6 +56,9 @@ using (var scope = app.Services.CreateScope())
         context.SiteSettings.Add(new SiteSettings { Key = "PaymentGateway", Value = "Ikhokha" });
         context.SaveChanges();
     }
+
+    // Shooting years, EFT details, and earlier applications onto the member list.
+    MembershipSetup.EnsureAsync(services).GetAwaiter().GetResult();
 }
 
 app.UseSession();

@@ -1,0 +1,185 @@
+@page "/admin/membership/member/{id}"
+@model POLK_DOTNET.Pages.AdminMembership.MemberModel
+@using POLK_DOTNET.Data
+@using POLK_DOTNET.Services
+@{
+    var m = Model.Member;
+    ViewData["Title"] = m == null ? "Add member" : m.FullName;
+    var input = "mt-1 w-full border border-gray-300 rounded-md px-3 py-2";
+    var label = "block text-sm font-semibold text-gray-700";
+    var recordedYearIds = m?.Years.Select(y => y.ShootingYearId).ToHashSet() ?? new HashSet<int>();
+}
+
+<div class="container mx-auto px-4 py-8">
+    <partial name="_MembershipNav" model="@("members")" />
+
+    <a href="/admin/membership/members" class="text-sm text-gray-500 hover:underline">&larr; Member list</a>
+    <h2 class="text-2xl font-bold text-gray-900 mt-1 mb-6">
+        @(m == null ? "Add a member" : m.FullName)
+        @if (m?.IsArchived == true) { <span class="ml-2 text-sm font-semibold px-2 py-0.5 rounded bg-gray-200 text-gray-700 align-middle">Archived</span> }
+    </h2>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+        <form method="post" asp-page-handler="Save" asp-route-id="@Model.Id" class="lg:col-span-2 bg-white rounded-lg shadow p-5 space-y-5" novalidate>
+            <div asp-validation-summary="ModelOnly" class="text-red-700 text-sm"></div>
+            <h3 class="font-bold text-gray-900">Details</h3>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div><label class="@label" asp-for="Input.FirstName">First name</label><input class="@input" asp-for="Input.FirstName" /><span asp-validation-for="Input.FirstName" class="text-sm text-red-700"></span></div>
+                <div><label class="@label" asp-for="Input.Surname">Surname</label><input class="@input" asp-for="Input.Surname" /><span asp-validation-for="Input.Surname" class="text-sm text-red-700"></span></div>
+                <div>
+                    <label class="@label" asp-for="Input.IdNumber">ID or passport number</label><input class="@input" asp-for="Input.IdNumber" />
+                    <span asp-validation-for="Input.IdNumber" class="text-sm text-red-700"></span>
+                </div>
+                <div>
+                    <label class="@label" asp-for="Input.Gender">Gender</label>
+                    <select class="@input bg-white" asp-for="Input.Gender">
+                        <option value="">Not recorded</option><option>Male</option><option>Female</option><option>Other</option>
+                    </select>
+                </div>
+                <div><label class="@label" asp-for="Input.ContactNumber">Contact number</label><input class="@input" asp-for="Input.ContactNumber" /></div>
+                <div>
+                    <label class="@label" asp-for="Input.EmailAddress">Email address</label><input class="@input" asp-for="Input.EmailAddress" type="email" />
+                    <span asp-validation-for="Input.EmailAddress" class="text-sm text-red-700"></span>
+                    <p class="text-xs text-gray-500 mt-1">Renewal reminders go here.</p>
+                </div>
+                <div><label class="@label" asp-for="Input.SahftaNumber">SAHFTA number</label><input class="@input" asp-for="Input.SahftaNumber" /></div>
+                <div class="flex items-end pb-2"><label class="flex items-center gap-2"><input type="checkbox" asp-for="Input.IsJunior" class="accent-red-700 w-4 h-4" /> Under 18</label></div>
+            </div>
+
+            <h3 class="font-bold text-gray-900 pt-2">Address</h3>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="sm:col-span-2"><label class="@label" asp-for="Input.StreetAddress">Street address</label><input class="@input" asp-for="Input.StreetAddress" /></div>
+                <div class="sm:col-span-2"><label class="@label" asp-for="Input.ComplexOrBuilding">Complex or building</label><input class="@input" asp-for="Input.ComplexOrBuilding" /></div>
+                <div><label class="@label" asp-for="Input.Suburb">Suburb</label><input class="@input" asp-for="Input.Suburb" /></div>
+                <div><label class="@label" asp-for="Input.City">City or town</label><input class="@input" asp-for="Input.City" /></div>
+                <div>
+                    <label class="@label" asp-for="Input.Province">Province</label>
+                    <select class="@input bg-white" asp-for="Input.Province">
+                        <option value="">Not recorded</option>
+                        @foreach (var p in POLK_DOTNET.Pages.ApplyModel.Provinces) { <option value="@p">@p</option> }
+                    </select>
+                </div>
+                <div><label class="@label" asp-for="Input.PostalCode">Postal code</label><input class="@input" asp-for="Input.PostalCode" /></div>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2 pt-2">
+                <div>
+                    <label class="@label" asp-for="Input.SocialMediaConsent">Photos on social media</label>
+                    <select class="@input bg-white" asp-for="Input.SocialMediaConsent">
+                        <option value="">Not asked</option><option value="yes">Allowed</option><option value="no">Not allowed</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-2"><label class="@label" asp-for="Input.Notes">Notes</label><textarea class="@input" rows="3" asp-for="Input.Notes"></textarea></div>
+            </div>
+
+            @if (m == null)
+            {
+                <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p class="font-semibold text-gray-900">Paid year <span class="font-normal text-gray-500">(optional)</span></p>
+                    <p class="text-sm text-gray-600 mb-3">If you're adding someone from the paper records, record the year they paid for.</p>
+                    <div class="grid gap-3 sm:grid-cols-3">
+                        <div>
+                            <label class="@label" for="AddYearId">Year</label>
+                            <select id="AddYearId" name="Input.AddYearId" class="@input bg-white">
+                                <option value="">None</option>
+                                @foreach (var y in Model.Years) { <option value="@y.Id" selected="@(y.Id == (Model.Input.AddYearId ?? Model.DefaultYearId))">@y.Name</option> }
+                            </select>
+                        </div>
+                        <div>
+                            <label class="@label" for="AddYearType">Type</label>
+                            <select id="AddYearType" name="Input.AddYearType" class="@input bg-white">
+                                @foreach (var t in MembershipTypes.All) { <option selected="@(t == Model.Input.AddYearType)">@t</option> }
+                            </select>
+                        </div>
+                        <div>
+                            <label class="@label" for="AddYearPaidOn">Paid on <span class="font-normal text-gray-500">(if known)</span></label>
+                            <input id="AddYearPaidOn" name="Input.AddYearPaidOn" type="date" value="@Model.Input.AddYearPaidOn" class="@input" />
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <button class="px-5 py-2 rounded-md bg-red-700 text-white font-semibold hover:bg-red-800">@(m == null ? "Add member" : "Save details")</button>
+        </form>
+
+        @if (m != null)
+        {
+            <div class="space-y-6">
+                <section class="bg-white rounded-lg shadow p-5">
+                    <h3 class="font-bold text-gray-900 mb-3">Paid years</h3>
+                    @if (m.Years.Count == 0)
+                    {
+                        <p class="text-sm text-gray-500 mb-3">No paid year recorded yet.</p>
+                    }
+                    <ul class="space-y-2 mb-4">
+                        @foreach (var y in m.Years.OrderByDescending(x => x.ShootingYear.StartDate))
+                        {
+                            <li class="flex items-start justify-between gap-3 border-b last:border-none pb-2">
+                                <div>
+                                    <span class="font-semibold tabular-nums">@y.ShootingYear.Name</span>
+                                    <span class="text-sm text-gray-600">@y.MembershipType</span>
+                                    <div class="text-xs text-gray-500">
+                                        @y.Source@(y.PaidDate.HasValue ? $", paid {y.PaidDate:d MMM yyyy}" : "")
+                                        @if (y.MembershipApplicationId.HasValue) { <text>&middot; </text><a class="text-red-700 hover:underline" href="/admin/membership/application/@y.MembershipApplicationId">application #@y.MembershipApplicationId</a> }
+                                    </div>
+                                </div>
+                                <form method="post" asp-page-handler="RemoveYear" asp-route-id="@Model.Id">
+                                    <input type="hidden" name="memberYearId" value="@y.Id" />
+                                    <button class="text-xs text-red-700 underline">Remove</button>
+                                </form>
+                            </li>
+                        }
+                    </ul>
+                    @{ var openYears = Model.Years.Where(y => !recordedYearIds.Contains(y.Id)).ToList(); }
+                    @if (openYears.Count > 0)
+                    {
+                        <form method="post" asp-page-handler="AddYear" asp-route-id="@Model.Id" class="space-y-2 border-t pt-3">
+                            <p class="text-sm font-semibold text-gray-800">Record a paid year</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <select name="yearId" class="border border-gray-300 rounded-md px-2 py-1.5 bg-white" aria-label="Year">
+                                    @foreach (var y in openYears) { <option value="@y.Id" selected="@(y.Id == Model.DefaultYearId)">@y.Name</option> }
+                                </select>
+                                <select name="membershipType" class="border border-gray-300 rounded-md px-2 py-1.5 bg-white" aria-label="Membership type">
+                                    @foreach (var t in MembershipTypes.All) { <option>@t</option> }
+                                </select>
+                                <input type="date" name="paidOn" value="@Model.Today" class="border border-gray-300 rounded-md px-2 py-1.5" aria-label="Paid on" />
+                                <select name="source" class="border border-gray-300 rounded-md px-2 py-1.5 bg-white" aria-label="How they paid">
+                                    <option value="EFT">EFT</option><option value="Cash">Cash</option><option value="Manual">Paper records</option>
+                                </select>
+                            </div>
+                            <button class="px-3 py-1.5 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-sm">Record year</button>
+                        </form>
+                    }
+                </section>
+
+                <section class="bg-white rounded-lg shadow p-5">
+                    <h3 class="font-bold text-gray-900 mb-2">Applications</h3>
+                    @if (Model.Applications.Count == 0) { <p class="text-sm text-gray-500">None. Added by hand.</p> }
+                    <ul class="text-sm space-y-1">
+                        @foreach (var a in Model.Applications)
+                        {
+                            <li><a class="text-red-700 hover:underline" href="/admin/membership/application/@a.Id">#@a.Id</a> @a.ShootingYear?.Name, @a.ApplicationType @a.MembershipType, <span class="@(a.IsPaid ? "text-green-700" : "text-amber-700")">@(a.IsPaid ? "paid" : "unpaid")</span></li>
+                        }
+                    </ul>
+                </section>
+
+                <section class="bg-white rounded-lg shadow p-5">
+                    <h3 class="font-bold text-gray-900 mb-2">Renewal reminders</h3>
+                    @if (Model.Reminders.Count == 0) { <p class="text-sm text-gray-500">None sent.</p> }
+                    <ul class="text-sm space-y-1">
+                        @foreach (var r in Model.Reminders)
+                        {
+                            <li>@r.SentAt.ToLocalTime().ToString("d MMM yyyy") for @r.ShootingYear.Name to @r.EmailAddress <span class="@(r.Success ? "text-green-700" : "text-red-700")">@(r.Success ? "sent" : "failed")</span></li>
+                        }
+                    </ul>
+                </section>
+
+                <form method="post" asp-page-handler="Archive" asp-route-id="@Model.Id" class="bg-white rounded-lg shadow p-5">
+                    <input type="hidden" name="archive" value="@(m.IsArchived ? "false" : "true")" />
+                    <p class="text-sm text-gray-600 mb-2">@(m.IsArchived ? "Archived members are hidden from the list and never reminded." : "Left the club? Archiving hides them from the list and stops reminders. Their history is kept.")</p>
+                    <button class="text-sm px-3 py-1.5 rounded-md border border-gray-300 bg-white hover:bg-gray-50">@(m.IsArchived ? "Restore to member list" : "Archive member")</button>
+                </form>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,167 @@
+@page "/admin/membership/application/{id:int}"
+@model POLK_DOTNET.Pages.AdminMembership.ApplicationModel
+@using POLK_DOTNET.Data
+@using POLK_DOTNET.Services
+@{
+    var a = Model.Application;
+    ViewData["Title"] = $"Application #{a.Id}";
+    string R(decimal v) => MembershipService.Money(v);
+    var isLegacy = a.MembershipFee == 0 && a.AdminFee == 0;
+}
+
+<div class="container mx-auto px-4 py-8">
+    <partial name="_MembershipNav" model="@("applications")" />
+
+    <a href="/admin/membership?YearId=@(a.ShootingYearId ?? -1)" class="text-sm text-gray-500 hover:underline">&larr; All applications</a>
+    <div class="flex flex-wrap items-baseline justify-between gap-4 mt-1 mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">
+            Application #@a.Id
+            <span class="ml-2 inline-block px-2 py-0.5 rounded text-sm font-semibold align-middle @(a.ApplicationType == ApplicationTypes.Renewal ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800")">@a.ApplicationType</span>
+        </h2>
+        <a href="/admin/membership/application/@a.Id?handler=Pdf" class="text-sm text-red-700 hover:underline">Download PDF</a>
+    </div>
+
+    @if (a.FlagLines.Any())
+    {
+        <div class="mb-6 rounded-lg border p-4 @(a.FlagsReviewed ? "border-gray-200 bg-gray-50" : "border-amber-300 bg-amber-50")">
+            <p class="font-bold @(a.FlagsReviewed ? "text-gray-700" : "text-amber-900")">@(a.FlagsReviewed ? "Checked" : "Please check")</p>
+            <ul class="list-disc pl-5 mt-1 text-sm @(a.FlagsReviewed ? "text-gray-600" : "text-amber-900")">
+                @foreach (var f in a.FlagLines) { <li>@f</li> }
+            </ul>
+            <form method="post" asp-page-handler="FlagsChecked" asp-route-id="@a.Id" class="mt-3">
+                <input type="hidden" name="reviewed" value="@(a.FlagsReviewed ? "false" : "true")" />
+                <button class="text-sm px-3 py-1.5 rounded-md border @(a.FlagsReviewed ? "border-gray-300 bg-white" : "border-amber-400 bg-white hover:bg-amber-100")">
+                    @(a.FlagsReviewed ? "Mark as still to check" : "Mark as checked")
+                </button>
+            </form>
+        </div>
+    }
+
+    <div class="grid gap-6 lg:grid-cols-3">
+        <div class="lg:col-span-2 space-y-6">
+            <section class="bg-white rounded-lg shadow p-5">
+                <h3 class="font-bold text-gray-900 mb-3">Membership</h3>
+                <dl class="grid grid-cols-[10rem_1fr] gap-y-1.5 text-sm">
+                    <dt class="text-gray-500">Shooting year</dt><dd>@(a.ShootingYear?.Name ?? "Not set")</dd>
+                    <dt class="text-gray-500">Type</dt><dd>@a.MembershipType</dd>
+                    <dt class="text-gray-500">Submitted</dt><dd>@a.SubmittedDate.ToLocalTime().ToString("d MMMM yyyy, HH:mm")</dd>
+                    @if (isLegacy)
+                    {
+                        <dt class="text-gray-500">Total</dt><dd>@R(a.TotalAmount) <span class="text-gray-500">(submitted on the old form, no breakdown kept)</span></dd>
+                    }
+                    else
+                    {
+                        <dt class="text-gray-500">Membership fee</dt><dd class="tabular-nums">@R(a.MembershipFee)</dd>
+                        <dt class="text-gray-500">Admin fee</dt><dd class="tabular-nums">@(a.AdminFee > 0 ? R(a.AdminFee) : "None (renewal)")</dd>
+                        <dt class="text-gray-500">Total</dt><dd class="tabular-nums font-bold">@R(a.TotalAmount)</dd>
+                    }
+                    <dt class="text-gray-500">Photos on social media</dt><dd>@(a.SocialMediaConsent switch { true => "Allowed", false => "Not allowed", _ => "Not asked" })</dd>
+                    @if (!string.IsNullOrEmpty(a.GuardianName))
+                    {
+                        <dt class="text-gray-500">Parent / guardian</dt><dd>@a.GuardianName</dd>
+                    }
+                    <dt class="text-gray-500">Address</dt>
+                    <dd>@a.StreetAddress@(string.IsNullOrEmpty(a.ComplexOrBuilding) ? "" : $", {a.ComplexOrBuilding}"), @a.Suburb, @a.City, @a.Province, @a.PostalCode</dd>
+                </dl>
+            </section>
+
+            <section class="bg-white rounded-lg shadow overflow-x-auto">
+                <h3 class="font-bold text-gray-900 p-5 pb-2">People on this application</h3>
+                <table class="w-full text-sm">
+                    <thead class="text-left text-gray-600 border-b bg-gray-50">
+                        <tr><th class="p-3">Name</th><th class="p-3">ID number</th><th class="p-3">Contact</th><th class="p-3">SAHFTA no.</th><th class="p-3">Member list</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in a.Members)
+                        {
+                            <tr class="border-b last:border-none align-top">
+                                <td class="p-3">
+                                    @m.FirstName @m.Surname
+                                    @if (m.IsPrimary) { <span class="text-xs text-gray-500">(main contact)</span> }
+                                    @if (m.IsJunior) { <span class="text-xs text-gray-500">(under 18)</span> }
+                                    <div class="text-xs text-gray-500">@m.Gender</div>
+                                </td>
+                                <td class="p-3 tabular-nums">@m.IdNumber</td>
+                                <td class="p-3">@m.ContactNumber<div class="text-xs text-gray-500">@m.EmailAddress</div></td>
+                                <td class="p-3">@(m.SahftaNumber ?? (m.HasSahftaAffiliation ? $"Paid via POLK (R{m.SahftaFee:F2})" : ""))</td>
+                                <td class="p-3">
+                                    @if (m.ClubMember != null)
+                                    {
+                                        <a href="/admin/membership/member/@m.ClubMember.Id" class="text-red-700 hover:underline">Open member</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-gray-500">Added when paid</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="bg-white rounded-lg shadow p-5">
+                <h3 class="font-bold text-gray-900 mb-2">Admin notes</h3>
+                <form method="post" asp-page-handler="Notes" asp-route-id="@a.Id">
+                    <textarea name="notes" rows="3" class="w-full border border-gray-300 rounded-md p-2 text-sm" placeholder="Only admins see this.">@a.AdminNotes</textarea>
+                    <button class="mt-2 px-3 py-1.5 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-sm">Save notes</button>
+                </form>
+            </section>
+        </div>
+
+        <div class="space-y-6">
+            <section class="bg-white rounded-lg shadow p-5">
+                <h3 class="font-bold text-gray-900 mb-2">Payment</h3>
+                @if (a.IsPaid)
+                {
+                    <p class="text-green-700 font-semibold text-lg">Paid @R(a.AmountPaid ?? a.TotalAmount)</p>
+                    <p class="text-sm text-gray-600">on @a.PaidDate?.ToString("d MMMM yyyy") (@(a.PaymentMethod == "EFT" ? "EFT" : "card"))</p>
+                    <form method="post" asp-page-handler="MarkUnpaid" asp-route-id="@a.Id" class="mt-4 border-t pt-3">
+                        <p class="text-xs text-gray-500 mb-2">Marked paid by mistake? This also removes the paid year from the member list.</p>
+                        <button class="text-sm text-red-700 underline">Mark as unpaid</button>
+                    </form>
+                }
+                else
+                {
+                    <p class="text-amber-700 font-semibold text-lg">Unpaid, @R(a.TotalAmount) due</p>
+                    <p class="text-sm text-gray-600">@(a.PaymentMethod == "EFT" ? "Paying by EFT" : "Chose card") &middot; reference <strong>@Model.Reference</strong></p>
+                    <form method="post" asp-page-handler="MarkPaid" asp-route-id="@a.Id" class="mt-4 space-y-3 border-t pt-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700" for="paidOn">Received on</label>
+                            <input id="paidOn" name="paidOn" type="date" value="@Model.Today" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700" for="amount">Amount received (R)</label>
+                            <input id="amount" name="amount" inputmode="decimal" value="@POLK_DOTNET.Pages.AdminMembership.MembershipAdminPage.MoneyInput(a.TotalAmount)" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 tabular-nums" />
+                        </div>
+                        <label class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" name="sendEmail" value="true" checked class="accent-red-700" /> Email the applicant a payment confirmation
+                        </label>
+                        <button class="w-full px-4 py-2 rounded-md bg-green-700 text-white font-semibold hover:bg-green-800">Mark paid</button>
+                        <p class="text-xs text-gray-500">Puts everyone on this application on the member list as paid up for @(a.ShootingYear?.Name ?? "its year").</p>
+                    </form>
+                }
+            </section>
+
+            <section class="bg-white rounded-lg shadow p-5">
+                <h3 class="font-bold text-gray-900 mb-2">Approval</h3>
+                <p class="mb-3 font-semibold @(a.ApprovalStatus switch { "Approved" => "text-green-700", "Rejected" => "text-red-700", _ => "text-gray-700" })">@a.ApprovalStatus</p>
+                @if (a.ApprovalStatus == ApprovalStatuses.Pending)
+                {
+                    <div class="flex gap-2">
+                        <form method="post" asp-page-handler="Approve" asp-route-id="@a.Id"><button class="px-4 py-2 rounded-md bg-red-700 text-white font-semibold hover:bg-red-800">Approve</button></form>
+                        <form method="post" asp-page-handler="Reject" asp-route-id="@a.Id"><button class="px-4 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50">Reject</button></form>
+                    </div>
+                    @if (a.IsPaid)
+                    {
+                        <p class="text-xs text-gray-500 mt-2">Rejecting a paid application removes its paid year from the member list. Any refund is handled separately.</p>
+                    }
+                }
+                else
+                {
+                    <form method="post" asp-page-handler="Reopen" asp-route-id="@a.Id"><button class="text-sm text-red-700 underline">Set back to pending</button></form>
+                }
+            </section>
+        </div>
+    </div>
+</div>
