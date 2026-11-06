@@ -165,6 +165,9 @@ namespace POLK_DOTNET.Services
         /// Returns false when it was already paid (or another request got there first), so
         /// callers never send the confirmation emails twice.
         /// </summary>
+        /// <summary>Ids of unpaid duplicates the last MarkPaidAsync call closed.</summary>
+        public List<int> LastClosedDuplicates { get; private set; } = new();
+
         public async Task<bool> MarkPaidAsync(int applicationId, string source, DateTime? paidDate = null, decimal? amount = null, bool sendEmails = true)
         {
             var application = await _context.MembershipApplications
@@ -188,7 +191,16 @@ namespace POLK_DOTNET.Services
             application.PaidDate = paidDate ?? ClubClock.Now;
             application.AmountPaid = amount ?? application.TotalAmount;
 
+            // Money arrived for an application that had been closed as a duplicate or abandoned
+            // (e.g. a late EFT): it counts after all, so put it back in the admin's queue.
+            if (application.IsClosed)
+            {
+                application.ApprovalStatus = ApprovalStatuses.Pending;
+                application.AddNote($"{ClubClock.Today:d MMM yyyy}: payment received ({source}), so reopened.");
+            }
+
             await RecordMembershipAsync(application, source);
+            LastClosedDuplicates = await CloseDuplicatesOfAsync(application);
 
             try
             {
@@ -209,6 +221,48 @@ namespace POLK_DOTNET.Services
                 await SendPaidEmailsAsync(application);
 
             return true;
+        }
+
+        /// <summary>
+        /// Once an application is paid, earlier unpaid attempts by the same people for the same
+        /// year are leftovers (typically a failed card payment followed by a fresh application),
+        /// so close them instead of leaving them in the "needs action" queue. Only applications
+        /// whose people are all covered by the paid one are closed, so a family application isn't
+        /// closed because one of its members also applied alone. Does not save.
+        /// </summary>
+        public async Task<List<int>> CloseDuplicatesOfAsync(MembershipApplication paid)
+        {
+            var closed = new List<int>();
+            if (paid.ShootingYearId == null) return closed;
+
+            var paidIds = paid.Members
+                .Select(m => ClubMember.NormaliseIdNumber(m.IdNumber))
+                .Where(id => id.Length > 0)
+                .ToHashSet();
+            if (paidIds.Count == 0) return closed;
+
+            var candidates = await _context.MembershipApplications
+                .Include(a => a.Members)
+                .Where(a => a.Id != paid.Id
+                            && a.ShootingYearId == paid.ShootingYearId
+                            && a.PaymentStatus != PaymentStatuses.Paid
+                            && a.ApprovalStatus != ApprovalStatuses.Rejected
+                            && a.ApprovalStatus != ApprovalStatuses.Closed)
+                .ToListAsync();
+
+            foreach (var other in candidates)
+            {
+                var ids = other.Members.Select(m => ClubMember.NormaliseIdNumber(m.IdNumber)).Where(id => id.Length > 0).ToList();
+                if (ids.Count == 0 || !ids.All(paidIds.Contains)) continue;
+
+                other.ApprovalStatus = ApprovalStatuses.Closed;
+                other.AddNote($"{ClubClock.Today:d MMM yyyy}: closed automatically as a duplicate of #{paid.Id}, which was paid.");
+                closed.Add(other.Id);
+            }
+
+            if (closed.Count > 0)
+                _logger.LogInformation("Application {Id} paid; closed unpaid duplicates {Closed}", paid.Id, string.Join(", ", closed));
+            return closed;
         }
 
         /// <summary>

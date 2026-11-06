@@ -93,7 +93,7 @@ namespace POLK_DOTNET.Controllers
 
             if (payload.ExternalTransactionID.StartsWith("APP-", StringComparison.OrdinalIgnoreCase))
             {
-                if (int.TryParse(payload.ExternalTransactionID["APP-".Length..], out var applicationId))
+                if (MembershipCardPaymentService.TryParseExternalReference(payload.ExternalTransactionID, out var applicationId))
                     await MarkApplicationPaidAsync(applicationId, payload);
                 else
                     _logger.LogWarning("iKhokha callback — malformed APP id: {Ext}", payload.ExternalTransactionID);

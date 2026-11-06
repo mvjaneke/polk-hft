@@ -78,5 +78,7 @@ namespace POLK_DOTNET.Data
         public const string Pending = "Pending";
         public const string Approved = "Approved";
         public const string Rejected = "Rejected";
+        /// <summary>Never paid and no longer expected to be: a duplicate attempt or an abandoned application.</summary>
+        public const string Closed = "Closed";
     }
 }

@@ -98,6 +98,14 @@ namespace POLK_DOTNET.Data
         public string AccessToken { get; set; } = Guid.NewGuid().ToString("N");
 
         public bool IsPaid => PaymentStatus == PaymentStatuses.Paid;
+        public bool IsClosed => ApprovalStatus == ApprovalStatuses.Closed;
+
+        /// <summary>Adds a dated line to the admin notes, keeping within the column length.</summary>
+        public void AddNote(string line)
+        {
+            var notes = string.IsNullOrWhiteSpace(AdminNotes) ? line : $"{AdminNotes.TrimEnd()}\n{line}";
+            AdminNotes = notes.Length <= 1000 ? notes : notes[^1000..];
+        }
         public bool HasOpenFlags => !string.IsNullOrWhiteSpace(Flags) && !FlagsReviewed;
         public IEnumerable<string> FlagLines => (Flags ?? string.Empty)
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

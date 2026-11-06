@@ -15,11 +15,15 @@ namespace POLK_DOTNET.Pages
     {
         private readonly ApplicationDbContext _context;
         private readonly MembershipService _membership;
+        private readonly MembershipCardPaymentService _cardPayment;
+        private readonly ILogger<ApplicationSubmittedModel> _logger;
 
-        public ApplicationSubmittedModel(ApplicationDbContext context, MembershipService membership)
+        public ApplicationSubmittedModel(ApplicationDbContext context, MembershipService membership, MembershipCardPaymentService cardPayment, ILogger<ApplicationSubmittedModel> logger)
         {
             _context = context;
             _membership = membership;
+            _cardPayment = cardPayment;
+            _logger = logger;
         }
 
         [BindProperty(SupportsGet = true)]
@@ -35,12 +39,7 @@ namespace POLK_DOTNET.Pages
 
         public async Task<IActionResult> OnGetAsync()
         {
-            if (string.IsNullOrWhiteSpace(Token)) return NotFound();
-
-            var app = await _context.MembershipApplications
-                .Include(a => a.Members)
-                .Include(a => a.ShootingYear)
-                .FirstOrDefaultAsync(a => a.AccessToken == Token);
+            var app = await LoadAsync();
             if (app == null) return NotFound();
 
             Application = app;
@@ -48,5 +47,38 @@ namespace POLK_DOTNET.Pages
             Reference = MembershipService.PaymentReference(app);
             return Page();
         }
+
+        /// <summary>
+        /// "Pay by card" from this page: a new payment link for the same application, so an
+        /// applicant whose card payment failed doesn't have to fill in the form again.
+        /// </summary>
+        public async Task<IActionResult> OnPostPayByCardAsync()
+        {
+            var app = await LoadAsync();
+            if (app == null) return NotFound();
+
+            if (app.IsPaid || app.IsClosed || app.ApprovalStatus == ApprovalStatuses.Rejected || app.TotalAmount <= 0)
+                return RedirectToPage(new { token = app.AccessToken });
+
+            if (app.PaymentMethod != "Card")
+            {
+                app.PaymentMethod = "Card";
+                await _context.SaveChangesAsync();
+            }
+
+            var payUrl = await _cardPayment.CreateAsync(app, $"{Request.Scheme}://{Request.Host}", retry: true);
+            if (payUrl != null) return Redirect(payUrl);
+
+            _logger.LogWarning("Membership application {Id}: no card payment link was returned on retry", app.Id);
+            return RedirectToPage(new { token = app.AccessToken, payment = "unavailable" });
+        }
+
+        private Task<MembershipApplication?> LoadAsync() =>
+            string.IsNullOrWhiteSpace(Token)
+                ? Task.FromResult<MembershipApplication?>(null)
+                : _context.MembershipApplications
+                    .Include(a => a.Members)
+                    .Include(a => a.ShootingYear)
+                    .FirstOrDefaultAsync(a => a.AccessToken == Token);
     }
 }

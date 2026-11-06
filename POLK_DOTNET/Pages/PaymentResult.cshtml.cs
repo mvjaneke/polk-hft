@@ -34,6 +34,10 @@ namespace POLK_DOTNET.Pages
         [BindProperty(SupportsGet = true)]
         public string? Token { get; set; }
 
+        /// <summary>Set on a retried card payment; picks out that attempt's iKhokha reference.</summary>
+        [BindProperty(SupportsGet = true)]
+        public string? Attempt { get; set; }
+
         [BindProperty(SupportsGet = true)]
         public int? RegistrationId { get; set; }
 
@@ -90,7 +94,11 @@ namespace POLK_DOTNET.Pages
                 if (string.Equals(gateway, "Ikhokha", StringComparison.OrdinalIgnoreCase))
                 {
                     IkhokhaStatusResponse? status = null;
-                    try { status = await _ikhokha.GetStatusByExternalTxnAsync($"APP-{applicationId}"); }
+                    try
+                    {
+                        var attempt = Attempt != null && Attempt.Length <= 20 && Attempt.All(char.IsAsciiDigit) ? Attempt : null;
+                        status = await _ikhokha.GetStatusByExternalTxnAsync(MembershipCardPaymentService.ExternalReference(applicationId, attempt));
+                    }
                     catch (Exception ex) { _logger.LogWarning(ex, "Could not check iKhokha status for application {Id}", applicationId); }
 
                     if (status?.IsPaid == true)

@@ -64,6 +64,8 @@ namespace POLK_DOTNET.Pages.AdminMembership
             else
             {
                 Message = $"Marked paid. Everyone on application #{Id} is now on the member list as paid up for its year.";
+                if (_membership.LastClosedDuplicates.Count > 0)
+                    Message += $" Closed the unpaid duplicate{(_membership.LastClosedDuplicates.Count > 1 ? "s" : "")} {string.Join(", ", _membership.LastClosedDuplicates.Select(d => "#" + d))}.";
                 if (sendEmail && _membership.LastConfirmationEmailSent) Message += " The applicant has been emailed.";
                 else if (sendEmail) ErrorMessage = "The payment confirmation email to the applicant could not be sent. Check the email settings, or let them know yourself.";
             }
@@ -109,15 +111,34 @@ namespace POLK_DOTNET.Pages.AdminMembership
             return RedirectToPage(new { Id });
         }
 
+        public async Task<IActionResult> OnPostCloseAsync(string? reason)
+        {
+            var app = await _context.MembershipApplications.FindAsync(Id);
+            if (app == null) return NotFound();
+            if (app.IsPaid)
+            {
+                ErrorMessage = "This application is paid, so it can't be closed. Reject it instead if it shouldn't count.";
+                return RedirectToPage(new { Id });
+            }
+
+            var why = reason switch { "Duplicate" => "a duplicate", "Test" => "a test", _ => "abandoned" };
+            app.ApprovalStatus = ApprovalStatuses.Closed;
+            app.AddNote($"{ClubClock.Today:d MMM yyyy}: closed by admin as {why}.");
+            await _context.SaveChangesAsync();
+            Message = "Application closed. It no longer shows under Needs action or Unpaid.";
+            return RedirectToPage(new { Id });
+        }
+
         public async Task<IActionResult> OnPostReopenAsync()
         {
             var app = await _context.MembershipApplications.Include(a => a.Members).FirstOrDefaultAsync(a => a.Id == Id);
             if (app == null) return NotFound();
+            var wasClosed = app.IsClosed;
             app.ApprovalStatus = ApprovalStatuses.Pending;
             if (app.IsPaid)
                 await _membership.RecordMembershipAsync(app, app.PaymentMethod == "Card" ? "Online" : "EFT");
             await _context.SaveChangesAsync();
-            Message = "Application set back to pending." + (app.IsPaid ? " Its paid year is back on the member list." : "");
+            Message = (wasClosed ? "Application reopened." : "Application set back to pending.") + (app.IsPaid ? " Its paid year is back on the member list." : "");
             return RedirectToPage(new { Id });
         }
 

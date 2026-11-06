@@ -20,7 +20,7 @@ namespace POLK_DOTNET.Pages.AdminMembership
         [BindProperty(SupportsGet = true)]
         public int? YearId { get; set; }
 
-        /// <summary>all, attention, unpaid, paid, flagged, rejected</summary>
+        /// <summary>all, attention, unpaid, paid, flagged, rejected, closed</summary>
         [BindProperty(SupportsGet = true)]
         public string Show { get; set; } = "all";
 
@@ -47,28 +47,34 @@ namespace POLK_DOTNET.Pages.AdminMembership
             var all = await query.ToListAsync();
             all = all.OrderByDescending(a => a.SubmittedDate).ToList();
 
+            // Closed applications (duplicates, abandoned, tests) only show under their own filter.
+            var open = all.Where(a => !a.IsClosed).ToList();
+
             bool Attention(MembershipApplication a) =>
                 a.ApprovalStatus != ApprovalStatuses.Rejected &&
                 (!a.IsPaid || a.HasOpenFlags || a.ApprovalStatus == ApprovalStatuses.Pending);
+            bool Unpaid(MembershipApplication a) => !a.IsPaid && a.ApprovalStatus != ApprovalStatuses.Rejected;
 
             Counts = new Dictionary<string, int>
             {
-                ["all"] = all.Count,
-                ["attention"] = all.Count(Attention),
-                ["unpaid"] = all.Count(a => !a.IsPaid && a.ApprovalStatus != ApprovalStatuses.Rejected),
-                ["paid"] = all.Count(a => a.IsPaid),
-                ["flagged"] = all.Count(a => a.HasOpenFlags),
-                ["rejected"] = all.Count(a => a.ApprovalStatus == ApprovalStatuses.Rejected),
+                ["all"] = open.Count,
+                ["attention"] = open.Count(Attention),
+                ["unpaid"] = open.Count(Unpaid),
+                ["paid"] = open.Count(a => a.IsPaid),
+                ["flagged"] = open.Count(a => a.HasOpenFlags),
+                ["rejected"] = open.Count(a => a.ApprovalStatus == ApprovalStatuses.Rejected),
+                ["closed"] = all.Count(a => a.IsClosed),
             };
 
             Applications = Show switch
             {
-                "attention" => all.Where(Attention).ToList(),
-                "unpaid" => all.Where(a => !a.IsPaid && a.ApprovalStatus != ApprovalStatuses.Rejected).ToList(),
-                "paid" => all.Where(a => a.IsPaid).ToList(),
-                "flagged" => all.Where(a => a.HasOpenFlags).ToList(),
-                "rejected" => all.Where(a => a.ApprovalStatus == ApprovalStatuses.Rejected).ToList(),
-                _ => all
+                "attention" => open.Where(Attention).ToList(),
+                "unpaid" => open.Where(Unpaid).ToList(),
+                "paid" => open.Where(a => a.IsPaid).ToList(),
+                "flagged" => open.Where(a => a.HasOpenFlags).ToList(),
+                "rejected" => open.Where(a => a.ApprovalStatus == ApprovalStatuses.Rejected).ToList(),
+                "closed" => all.Where(a => a.IsClosed).ToList(),
+                _ => open
             };
         }
     }

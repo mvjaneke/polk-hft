@@ -102,6 +102,15 @@ This document summarizes the recent changes and current state of the POLK_DOTNET
 *   **Resolution:** With iKhokha, the payment-return page now asks the gateway before marking an application paid; otherwise the signed webhook does it. The lookup API was removed. *Not yet changed:* event registrations still trust the success link, and the Yoco webhook is not signature-checked.
 *   **Status:** **FIXED** (membership only)
 
+### 19. Duplicate Applications After a Failed Card Payment
+*   **Issue:** After the first live renewals, the applications list filled with unpaid leftovers. A failed or cancelled card payment only offered EFT, so applicants who wanted to pay by card filled in the form again. Each try created a new application (Leon Booyens: #7 and #8 unpaid, then #9 paid). There was also no way to clear old dead applications from "Needs action" and "Unpaid".
+*   **Resolution:**
+    *   The applicant's confirmation page has a **Pay by card** button ("Try again" after a failure). It makes a new payment link for the *same* application. Each retry gets its own iKhokha reference (`APP-{id}-{yyMMddHHmmss}`), so the status check reads that attempt and not the failed one. The webhook accepts both reference forms.
+    *   New approval status **Closed**. When an application is paid, unpaid applications for the same year whose people are all on the paid one are closed automatically, with a note. A family application isn't closed because one member also applied alone. A one-time startup sweep (setting `Membership:DuplicatesSwept`) closed the leftovers already on the live site.
+    *   The admin application page has **Close application** (duplicate / abandoned / test) for unpaid ones, and **Reopen**. Closed applications are left out of every count and only show under a new **Closed** filter. Nothing is deleted. If a payment still arrives for a closed one, it reopens itself.
+    *   The applicant's page for a closed application says nothing is due, and shows no payment details.
+*   **Status:** **FIXED**
+
 ## Important Development Notes:
 
 *   **Alpine.js Usage:** **Do NOT use Alpine.js for any new or existing frontend functionality in this project.** All new UI features or fixes must strictly adhere to a pure HTML/CSS and Razor Pages approach, utilizing server-side rendering and postbacks. Previous reliance on Alpine.js has caused significant debugging challenges and broken existing functionality.

@@ -12,6 +12,7 @@
         ("paid", "Paid"),
         ("flagged", "To check"),
         ("rejected", "Rejected"),
+        ("closed", "Closed"),
     };
 }
 
@@ -88,6 +89,11 @@
                                 <span class="text-green-700 font-semibold">Paid</span>
                                 <div class="text-xs text-gray-500">@a.PaidDate?.ToString("d MMM yyyy")</div>
                             }
+                            else if (a.IsClosed)
+                            {
+                                <span class="text-gray-500 font-semibold">Not due</span>
+                                <div class="text-xs text-gray-500">Closed</div>
+                            }
                             else
                             {
                                 <span class="text-amber-700 font-semibold">Unpaid</span>
@@ -95,10 +101,10 @@
                             }
                         </td>
                         <td class="p-3">
-                            <span class="@(a.ApprovalStatus switch { "Approved" => "text-green-700", "Rejected" => "text-red-700", _ => "text-gray-600" })">@a.ApprovalStatus</span>
+                            <span class="@(a.ApprovalStatus switch { "Approved" => "text-green-700", "Rejected" => "text-red-700", "Closed" => "text-gray-400", _ => "text-gray-600" })">@a.ApprovalStatus</span>
                         </td>
                         <td class="p-3">
-                            @if (a.HasOpenFlags)
+                            @if (a.HasOpenFlags && !a.IsClosed)
                             {
                                 <span class="inline-block px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-xs font-semibold" title="@string.Join(" | ", a.FlagLines)">To check</span>
                             }

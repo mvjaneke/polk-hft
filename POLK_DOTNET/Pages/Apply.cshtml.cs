@@ -20,16 +20,14 @@ namespace POLK_DOTNET.Pages
 
         private readonly ApplicationDbContext _context;
         private readonly MembershipService _membership;
-        private readonly YocoCheckoutService _yoco;
-        private readonly IkhokhaPaymentService _ikhokha;
+        private readonly MembershipCardPaymentService _cardPayment;
         private readonly ILogger<ApplyModel> _logger;
 
-        public ApplyModel(ApplicationDbContext context, MembershipService membership, YocoCheckoutService yoco, IkhokhaPaymentService ikhokha, ILogger<ApplyModel> logger)
+        public ApplyModel(ApplicationDbContext context, MembershipService membership, MembershipCardPaymentService cardPayment, ILogger<ApplyModel> logger)
         {
             _context = context;
             _membership = membership;
-            _yoco = yoco;
-            _ikhokha = ikhokha;
+            _cardPayment = cardPayment;
             _logger = logger;
         }
 
@@ -150,7 +148,7 @@ namespace POLK_DOTNET.Pages
 
             if (application.PaymentMethod == "Card" && application.TotalAmount > 0)
             {
-                var payUrl = await CreateCardPaymentAsync(application, baseUrl);
+                var payUrl = await _cardPayment.CreateAsync(application, baseUrl);
                 if (payUrl != null) return Redirect(payUrl);
 
                 _logger.LogWarning("Membership application {Id}: no card payment link was returned", application.Id);
@@ -158,42 +156,6 @@ namespace POLK_DOTNET.Pages
             }
 
             return RedirectToPage("/ApplicationSubmitted", new { token = application.AccessToken });
-        }
-
-        private async Task<string?> CreateCardPaymentAsync(MembershipApplication application, string baseUrl)
-        {
-            var id = application.Id;
-            var t = application.AccessToken;
-            var successUrl = $"{baseUrl}/payment-result?status=success&applicationId={id}&token={t}";
-            var cancelUrl = $"{baseUrl}/payment-result?status=cancelled&applicationId={id}&token={t}";
-            var failureUrl = $"{baseUrl}/payment-result?status=failed&applicationId={id}&token={t}";
-            var description = $"POLK Membership {application.ShootingYear?.Name} #{id}";
-
-            try
-            {
-                var gateway = (await _membership.GetSettingAsync("PaymentGateway")) ?? "Ikhokha";
-                if (string.Equals(gateway, "Ikhokha", StringComparison.OrdinalIgnoreCase))
-                {
-                    var link = await _ikhokha.CreatePaymentLinkAsync(
-                        application.TotalAmount, description,
-                        externalTransactionId: $"APP-{id}",
-                        requesterUrl: baseUrl,
-                        callbackUrl: $"{baseUrl}/api/ikhokha/callback",
-                        successPageUrl: successUrl,
-                        failurePageUrl: failureUrl,
-                        cancelUrl: cancelUrl);
-                    return string.IsNullOrEmpty(link?.PaylinkUrl) ? null : link!.PaylinkUrl;
-                }
-
-                var checkout = await _yoco.CreateCheckoutAsync(application.TotalAmount, description, successUrl, cancelUrl, failureUrl,
-                    new Dictionary<string, string> { { "applicationId", id.ToString() } });
-                return string.IsNullOrEmpty(checkout?.RedirectUrl) ? null : checkout!.RedirectUrl;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Membership application {Id}: creating the card payment failed", id);
-                return null;
-            }
         }
 
         private async Task LoadAsync()

@@ -5,6 +5,9 @@
     ViewData["Title"] = "Membership Application";
     var a = Model.Application;
     var paid = a.IsPaid;
+    var closed = !paid && a.IsClosed;
+    var canPay = !paid && !closed && a.ApprovalStatus != POLK_DOTNET.Data.ApprovalStatuses.Rejected;
+    var cardRetry = Model.Payment is "cancelled" or "failed" || (a.PaymentMethod == "Card" && Model.Payment == null);
     var primary = a.Members.FirstOrDefault(m => m.IsPrimary) ?? a.Members.FirstOrDefault();
     string R(decimal v) => MembershipService.Money(v);
 }
@@ -13,6 +16,7 @@
     .ticket { background: #fff; border-radius: 0.875rem; box-shadow: 0 1px 2px rgba(17,24,39,.06), 0 8px 24px rgba(127,29,29,.10); overflow: hidden; }
     .ticket-head { background: #991b1b; color: #fff; padding: 1.25rem 1.5rem 1.125rem; }
     .ticket-head.paid { background: #166534; }
+    .ticket-head.closed { background: #6b7280; }
     .ticket-club { font-size: 0.875rem; color: rgba(255,255,255,.75); }
     .ticket-year { font-size: 2.25rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; }
     .ticket-dates { font-size: 0.875rem; color: rgba(255,255,255,.85); margin-top: 0.25rem; }
@@ -40,6 +44,11 @@
                 <h1 class="text-3xl md:text-4xl font-bold text-gray-900">You're a paid-up member</h1>
                 <p class="text-gray-600 mt-2 text-lg">Thank you@(primary != null ? $", {primary.FirstName}" : ""). Your payment has been received and a confirmation has been emailed to you.</p>
             }
+            else if (closed)
+            {
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900">This application is closed</h1>
+                <p class="text-gray-600 mt-2 text-lg">It was replaced by a later application, or no payment came through for it. Nothing is due on it. If you think that's a mistake, email <a class="text-red-700 underline" href="mailto:@Model.Bank.ProofOfPaymentEmail?subject=Application @a.Id">@Model.Bank.ProofOfPaymentEmail</a>.</p>
+            }
             else
             {
                 <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Application received</h1>
@@ -47,13 +56,13 @@
             }
         </header>
 
-        @if (!paid)
+        @if (canPay)
         {
             var notice = Model.Payment switch
             {
                 "pending" => ("Confirming your card payment", "The payment page sent you back before your bank confirmed the payment. This usually takes a minute or two; you'll get an email when it's through. You don't need to pay again."),
-                "cancelled" => ("Card payment cancelled", "Your application is saved. You can pay by EFT using the details below."),
-                "failed" => ("Card payment didn't go through", "Your application is saved and nothing was charged. Please pay by EFT using the details below."),
+                "cancelled" => ("Card payment cancelled", "Nothing was charged and your application is saved. Try the card again or pay by EFT below; you don't need to apply again."),
+                "failed" => ("Card payment didn't go through", "Nothing was charged and your application is saved. Try the card again or pay by EFT below; you don't need to apply again."),
                 "unavailable" => ("Card payment isn't available right now", "Your application is saved. Please pay by EFT using the details below."),
                 _ => ((string, string)?)null
             };
@@ -67,8 +76,8 @@
         }
 
         <div class="ticket">
-            <div class="ticket-head @(paid ? "paid" : "")">
-                <p class="ticket-club">POLK membership @(paid ? "· paid" : "· awaiting payment")</p>
+            <div class="ticket-head @(paid ? "paid" : closed ? "closed" : "")">
+                <p class="ticket-club">POLK membership @(paid ? "· paid" : closed ? "· closed" : "· awaiting payment")</p>
                 <p class="ticket-year">@(a.ShootingYear?.Name ?? a.MembershipType)</p>
                 @if (a.ShootingYear != null)
                 {
@@ -87,12 +96,23 @@
             </div>
             <div class="ticket-tear" aria-hidden="true"><i></i></div>
             <div class="ticket-total">
-                <span class="text-gray-600">@(paid ? "Paid" : "Total due")</span>
-                <strong>@R(paid ? (a.AmountPaid ?? a.TotalAmount) : a.TotalAmount)</strong>
+                <span class="text-gray-600">@(paid ? "Paid" : closed ? "Nothing due" : "Total due")</span>
+                <strong class="@(closed ? "text-gray-400 line-through" : "")">@R(paid ? (a.AmountPaid ?? a.TotalAmount) : a.TotalAmount)</strong>
             </div>
         </div>
 
-        @if (!paid && Model.Payment != "pending")
+        @if (canPay && Model.Payment is not ("pending" or "unavailable"))
+        {
+            <section class="bg-white rounded-xl shadow p-6">
+                <h2 class="text-lg font-bold text-gray-900 mb-1">Pay by card</h2>
+                <p class="text-gray-600 mb-4">You'll go to the secure card payment page and come back here when it's done.</p>
+                <form method="post" asp-page-handler="PayByCard" asp-route-token="@a.AccessToken">
+                    <button class="w-full sm:w-auto px-6 py-3 rounded-lg bg-red-700 text-white font-semibold hover:bg-red-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-300">@(cardRetry ? "Try again: pay" : "Pay") @R(a.TotalAmount) by card</button>
+                </form>
+            </section>
+        }
+
+        @if (canPay && Model.Payment != "pending")
         {
             <section class="bg-white rounded-xl shadow p-6 bank-box">
                 <h2 class="text-lg font-bold text-gray-900 mb-1">Pay by EFT</h2>

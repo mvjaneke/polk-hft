@@ -29,6 +29,7 @@ builder.Services.AddScoped<ScorecardPdfService>();
 builder.Services.AddScoped<ExcelExportService>();
 builder.Services.AddScoped<SahftaMembersClient>();
 builder.Services.AddScoped<MembershipService>();
+builder.Services.AddScoped<MembershipCardPaymentService>();
 builder.Services.AddScoped<MembershipReminderService>();
 builder.Services.AddHostedService<MembershipReminderBackgroundService>();
 

@@ -67,6 +67,27 @@ namespace POLK_DOTNET.Services
             }
             if (paidUnlisted.Count > 0)
                 logger.LogInformation("Membership: added people from {Count} earlier paid application(s) to the member list", paidUnlisted.Count);
+
+            // 4. Once only: close unpaid duplicates left behind before paying closed them
+            //    automatically. A flag, not every startup, so an admin who reopens one keeps it open.
+            const string sweptKey = "Membership:DuplicatesSwept";
+            if (!await context.SiteSettings.AnyAsync(s => s.Key == sweptKey))
+            {
+                var paidApps = await context.MembershipApplications
+                    .Include(a => a.Members)
+                    .Where(a => a.PaymentStatus == PaymentStatuses.Paid && a.ApprovalStatus != ApprovalStatuses.Rejected)
+                    .OrderBy(a => a.SubmittedDate)
+                    .ToListAsync();
+                var closed = 0;
+                foreach (var app in paidApps)
+                {
+                    closed += (await membership.CloseDuplicatesOfAsync(app)).Count;
+                    await context.SaveChangesAsync();
+                }
+                context.SiteSettings.Add(new SiteSettings { Key = sweptKey, Value = ClubClock.Now.ToString("yyyy-MM-dd HH:mm") });
+                await context.SaveChangesAsync();
+                logger.LogInformation("Membership: closed {Count} unpaid duplicate application(s)", closed);
+            }
         }
 
         private static ShootingYear NewYear(string name, int startYear) => new()
