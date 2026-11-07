@@ -99,7 +99,7 @@ This document summarizes the recent changes and current state of the POLK_DOTNET
 
 ### 18. Security Fixes in the Membership Flow
 *   **Issue:** Visiting `/payment-result?status=success&applicationId=N` marked any application paid. `/api/members/check-existence` told anyone whether an ID number belonged to a member.
-*   **Resolution:** With iKhokha, the payment-return page now asks the gateway before marking an application paid; otherwise the signed webhook does it. The lookup API was removed. *Not yet changed:* event registrations still trust the success link, and the Yoco webhook is not signature-checked.
+*   **Resolution:** With iKhokha, the payment-return page now asks the gateway before marking an application paid; otherwise the signed webhook does it. The lookup API was removed. Event bookings got the same fix later (item 20). *Not yet changed:* the Yoco webhook is not signature-checked.
 *   **Status:** **FIXED** (membership only)
 
 ### 19. Duplicate Applications After a Failed Card Payment
@@ -110,6 +110,11 @@ This document summarizes the recent changes and current state of the POLK_DOTNET
     *   The admin application page has **Close application** (duplicate / abandoned / test) for unpaid ones, and **Reopen**. Closed applications are left out of every count and only show under a new **Closed** filter. Nothing is deleted. If a payment still arrives for a closed one, it reopens itself.
     *   The applicant's page for a closed application says nothing is due, and shows no payment details.
 *   **Status:** **FIXED**
+
+### 20. Event Bookings No Longer Marked Paid by the Success Link Alone
+*   **Issue:** Visiting `/payment-result?status=success&registrationId=N` marked any event booking paid and sent the "payment confirmed" email, without any payment.
+*   **Resolution:** With iKhokha, the return page now asks iKhokha for the status of `EVT-{id}` and only marks the booking paid if iKhokha says it is. Otherwise it shows "Confirming your payment" and leaves the booking for the signed iKhokha webhook, which already marks bookings paid. With Yoco selected, the old behaviour stays: there is no status check, and the Yoco webhook doesn't handle event bookings.
+*   **Status:** **FIXED** (iKhokha)
 
 ## Important Development Notes:
 

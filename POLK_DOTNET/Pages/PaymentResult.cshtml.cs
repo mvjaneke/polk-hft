@@ -51,28 +51,51 @@ namespace POLK_DOTNET.Pages
             if (Status != "success") return Page();
 
             if (RegistrationId.HasValue)
-            {
-                var reg = await _context.EventRegistrations
-                    .Include(r => r.Event)
-                    .Include(r => r.Participants)
-                    .FirstOrDefaultAsync(r => r.Id == RegistrationId.Value);
-
-                if (reg != null)
-                {
-                    EventTitle = reg.Event?.Title;
-
-                    if (reg.Status != "Paid")
-                    {
-                        reg.Status = "Paid";
-                        if (reg.Event != null)
-                            reg.AmountPaid = EventFeeCalculator.ForBooking(reg.Event, reg);
-                        await _context.SaveChangesAsync();
-                        await SendEventPaymentEmailsAsync(reg);
-                    }
-                }
-            }
+                await HandleEventAsync(RegistrationId.Value);
 
             return Page();
+        }
+
+        /// <summary>
+        /// Card payment return for an event booking. As with membership, the return URL is not
+        /// proof of payment (anyone can type it): with iKhokha the booking is only marked paid
+        /// once the gateway confirms it. If it hasn't yet, the page says so and the signed
+        /// webhook marks it paid when the confirmation arrives.
+        /// </summary>
+        private async Task HandleEventAsync(int registrationId)
+        {
+            var reg = await _context.EventRegistrations
+                .Include(r => r.Event)
+                .Include(r => r.Participants)
+                .FirstOrDefaultAsync(r => r.Id == registrationId);
+            if (reg == null) return;
+
+            EventTitle = reg.Event?.Title;
+            if (reg.Status == "Paid") return;
+
+            var gateway = (await _membership.GetSettingAsync("PaymentGateway")) ?? "Ikhokha";
+            if (string.Equals(gateway, "Ikhokha", StringComparison.OrdinalIgnoreCase))
+            {
+                IkhokhaStatusResponse? status = null;
+                try { status = await _ikhokha.GetStatusByExternalTxnAsync($"EVT-{registrationId}"); }
+                catch (Exception ex) { _logger.LogWarning(ex, "Could not check iKhokha status for event registration {Id}", registrationId); }
+
+                if (status?.IsPaid != true)
+                {
+                    _logger.LogInformation("Event registration {Id}: return page reached but iKhokha has not confirmed payment (status {Status}); leaving it to the webhook",
+                        registrationId, status?.Status ?? "unknown");
+                    Status = "pending";
+                    return;
+                }
+            }
+            // Yoco has no status check wired up here and no webhook for event bookings; keep the previous behaviour.
+
+            reg.Status = "Paid";
+            if (reg.Event != null)
+                reg.AmountPaid = EventFeeCalculator.ForBooking(reg.Event, reg);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Event registration {Id} marked Paid from the payment return page ({Gateway})", registrationId, gateway);
+            await SendEventPaymentEmailsAsync(reg);
         }
 
         /// <summary>

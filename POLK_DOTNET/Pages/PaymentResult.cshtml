@@ -16,6 +16,16 @@
             <h1 class="text-3xl font-bold text-gray-900 mb-4">Payment Successful</h1>
             <p class="text-gray-600 mb-6">Thank you! Your payment has been received. You will receive a confirmation email shortly.</p>
         }
+        else if (Model.Status == "pending")
+        {
+            <div class="text-amber-500 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">Confirming your payment</h1>
+            <p class="text-gray-600 mb-6">Your bank hasn't confirmed the payment@(Model.EventTitle != null ? $" for {Model.EventTitle}" : "") yet. This usually takes a minute or two, and you'll get a confirmation email when it's through. You don't need to pay again.</p>
+        }
         else if (Model.Status == "cancelled")
         {
             <div class="text-yellow-500 mb-4">
